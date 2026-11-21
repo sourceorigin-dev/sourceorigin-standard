@@ -1,0 +1,120 @@
+# Continuous integration for sourceorigin-standard. Jobs group the `just`
+# validation recipes by what they compile, so each compilation happens once
+# per job:
+#
+#   checks -> fmt-check, audit, unused, which compile nothing
+#   rust   -> lint, doc, test, doc-test, and package, which builds the crate
+#             from its package as crates.io would, without uploading it
+#
+# Pull requests run only the jobs whose inputs changed (see `changes`). Pushes
+# to main and manual runs run everything. `ci` is the single status to
+# require: it fails if any job failed and passes when the rest succeeded or
+# were skipped. audit.yml audits new advisories weekly.
+#
+# The Rust cache is saved from main only: GitHub scopes a cache to the branch
+# that saved it, and every other branch can read main's, so a pull request
+# never evicts it with a copy no other branch can read.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Incremental artifacts only bloat CI caches; restored dependency builds
+  # make up for the lost reuse.
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: short
+  NEXTEST_PROFILE: ci
+
+jobs:
+  # Decides which jobs a pull request needs from the paths it changes. The
+  # filters live in .github/filters.yml, which `just check-changed` reads too.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      rust: ${{ github.event_name != 'pull_request' || steps.filter.outputs.rust == 'true' }}
+      deny: ${{ github.event_name != 'pull_request' || steps.filter.outputs.deny == 'true' }}
+    steps:
+      # The filters file only: the action lists the changed paths through
+      # the GitHub API.
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/filters.yml
+          sparse-checkout-cone-mode: false
+      - if: github.event_name == 'pull_request'
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: .github/filters.yml
+
+  checks:
+    name: checks
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.deny == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2
+        with:
+          tool: just,cargo-deny,cargo-machete
+      - run: just fmt-check
+      - run: just audit
+      - run: just unused
+
+  rust:
+    name: rust
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2
+        with:
+          tool: just,cargo-nextest
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: just lint
+      - run: just doc
+      - run: just test
+      - run: just doc-test
+      - run: just package
+
+  ci:
+    name: ci
+    if: always()
+    needs:
+      - changes
+      - checks
+      - rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          allowed-skips: checks, rust
+          jobs: ${{ toJSON(needs) }}

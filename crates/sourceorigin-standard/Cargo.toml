@@ -1,0 +1,15 @@
+[package]
+name = "sourceorigin-standard"
+description = "The engineering standard of piqueld, sourceorigin and DirkEngine as checks a repository's `cargo xtask` runs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["xtask", "lint", "ci", "standard"]
+categories = ["development-tools", "development-tools::testing"]
+
+[dependencies]
+
+[lints]
+workspace = true

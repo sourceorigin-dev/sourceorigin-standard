@@ -1,3 +1,7 @@
-# sourceorigin-xtask
+# sourceorigin-standard
 
-Shared `cargo xtask` checks for the engineering standard that piqueld, sourceorigin and DirkEngine follow: `check-changed` and `test-waits`.
+The engineering standard of piqueld, sourceorigin and DirkEngine, as code: each rule is enforced by a check rather than stated in prose. Each repository's `cargo xtask` depends on the [`sourceorigin-standard`](crates/sourceorigin-standard) crate and runs its checks.
+
+Contributors start with [AGENTS.md](AGENTS.md).
+
+Licensed under [Apache-2.0](LICENSE).
