@@ -23,6 +23,11 @@
       "icon": "test"
     },
     {
+      "name": "Check Changes",
+      "command": "just check-changed",
+      "icon": "test"
+    },
+    {
       "name": "Validate Workspace",
       "command": "just validate",
       "icon": "test"

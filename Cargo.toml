@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["crates/*", "tools/*"]
 
 [workspace.package]
 version = "0.1.0"
@@ -9,6 +9,23 @@ license = "Apache-2.0"
 repository = "https://github.com/sourceorigin-dev/sourceorigin-xtask"
 
 [workspace.dependencies]
+sourceorigin-xtask = { path = "crates/sourceorigin-xtask", version = "0.1.0" }
+
+# The error chain at the edge of this repository's own xtask; the library
+# returns `thiserror` errors.
+anyhow = "1.0.100"
+# Path globs; with `literal_separator`, they match as paths-filter's picomatch
+# does with `dot: true`. Its only default feature is logging.
+globset = { version = "0.4.21", default-features = false }
+# `cargo metadata`'s JSON.
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+# Scratch git repositories in tests.
+tempfile = "3.27.0"
+thiserror = "2.0.18"
+# Pure Rust, and it resolves the YAML anchors filters reuse each other with.
+# Its only default feature decodes non-UTF-8 input, which a string never is.
+yaml-rust2 = { version = "0.13.2", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

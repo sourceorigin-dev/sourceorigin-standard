@@ -8,6 +8,8 @@ it. The crate holds everything generic, so the three never drift apart.
 
 - `crates/sourceorigin-xtask`: the published library. Its README is its
   documentation and shows how a repository's xtask uses it.
+- `tools/xtask`: this repository's own `cargo xtask`, which uses the crate
+  as the other repositories do.
 
 Terms that are easy to mix up:
 
@@ -42,11 +44,18 @@ standard to this repository.
 
 ## Validation
 
-`just validate` (or `just` alone) formats the code and runs the lints, tests,
-docs, audits and the publish dry run. The workspace is small, so run it
-before handing work back. While iterating, run only what you changed, such as
+`just check-changed [branch]` runs CI's checks for only what changed since
+the merge base with `origin/main` (or the branch named), counting uncommitted
+and untracked files; it is this crate's own feature, through `tools/xtask`.
+Run it before handing work back. `just validate` (or `just` alone) formats
+the code and runs every check: run it when a change is workspace-wide or
+when asked. While iterating, run only what you changed, such as
 `just test -p sourceorigin-xtask`. If a step can't run, report the exact
 command and why.
+
+`tools/xtask/src/ci.rs` describes `.github/workflows/ci.yml` for
+`check-changed`: change the two together, as its `ci_matches_the_workflow`
+test fails until they agree.
 
 A new worktree runs `just setup-worktree`, which builds the workspace. While
 `target/worktree-setup/running` names a live process, wait for it. If

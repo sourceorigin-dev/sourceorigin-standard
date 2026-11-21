@@ -31,11 +31,10 @@ lint:
     done
 
 # Arguments replace `--workspace`, such as `just test -p sourceorigin-xtask`.
-# `--no-tests=warn` only until the crate has its first test.
 # The tests; arguments go on to nextest.
 [positional-arguments]
 test *ARGS='--workspace':
-    @cargo nextest run --locked --no-tests=warn "$@"
+    @cargo nextest run --locked "$@"
 
 # Rustdoc warnings, such as broken intra-doc links, fail the build.
 doc:
@@ -51,6 +50,14 @@ audit:
 # Dependencies a crate declares but never names.
 unused:
     @cargo machete
+
+# tools/xtask/src/ci.rs maps each CI job to its recipes; none is left to CI,
+# as every one is quick.
+# CI's checks, for only what changed since the merge base with a branch
+# (origin/main unless named), counting uncommitted and untracked files.
+[positional-arguments]
+check-changed *ARGS:
+    @cargo xtask check-changed "$@"
 
 # Packages the crate and builds it from its package, as crates.io would, without
 # uploading anything. The owner publishes; see docs/dev/rust-conventions.md.
