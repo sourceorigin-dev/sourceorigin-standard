@@ -20,7 +20,8 @@ fmt-check:
 # The workspace pass unifies features across crates, so a crate can compile
 # there only because another crate enables a feature it needs: linting each
 # crate alone catches that.
-# Clippy with warnings denied: the workspace, then each crate alone.
+# Clippy with warnings denied: the workspace, then each crate alone, then
+# tests that wait on the clock (docs/dev/rust-conventions.md).
 lint:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -29,6 +30,7 @@ lint:
     for manifest in crates/*/Cargo.toml tools/*/Cargo.toml; do
         cargo clippy --locked --manifest-path "$manifest" --all-targets -- -D warnings
     done
+    cargo xtask test-waits
 
 # Arguments replace `--workspace`, such as `just test -p sourceorigin-xtask`.
 # The tests; arguments go on to nextest.

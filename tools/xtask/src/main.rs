@@ -1,6 +1,7 @@
-//! sourceorigin-xtask's own development tasks, run with `cargo xtask`. It
-//! uses the crate as piqueld, sourceorigin and DirkEngine do, so this
-//! repository runs the checks it ships.
+//! sourceorigin-xtask's own development tasks, run with `cargo xtask`:
+//! `check-changed [base]` and `test-waits`. It uses the crate as piqueld,
+//! sourceorigin and DirkEngine do, so this repository runs the checks it
+//! ships.
 
 mod ci;
 
@@ -29,6 +30,12 @@ fn main() -> Result<ExitCode> {
                 .run(root(), base)
                 .context("check what changed since the merge base")
         }
-        _ => bail!("usage: cargo xtask check-changed [base]"),
+        ["test-waits"] => {
+            sourceorigin_xtask::test_waits::run(root())
+                .context("check that tests wait for events")?;
+            println!("No test waits on the clock.");
+            Ok(ExitCode::SUCCESS)
+        }
+        _ => bail!("usage: cargo xtask check-changed [base] | cargo xtask test-waits"),
     }
 }

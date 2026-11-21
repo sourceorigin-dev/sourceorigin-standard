@@ -240,8 +240,10 @@ name = "sourceorigin-xtask"
 version = "0.1.0"
 dependencies = [
  "globset",
+ "proc-macro2",
  "serde",
  "serde_json",
+ "syn",
  "tempfile",
  "thiserror",
  "yaml-rust2",

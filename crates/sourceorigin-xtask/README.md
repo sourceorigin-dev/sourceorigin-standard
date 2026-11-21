@@ -142,6 +142,38 @@ check-changed *ARGS:
     @cargo xtask check-changed "$@"
 ```
 
+## `test-waits`
+
+Tests wait for events, not time. [`test_waits::run`] parses every Rust file
+git tracks or would track, except those `.gitattributes` marks
+`linguist-generated`, and fails listing each call in test code to
+`std::thread::sleep`, `tokio::time::sleep` or `tokio::time::sleep_until`,
+however it is imported, macros included. Test code is a `tests.rs` file, a
+file under a `tests/` directory, a module declared under `#[cfg(test)]`, and
+any item under `#[cfg(test)]` or a test attribute.
+
+A sleep passes when tokio's time is paused, by
+`#[tokio::test(start_paused = true)]` or an earlier `tokio::time::pause()`,
+which makes tokio's sleeps instant, or when the comment directly above it
+says why the test waits on the clock:
+
+```rust,ignore
+// wall-clock: the child process signals nothing when it is ready.
+std::thread::sleep(Duration::from_millis(50));
+```
+
+The repository's xtask runs it as `cargo xtask test-waits`, and `just lint`
+runs that:
+
+```rust,no_run
+# use std::path::Path;
+let root = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+sourceorigin_xtask::test_waits::run(root)?;
+# Ok::<(), sourceorigin_xtask::test_waits::Error>(())
+```
+
+[`test_waits::run`]: https://docs.rs/sourceorigin-xtask/latest/sourceorigin_xtask/test_waits/fn.run.html
+
 ## Requirements
 
 - `.github/workflows/ci.yml` has a `changes` job whose dorny/paths-filter
@@ -153,3 +185,5 @@ check-changed *ARGS:
   rejected rather than matched differently.
 - The repository's root is its Cargo workspace's root, and `just` and `git`
   are installed.
+- `test-waits` reads files as the newest syn parses them, so a file only a
+  newer Rust can parse fails to parse until the crate updates syn.

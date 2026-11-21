@@ -36,6 +36,13 @@ outgrow one read. A test proves one behaviour and is named for it. Glob
 semantics are tested against what dorny/paths-filter does, case by case, with
 the version each case was checked against.
 
+Tests wait for events, not time: no `thread::sleep` or `tokio::time::sleep`
+to let something happen. Await the channel or state change that marks the
+milestone, and move time with `#[tokio::test(start_paused = true)]`. A wait
+on a real subprocess says why on the line above, with
+`// wall-clock: <why>`. `cargo xtask test-waits`, which `just lint` runs,
+enforces this.
+
 ## Releasing
 
 The owner publishes to crates.io. `just package` packages the crate and

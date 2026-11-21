@@ -53,6 +53,10 @@ when asked. While iterating, run only what you changed, such as
 `just test -p sourceorigin-xtask`. If a step can't run, report the exact
 command and why.
 
+`just lint` also runs `cargo xtask test-waits`, which fails on a sleep in a
+test that neither runs on paused tokio time nor says why on the line above
+(`// wall-clock: <why>`); docs/dev/rust-conventions.md has the rule.
+
 `tools/xtask/src/ci.rs` describes `.github/workflows/ci.yml` for
 `check-changed`: change the two together, as its `ci_matches_the_workflow`
 test fails until they agree.
