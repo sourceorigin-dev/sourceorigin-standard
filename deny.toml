@@ -1,0 +1,24 @@
+[advisories]
+version = 2
+# Each ignored advisory gets a comment saying why it doesn't apply and what
+# ends the ignore.
+ignore = []
+
+[licenses]
+version = 2
+# Permissive licenses only, compatible with distributing this crate under
+# Apache-2.0.
+allow = ["Apache-2.0", "MIT"]
+
+[bans]
+# A `*` requirement accepts any future release, breaking or malicious.
+# Workspace crates name their version, so they don't count as one.
+wildcards = "deny"
+# Duplicates come from dependencies' own requirements, which this workspace
+# can't change; a warning shows them without failing the audit.
+multiple-versions = "warn"
+
+# Crates come from crates.io only: never another registry or a Git repository.
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

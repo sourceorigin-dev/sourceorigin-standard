@@ -1,0 +1,31 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "scripts": [
+    {
+      "name": "Setup Worktree",
+      "command": "just setup-worktree",
+      "icon": "configure",
+      "runOnWorktreeCreate": true
+    },
+    {
+      "name": "Format Workspace",
+      "command": "just fmt",
+      "icon": "configure"
+    },
+    {
+      "name": "Lint Workspace",
+      "command": "just lint",
+      "icon": "lint"
+    },
+    {
+      "name": "Test Workspace",
+      "command": "just test",
+      "icon": "test"
+    },
+    {
+      "name": "Validate Workspace",
+      "command": "just validate",
+      "icon": "test"
+    }
+  ]
+}

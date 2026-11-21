@@ -1,0 +1,15 @@
+[package]
+name = "sourceorigin-xtask"
+description = "Shared `cargo xtask` checks: CI's quick checks for only what changed, and tests that wait on the clock"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["xtask", "ci", "github-actions", "paths-filter"]
+categories = ["development-tools", "development-tools::testing"]
+
+[dependencies]
+
+[lints]
+workspace = true
