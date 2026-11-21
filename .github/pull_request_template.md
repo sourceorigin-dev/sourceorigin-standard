@@ -14,4 +14,4 @@ Keep the pull request to one change; stack dependent ones. -->
 
 - [ ] The crate's README (its documentation on docs.rs) shows the change, and a repository's xtask can still follow it.
 - [ ] A change to the public API is noted for the next release, with what each repository's xtask must change.
-- [ ] `just validate` passes.
+- [ ] `just check-changed` passes.

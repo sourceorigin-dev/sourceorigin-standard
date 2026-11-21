@@ -8,7 +8,9 @@ ignore = []
 version = 2
 # Permissive licenses only, compatible with distributing this crate under
 # Apache-2.0.
-allow = ["Apache-2.0", "MIT"]
+# unicode-ident (under the derive macros) carries Unicode-3.0, and foldhash
+# (under yaml-rust2's hashlink) Zlib.
+allow = ["Apache-2.0", "MIT", "Unicode-3.0", "Zlib"]
 
 [bans]
 # A `*` requirement accepts any future release, breaking or malicious.
