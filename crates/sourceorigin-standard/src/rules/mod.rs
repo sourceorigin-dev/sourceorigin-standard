@@ -28,6 +28,7 @@ mod text_file;
 mod toml_file;
 mod toolchain;
 mod unsafe_modules;
+mod workspace_dependencies;
 mod workspace_lints;
 mod workspace_manifest;
 
@@ -168,6 +169,11 @@ rules! {
     /// `slow-timeout` in it has a `terminate-after`, and no profile or
     /// override sets `retries`.
     NextestConfig = "nextest-config" => nextest_config,
+    /// Every dependency of a workspace crate, of every kind and target, is
+    /// inherited with `workspace = true` from the root's
+    /// `[workspace.dependencies]`, where each `path` dependency also has a
+    /// `version`.
+    WorkspaceDependencies = "workspace-dependencies" => workspace_dependencies,
 }
 
 /// Why the rules couldn't be checked.
