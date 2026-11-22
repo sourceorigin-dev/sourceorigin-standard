@@ -42,6 +42,11 @@ impl Workflow {
             .collect()
     }
 
+    /// Whether it is a composite action rather than a workflow.
+    pub(super) fn is_action(&self) -> bool {
+        self.path.starts_with(".github/actions")
+    }
+
     /// The events that trigger it, from `on` as a name, a list or a
     /// mapping.
     pub(super) fn triggers(&self) -> Vec<&str> {
