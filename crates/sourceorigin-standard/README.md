@@ -13,8 +13,14 @@ challenge the rule: a deviation in the repository's `standard.toml`, or a
 change to the rule here, after asking the user. The
 repository's `cargo xtask standard` prints them and fails; `just standard`
 runs it, and so does a CI job on every change, since the rules read more
-than the Rust sources. [`rules::describe`] lists the rules with their docs as Markdown,
-which `cargo xtask standard rules` prints.
+than the Rust sources. [`rules::fix`], behind `cargo xtask standard --fix`,
+first makes the fixes that need no judgement and prints each: it adds
+`[lints] workspace = true`, makes a workspace lint at `deny` or `forbid`
+`warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
+crate holds, and removes a stale deviation or entry of one. It edits each
+TOML file as a document, so its layout and comments stay.
+[`rules::describe`] lists the rules with their docs as Markdown, which
+`cargo xtask standard rules` prints.
 
 A repository applies the standard in `standard.toml` at its root. Every key
 is optional, and a missing file means the defaults. An unknown key, or a
@@ -65,6 +71,7 @@ piqueld = 2
 
 [`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
 [`rules::check`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.check.html
+[`rules::fix`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.fix.html
 [`rules::describe`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.describe.html
 
 ## `check-changed`

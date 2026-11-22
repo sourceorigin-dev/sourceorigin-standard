@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use toml::Spanned;
 
+use super::fix::{Checked, Fix};
 use super::level::Level;
 use super::{Error, Finding, Repository};
 use crate::config::line_of;
@@ -159,8 +160,9 @@ impl Repository {
     /// Each crate whose manifest lacks `[lints] workspace = true`, which
     /// Cargo allows only without lint tables of the crate's own; each lint
     /// the standard requires that the workspace doesn't set to `warn`; and
-    /// each other workspace lint set to neither `warn` nor `allow`.
-    pub(super) fn workspace_lints(&self) -> Vec<Finding> {
+    /// each other workspace lint set to neither `warn` nor `allow`. It fixes
+    /// a missing `[lints]` and a `deny` or `forbid`, never an `allow`.
+    pub(super) fn workspace_lints(&self) -> Checked {
         let crates = self
             .manifests
             .iter()
@@ -213,6 +215,39 @@ impl Repository {
                     "the standard requires `{name} = \"warn\"` in `[workspace.lints.{tool}]`"
                 ),
             });
-        crates.chain(levels).chain(missing).collect()
+        let inherit = self
+            .manifests
+            .iter()
+            .filter(|manifest| manifest.lints.is_none())
+            .map(|manifest| {
+                Fix::new(
+                    manifest.path.clone(),
+                    "add `[lints] workspace = true`".to_owned(),
+                    |document| document["lints"]["workspace"] = toml_edit::value(true),
+                )
+            });
+        let warn = self
+            .lint_levels
+            .iter()
+            .filter(|lint| matches!(lint.level, Level::Deny | Level::Forbid))
+            .map(|lint| {
+                let (tool, name) = (lint.tool.clone(), lint.name.clone());
+                Fix::new(
+                    LintLevel::PATH,
+                    format!("make `{}` `warn`", lint.lint()),
+                    move |document| {
+                        let item = &mut document["workspace"]["lints"][&tool][&name];
+                        if item.is_str() {
+                            Fix::set(item, "warn");
+                        } else {
+                            Fix::set(&mut item["level"], "warn");
+                        }
+                    },
+                )
+            });
+        Checked {
+            findings: crates.chain(levels).chain(missing).collect(),
+            fixes: inherit.chain(warn).collect(),
+        }
     }
 }

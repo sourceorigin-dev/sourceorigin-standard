@@ -1,6 +1,6 @@
 //! sourceorigin-standard's own development tasks, run with `cargo xtask`:
-//! `standard` checks the repository against the standard's rules,
-//! `standard rules` lists them, and `check-changed [base]` runs CI's checks
+//! `standard` checks the repository against the standard's rules (`--fix`
+//! first makes their mechanical fixes), `standard rules` lists them, and `check-changed [base]` runs CI's checks
 //! for what changed. It uses the crate as piqueld, sourceorigin and
 //! DirkEngine do, so this repository runs the checks it ships.
 
@@ -32,7 +32,12 @@ fn main() -> Result<ExitCode> {
                 .run(root(), base)
                 .context("check what changed since the merge base")
         }
-        ["standard"] => {
+        ["standard", rest @ ..] if matches!(rest, [] | ["--fix"]) => {
+            if rest == ["--fix"] {
+                for fix in rules::fix(root()).context("fix the repository")? {
+                    println!("fixed {fix}");
+                }
+            }
             let violations =
                 rules::check(root()).context("check the repository against the standard")?;
             for violation in &violations {
@@ -52,6 +57,6 @@ fn main() -> Result<ExitCode> {
             print!("{}", rules::describe());
             Ok(ExitCode::SUCCESS)
         }
-        _ => bail!("usage: cargo xtask (standard [rules] | check-changed [base])"),
+        _ => bail!("usage: cargo xtask (standard [--fix | rules] | check-changed [base])"),
     }
 }
