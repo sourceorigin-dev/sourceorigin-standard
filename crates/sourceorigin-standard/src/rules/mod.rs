@@ -8,6 +8,7 @@ mod agent_files;
 mod agents_md;
 mod budget;
 mod cargo_locked;
+mod clippy_config;
 mod comments;
 mod config_comments;
 mod config_syntax;
@@ -178,6 +179,10 @@ rules! {
     /// `rustfmt.toml` sets `edition = "2024"`, `newline_style = "Unix"` and
     /// `use_field_init_shorthand = true`.
     RustfmtConfig = "rustfmt-config" => rustfmt_config,
+    /// `clippy.toml` sets `allow-expect-in-tests`, `allow-panic-in-tests`
+    /// and `allow-dbg-in-tests` to `true`, and never
+    /// `allow-unwrap-in-tests`.
+    ClippyConfig = "clippy-config" => clippy_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -369,6 +374,9 @@ struct Repository {
     /// `rustfmt.toml`, empty when missing, and `None` when it doesn't
     /// parse.
     rustfmt: Option<TomlFile<Settings>>,
+    /// `clippy.toml`, empty when missing, and `None` when it doesn't
+    /// parse.
+    clippy: Option<TomlFile<Settings>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -415,6 +423,7 @@ impl Repository {
             agent_files: AgentFiles::load(root, &mut unreadable)?,
             toolchain: TomlFile::load(root, toolchain::PATH, &mut unreadable)?,
             rustfmt: TomlFile::load_or_empty(root, rustfmt_config::PATH, &mut unreadable)?,
+            clippy: TomlFile::load_or_empty(root, clippy_config::PATH, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
