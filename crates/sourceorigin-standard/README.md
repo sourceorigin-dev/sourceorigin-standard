@@ -45,6 +45,7 @@ A repository adopts the standard in four steps:
 - `toolchain`: `rust-toolchain.toml` pins `channel = "stable"` and installs at least the `rustfmt` and `clippy` components.
 - `rustfmt-config`: `rustfmt.toml` sets `edition = "2024"`, `newline_style = "Unix"` and `use_field_init_shorthand = true`.
 - `clippy-config`: `clippy.toml` sets `allow-expect-in-tests`, `allow-panic-in-tests` and `allow-dbg-in-tests` to `true`, and never `allow-unwrap-in-tests`.
+- `nextest-config`: `.config/nextest.toml`'s default profile sets a `slow-timeout`, every `slow-timeout` in it has a `terminate-after`, and no profile or override sets `retries`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

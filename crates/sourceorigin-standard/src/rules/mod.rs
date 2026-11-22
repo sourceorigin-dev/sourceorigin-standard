@@ -17,6 +17,7 @@ mod layout;
 mod level;
 mod manifest;
 mod modules;
+mod nextest_config;
 mod report;
 mod rustfmt_config;
 mod settings;
@@ -44,6 +45,7 @@ pub use fix::Fix;
 use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
+use nextest_config::NextestConfig;
 pub use report::{Report, RuleReport};
 use settings::Settings;
 use source::{Source, Unparsed};
@@ -162,6 +164,10 @@ rules! {
     /// and `allow-dbg-in-tests` to `true`, and never
     /// `allow-unwrap-in-tests`.
     ClippyConfig = "clippy-config" => clippy_config,
+    /// `.config/nextest.toml`'s default profile sets a `slow-timeout`, every
+    /// `slow-timeout` in it has a `terminate-after`, and no profile or
+    /// override sets `retries`.
+    NextestConfig = "nextest-config" => nextest_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -333,6 +339,8 @@ struct Repository {
     scripts: Vec<TextFile>,
     /// The manifests, justfiles and workflows, with their comments.
     commented: Vec<Commented>,
+    /// `.config/nextest.toml`, empty when missing.
+    nextest: TomlFile<NextestConfig>,
 }
 
 impl Repository {
@@ -356,6 +364,7 @@ impl Repository {
             commented: Commented::load_all(root)?,
             scripts: TextFile::load_all(root, &cargo_locked::FILES)?,
             agent_files: AgentFiles::load(root)?,
+            nextest: TomlFile::load_or_empty(root, nextest_config::PATH)?,
             metadata,
             sources,
             unparsed,
