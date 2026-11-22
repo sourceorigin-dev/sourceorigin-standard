@@ -5,6 +5,7 @@
 //! their docs.
 
 mod agent_files;
+mod agents_md;
 mod budget;
 mod cargo_locked;
 mod comments;
@@ -142,6 +143,9 @@ rules! {
     /// is `.agents/skills/<name>/SKILL.md`, its frontmatter's `name` is
     /// `<name>`, and `.claude/skills` is a symlink to `../.agents/skills`.
     AgentFiles = "agent-files" => agent_files,
+    /// AGENTS.md names every workspace crate, by its name in backticks or
+    /// its directory, and holds at most 150 lines.
+    AgentsMd = "agents-md" => agents_md,
 }
 
 /// Why the rules couldn't be checked.
