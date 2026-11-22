@@ -203,6 +203,15 @@ check: a deviation in `standard.toml`, or a change to the check here.
   `[workspace.dependencies]`, or an exception to `deny.toml` (an ignored
   advisory, an allowed license, a skipped duplicate, an allowed source),
   has a `## Dependencies` section in its description saying why.
+- `lint-exceptions`: a pull request that loosens a rule needs approval:
+  any change to `standard.toml`, `clippy.toml`, `deny.toml` or
+  `.cargo/config.toml`, under its name or the one it is renamed from, and
+  a budget of `budget.toml` that rises or appears. As each budget equals
+  its count, every new `#[expect]`, `// INVARIANT:` or lint a manifest sets
+  to `allow` shows as one. Approval is the `approved-exception` label,
+  added by one of the `approvers` after the latest push, a force-push
+  included: a later push needs it added again. The job's summary lists
+  every exception, approved or not.
 
 A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
 this repository's `main`, with the crate's version in the comment. It runs
@@ -235,6 +244,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      issues: read
+      checks: read
 ```
 
 Its settings are the `[pr-checks]` table of `standard.toml`, read at the
@@ -248,6 +259,11 @@ scopes = ["daemon", "cli", "web"]
 # What precedes an issue's number where the repository's issues live: `#`
 # by default, or a Linear team's key and a dash.
 issue-prefix = "PQD-"
+# Who may approve an exception with the `approved-exception` label.
+approvers = ["PiquelChips"]
+# `false` only reports exceptions, as a repository adopting the check
+# starts; `true` by default.
+enforce-lint-exceptions = true
 
 # The checks the repository departs from, each with its reason: their
 # findings pass as notices.

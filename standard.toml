@@ -2,3 +2,4 @@
 
 [pr-checks]
 scopes = ["check-changed", "rules", "lints", "pr-checks", "skills", "xtask"]
+approvers = ["PiquelChips"]

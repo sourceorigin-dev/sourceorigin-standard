@@ -54,12 +54,13 @@ class Toml {
     return null;
   }
 
-  /** The elements of an array, each as raw text with its spacing squeezed. */
+  /** The elements of an array, or the `key = value` pairs of an inline
+   * table, each as raw text with its spacing squeezed. */
   static items(value) {
     const items = [];
     let current = '';
     let depth = 0;
-    for (const { c, quoted } of Toml.characters(value.trim().replace(/^\[|\]$/g, ''))) {
+    for (const { c, quoted } of Toml.characters(value.trim().replace(/^[[{]|[\]}]$/g, ''))) {
       if (!quoted && (c === '[' || c === '{')) depth += 1;
       if (!quoted && (c === ']' || c === '}')) depth -= 1;
       if (!quoted && depth === 0 && c === ',') {
