@@ -44,6 +44,27 @@ impl<T: DeserializeOwned> TomlFile<T> {
     }
 }
 
+impl<T: DeserializeOwned + Default> TomlFile<T> {
+    /// The file at `path`, from `root`, or an empty one when there is none,
+    /// which a fix writes; `None` when it doesn't parse, which `unreadable`
+    /// records.
+    pub(super) fn load_or_empty(
+        root: &Path,
+        path: impl Into<PathBuf>,
+        unreadable: &mut Unreadable,
+    ) -> Result<Option<Self>, Error> {
+        let path = path.into();
+        if !root.join(&path).exists() {
+            return Ok(Some(Self {
+                path,
+                text: String::new(),
+                value: T::default(),
+            }));
+        }
+        Self::load(root, path, unreadable)
+    }
+}
+
 impl<T> TomlFile<T> {
     /// The line, from 1, where `spanned` starts.
     pub(super) fn line<S>(&self, spanned: &Spanned<S>) -> usize {
