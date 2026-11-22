@@ -24,6 +24,7 @@ mod inline_tests;
 mod job_timeouts;
 mod layout;
 mod nextest_config;
+mod no_json_macro;
 mod pr_template;
 mod recipes;
 mod recipes_only;

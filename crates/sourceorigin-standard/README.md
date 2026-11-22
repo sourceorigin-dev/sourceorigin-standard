@@ -71,6 +71,7 @@ A repository adopts the standard in five steps:
 - `childless-mod-rs`: A module is `foo/mod.rs` only when its directory holds another Rust file, parsed or not; otherwise it is `foo.rs`. A `mod.rs` beside an integration test's, benchmark's or example's root, such as `tests/common/mod.rs`, passes, and so does one under `src/bin`, where binaries share modules.
 - `inline-tests`: An inline `#[cfg(test)] mod … { }` (or one whose `cfg` requires a feature named for tests) at the top level of a file a target reaches outside test code spans fewer than 50 lines or at most 30% of the file's; a larger one is a file of its own, `mod tests;`.
 - `inline-limits`: `Duration::from_*` with a number, or arithmetic on numbers, sits only in a `const` or `static` item, a `const fn` or test code: a limit, timeout or size is a named constant. Test code is what a test attribute such as `#[tokio::test]`, or a `cfg` requiring `test` or a feature named for tests (`test-util`), marks, the files such a module declares, and integration tests and benchmarks.
+- `no-json-macro`: Code outside tests, in the crates `standard.toml`'s `no-json-macro` lists, invokes no `json!`: it serializes structs. Each name there is a workspace crate.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -95,6 +96,10 @@ anyhow-crates = ["my-cli"]
 # The lines of workflows' `run:` that run Cargo rather than a recipe, each
 # whole, such as a check on the minimum supported Rust version.
 cargo-in-ci = ["cargo +1.85 check --locked --workspace"]
+
+# The crates whose code outside tests serializes structs instead of invoking
+# `json!`.
+no-json-macro = ["my_protocol"]
 
 # Rules the repository departs from, each with its reason: everywhere, or
 # only in the files `paths` matches and the crates `crates` names. A
