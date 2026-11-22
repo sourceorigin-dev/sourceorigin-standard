@@ -63,6 +63,8 @@ fn a_table_matching_the_workflow_has_no_drift() {
     assert_eq!(CI.drifts(&workflow), []);
 }
 
+/// Each kind of drift, including a trigger read through an output built
+/// from two filters, which reads both.
 #[test]
 fn drift_between_the_table_and_the_workflow_is_named() {
     let cases = [
@@ -117,7 +119,6 @@ fn drift_between_the_table_and_the_workflow_is_named() {
                 output: "web".to_owned(),
             }],
         ),
-        // An output built from two filters reads both.
         (
             "steps.filter.outputs.ui == 'true'",
             "(steps.filter.outputs.ui == 'true' || steps.filter.outputs.docs == 'true')",

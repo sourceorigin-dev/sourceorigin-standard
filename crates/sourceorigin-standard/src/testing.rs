@@ -29,11 +29,11 @@ impl Repository {
         std::fs::write(path, text).expect("the file is written");
     }
 
-    /// Runs git in the repository as a test author.
+    /// Runs git in the repository as a test author, neither signing nor
+    /// running hooks, whatever the developer's configuration says.
     pub(crate) fn git(&self, args: &[&str]) {
         let status = Command::new("git")
             .args(["-c", "user.name=test", "-c", "user.email=test@example.com"])
-            // Neither sign nor run hooks, whatever the developer's configuration says.
             .args([
                 "-c",
                 "commit.gpgsign=false",

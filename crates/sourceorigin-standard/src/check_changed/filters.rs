@@ -71,13 +71,13 @@ impl Pattern {
     /// within a path segment and `**` across them, both match dotfiles, and
     /// a leading `!` negates the rest. picomatch also matches a directory
     /// itself against `dir/**`, which is moot here: git lists only files.
+    /// An extglob, `?(…)`, `*(…)`, `+(…)`, `@(…)` or `!(…)` anywhere, is
+    /// rejected: globset would read it literally and match wrongly.
     fn parse(filter: &str, pattern: &str) -> Result<Self, Error> {
         let (glob, negated) = match pattern.strip_prefix('!') {
             Some(glob) => (glob, true),
             None => (pattern, false),
         };
-        // picomatch reads `?(…)`, `*(…)`, `+(…)`, `@(…)` and `!(…)` as
-        // extglobs, which globset reads literally and so would match wrongly.
         if ["?(", "*(", "+(", "@(", "!("]
             .iter()
             .any(|extglob| pattern.contains(extglob))
@@ -160,6 +160,8 @@ impl<F: Filter> Filters<F> {
     }
 
     /// Adds the patterns `item` of `filter` lists, flattening nested lists.
+    /// paths-filter's maps from change types to patterns, such as
+    /// `added: '**'`, are rejected: no repository needs them yet.
     fn add(filter: &str, item: &Yaml, patterns: &mut Vec<Pattern>) -> Result<(), Error> {
         match item {
             Yaml::String(pattern) => patterns.push(Pattern::parse(filter, pattern)?),
@@ -168,8 +170,6 @@ impl<F: Filter> Filters<F> {
                     Self::add(filter, item, patterns)?;
                 }
             }
-            // paths-filter also takes a map from change types to patterns,
-            // such as `added: '**'`, which no repository needs yet.
             other => {
                 return Err(Error::Unsupported {
                     filter: filter.to_owned(),
