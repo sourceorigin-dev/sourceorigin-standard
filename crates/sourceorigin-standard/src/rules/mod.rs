@@ -51,6 +51,7 @@ mod tests;
 mod text_file;
 mod toml_file;
 mod toolchain;
+mod tracing_fields;
 mod unsafe_modules;
 mod walk;
 mod wording;
@@ -325,6 +326,13 @@ rules! {
     /// the names its patterns bind) are renamed in the order they appear;
     /// paths, fields, methods and types stay as written.
     DuplicateItems = "duplicate-items" => duplicate_items,
+    /// Outside tests, no `tracing` event or span macro (`info!`,
+    /// `info_span!`, `event!`, …) records a field whose name, or a run of its
+    /// dotted parts, `standard.toml`'s `denied-fields` lists: `query` denies
+    /// `db.query.text`, `url.query` only `url.query` and `http.url.query`.
+    /// Nor does an `#[instrument]` function, in its `fields(…)` or as an
+    /// argument it doesn't `skip`.
+    TracingFields = "tracing-fields" => tracing_fields,
 }
 
 /// Why the rules couldn't be checked.

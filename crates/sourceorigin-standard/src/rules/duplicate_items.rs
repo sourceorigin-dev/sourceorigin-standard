@@ -7,7 +7,7 @@ use std::path::Path;
 use proc_macro2::{Delimiter, LineColumn, TokenStream, TokenTree};
 use syn::visit::{self, Visit};
 
-use super::walk::{Inspect, Scope, Walk};
+use super::walk::{Function, Inspect, Scope, Walk};
 use super::{Finding, Repository};
 
 /// The fewest tokens a body holds for a copy of it to count: below 20,
@@ -147,7 +147,8 @@ impl Bodies<'_, '_> {
 }
 
 impl Inspect for Bodies<'_, '_> {
-    fn function(&mut self, signature: &syn::Signature, block: &syn::Block, scope: Scope) {
+    fn function(&mut self, function: Function<'_>, scope: Scope) {
+        let (signature, block) = (function.signature, function.body);
         if scope.test {
             return;
         }
