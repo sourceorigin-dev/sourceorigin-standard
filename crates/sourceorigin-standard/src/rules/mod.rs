@@ -9,6 +9,7 @@ mod agent_files;
 mod agents_md;
 mod anyhow_edges;
 mod budget;
+mod cache_saves;
 mod cargo_locked;
 mod ci_shape;
 mod clippy_config;
@@ -249,6 +250,12 @@ rules! {
     /// Every job of a workflow sets `timeout-minutes`, except one calling a
     /// reusable workflow.
     JobTimeouts = "job-timeouts" => job_timeouts,
+    /// Every `Swatinem/rust-cache` step's `save-if` is `false` or
+    /// `${{ github.ref == 'refs/heads/main' }}`, and no composite action, nor workflow run by
+    /// `pull_request`, `pull_request_target` or `merge_group`, uses
+    /// `actions/cache`, which saves on a miss: they use
+    /// `actions/cache/restore`, saving with `actions/cache/save` from `main`.
+    CacheSaves = "cache-saves" => cache_saves,
 }
 
 /// Why the rules couldn't be checked.
