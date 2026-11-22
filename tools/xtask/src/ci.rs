@@ -46,6 +46,11 @@ pub const CI: Ci<Filter> = Ci {
             ],
         },
         Job {
+            id: "standard",
+            trigger: Trigger::EveryChange,
+            recipes: &[just(&["just", "standard"])],
+        },
+        Job {
             id: "rust",
             trigger: Trigger::AnyOf(&[Filter::Rust]),
             recipes: &[
@@ -58,7 +63,6 @@ pub const CI: Ci<Filter> = Ci {
         },
     ],
     ignored: &["ci"],
-    builds: &[],
 };
 
 #[cfg(test)]

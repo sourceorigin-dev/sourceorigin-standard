@@ -4,9 +4,10 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
-use super::metadata::Metadata;
-use super::{Builds, Error, Filter, Job, Recipe, Run};
+use super::{Error, Filter, Job, Recipe, Run};
 use crate::CommandError;
+use crate::config::Builds;
+use crate::metadata::Metadata;
 use crate::workspace::Workspace;
 
 impl Workspace<'_> {
@@ -90,7 +91,7 @@ impl Scope {
                     .iter()
                     .any(|dependency| reached.contains(dependency.name.as_str()))
                     || builds.iter().any(|builds| {
-                        builds.builder == package.name && reached.contains(builds.built)
+                        builds.builder == package.name && reached.contains(builds.built.as_str())
                     }))
         }) {
             reached.insert(dependent.name.as_str());
