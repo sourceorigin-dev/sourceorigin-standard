@@ -9,6 +9,7 @@ mod comments;
 mod config_comments;
 mod fix;
 mod generated_lints;
+mod layout;
 mod level;
 mod manifest;
 mod modules;
@@ -31,6 +32,7 @@ use budget::Budget;
 use config_comments::Commented;
 use fix::Checked;
 pub use fix::Fix;
+use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
@@ -123,6 +125,10 @@ rules! {
     /// `[workspace.package]` sets `edition = "2024"`, and every workspace
     /// crate inherits it with `edition.workspace = true`.
     WorkspaceManifest = "workspace-manifest" => workspace_manifest,
+    /// Every workspace crate lives under `crates/`, `apps/` or `tools/`, the
+    /// `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases
+    /// `cargo xtask` to `run --locked --package xtask --`.
+    Layout = "layout" => layout,
 }
 
 /// Why the rules couldn't be checked.
@@ -267,6 +273,8 @@ struct Repository {
     metadata: Metadata,
     /// The root manifest.
     root_manifest: TomlFile<RootManifest>,
+    /// `.cargo/config.toml`.
+    cargo_config: Option<TomlFile<CargoConfig>>,
     /// The manifests of the workspace's crates.
     manifests: Vec<TomlFile<Manifest>>,
     /// The lints `[workspace.lints]` sets.
@@ -295,6 +303,7 @@ impl Repository {
             manifests: TomlFile::load_all(&metadata)?,
             lint_levels: LintLevel::all(&root_manifest),
             root_manifest,
+            cargo_config: TomlFile::load(root, layout::CARGO_CONFIG)?,
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,

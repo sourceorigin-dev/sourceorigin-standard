@@ -6,6 +6,7 @@ mod config_comments;
 mod fix;
 mod framework;
 mod generated_lints;
+mod layout;
 mod report;
 mod unsafe_modules;
 mod workspace_lints;
@@ -25,6 +26,9 @@ impl Fixture {
             "Cargo.toml",
             &format!("[workspace]\nresolver = \"3\"\nmembers = [\"crates/*\"]\n\n{LINTS}"),
         );
+        for (path, text) in CONFIG {
+            repository.write(path, text);
+        }
         Self(repository)
     }
 
@@ -40,6 +44,12 @@ impl Fixture {
 
     fn write(&self, path: &str, text: &str) -> &Self {
         self.0.write(path, text);
+        self
+    }
+
+    /// Removes the file at `path`, such as one of [`CONFIG`].
+    fn remove(&self, path: &str) -> &Self {
+        std::fs::remove_file(self.0.root().join(path)).expect("the file is removed");
         self
     }
 
@@ -89,6 +99,13 @@ allow_attributes_without_reason = \"warn\"
 undocumented_unsafe_blocks = \"warn\"
 self_named_module_files = \"warn\"
 ";
+
+/// The configuration files every fixture holds, as the standard has them,
+/// so a rule's fixes touch only what a test writes.
+const CONFIG: [(&str, &str); 1] = [(
+    ".cargo/config.toml",
+    "[alias]\nxtask = \"run --locked --package xtask --\"\n",
+)];
 
 /// A manifest tail inheriting the workspace's lints.
 const INHERITS: &str = "[lints]\nworkspace = true\n";

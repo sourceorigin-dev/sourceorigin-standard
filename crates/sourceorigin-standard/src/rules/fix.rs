@@ -56,7 +56,8 @@ impl Fix {
     }
 
     /// Makes `fixes` under `root`: each file's once, in order, and drops a
-    /// fix that repeats another.
+    /// fix that repeats another. A missing file is written, from an empty
+    /// document.
     pub(super) fn apply_all(root: &Path, fixes: &mut Vec<Self>) -> Result<(), Error> {
         let mut seen = BTreeSet::new();
         fixes.retain(|fix| seen.insert((fix.path.clone(), fix.what.clone())));
@@ -66,10 +67,22 @@ impl Fix {
         }
         for (path, fixes) in by_path {
             let file = root.join(path);
-            let text = std::fs::read_to_string(&file).map_err(|source| Error::Read {
-                path: file.clone(),
-                source,
-            })?;
+            let text = match std::fs::read_to_string(&file) {
+                Ok(text) => text,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+                Err(source) => {
+                    return Err(Error::Read {
+                        path: file.clone(),
+                        source,
+                    });
+                }
+            };
+            if let Some(dir) = file.parent() {
+                std::fs::create_dir_all(dir).map_err(|source| Error::Write {
+                    path: dir.to_owned(),
+                    source,
+                })?;
+            }
             let mut document: DocumentMut =
                 text.parse()
                     .map_err(|error: toml_edit::TomlError| Error::Toml {
