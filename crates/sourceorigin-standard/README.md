@@ -59,6 +59,7 @@ A repository adopts the standard in four steps:
 - `cache-saves`: Every `Swatinem/rust-cache` step's `save-if` is `false` or saves from `refs/heads/main` only, and no composite action, nor workflow run by `pull_request`, `pull_request_target` or `merge_group`, uses `actions/cache`, which saves on a miss: they use `actions/cache/restore`, saving with `actions/cache/save` from `main`.
 - `scheduled-audit`: A workflow runs `just audit` (or `cargo deny`) on a `schedule` at least weekly: a cron whose day of the month and month are `*`.
 - `pr-template`: `.github/pull_request_template.md` has the headings `## What and why` and `## Testing`.
+- `docs-summary`: With a `book.toml`, every Markdown page under its `src` is linked from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

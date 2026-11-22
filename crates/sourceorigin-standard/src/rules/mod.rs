@@ -16,6 +16,7 @@ mod clippy_config;
 mod comments;
 mod config_comments;
 mod deny_config;
+mod docs_summary;
 mod fix;
 mod generated_lints;
 mod job_timeouts;
@@ -58,6 +59,7 @@ use agent_files::AgentFiles;
 use budget::Budget;
 use config_comments::Commented;
 use deny_config::DenyConfig;
+use docs_summary::Book;
 use fix::Checked;
 pub use fix::Fix;
 use justfile::Justfile;
@@ -248,6 +250,9 @@ rules! {
     /// `.github/pull_request_template.md` has the headings `## What and
     /// why` and `## Testing`.
     PrTemplate = "pr-template" => pr_template,
+    /// With a `book.toml`, every Markdown page under its `src` is linked
+    /// from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
+    DocsSummary = "docs-summary" => docs_summary,
 }
 
 /// Why the rules couldn't be checked.
@@ -452,6 +457,10 @@ struct Repository {
     workflows: Vec<Workflow>,
     /// The pull request template.
     pr_template: Option<TextFile>,
+    /// mdBook's `book.toml`.
+    book: Option<TomlFile<Book>>,
+    /// Every Markdown file.
+    markdown: Vec<TextFile>,
 }
 
 impl Repository {
@@ -481,6 +490,8 @@ impl Repository {
             t3: T3::load(root)?,
             workflows: Workflow::load_all(root)?,
             pr_template: TextFile::load_all(root, &[pr_template::PATH])?.pop(),
+            book: TomlFile::load(root, docs_summary::BOOK)?,
+            markdown: TextFile::load_all(root, &["*.md"])?,
             metadata,
             sources,
             unparsed,
