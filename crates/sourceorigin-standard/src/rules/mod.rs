@@ -5,6 +5,7 @@
 //! their docs.
 
 mod budget;
+mod cargo_locked;
 mod comments;
 mod config_comments;
 mod fix;
@@ -17,6 +18,7 @@ mod report;
 mod source;
 #[cfg(test)]
 mod tests;
+mod text_file;
 mod toml_file;
 mod unsafe_modules;
 mod workspace_lints;
@@ -37,6 +39,7 @@ use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
 use source::{Source, Unparsed};
+use text_file::TextFile;
 use toml_file::TomlFile;
 use workspace_lints::LintLevel;
 
@@ -129,6 +132,10 @@ rules! {
     /// `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases
     /// `cargo xtask` to `run --locked --package xtask --`.
     Layout = "layout" => layout,
+    /// Every `cargo build`, `check`, `clippy`, `doc`, `llvm-cov`,
+    /// `nextest`, `publish`, `run` and `test` in a justfile (and `*.just`),
+    /// `.github` YAML file or `t3.json` passes `--locked` (or `--frozen`).
+    CargoLocked = "cargo-locked" => cargo_locked,
 }
 
 /// Why the rules couldn't be checked.
@@ -287,6 +294,9 @@ struct Repository {
     modules: Modules,
     /// Each crate's ceilings of exceptions.
     budget: Budget,
+    /// The justfiles, workflows and `t3.json`, whose commands the rules
+    /// read.
+    scripts: Vec<TextFile>,
     /// The manifests, justfiles and workflows, with their comments.
     commented: Vec<Commented>,
 }
@@ -307,6 +317,7 @@ impl Repository {
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,
+            scripts: TextFile::load_all(root, &cargo_locked::FILES)?,
             metadata,
             sources,
             unparsed,
@@ -391,8 +402,9 @@ pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
 /// Makes every mechanical fix the rules know in the repository at `root`,
 /// such as adding `[lints] workspace = true` or lowering a ceiling of
 /// `budget.toml` to what the crate holds, and returns them. Each is an edit
-/// to a TOML document, which keeps the file's layout and comments. What
-/// needs judgement stays a violation for [`check`] to report.
+/// to a TOML document, which keeps the file's layout and comments, or to a
+/// line of another file, such as a justfile. What needs judgement stays a
+/// violation for [`check`] to report.
 ///
 /// # Errors
 ///

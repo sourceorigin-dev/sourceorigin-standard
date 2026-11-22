@@ -1,5 +1,6 @@
 //! `--fix`: the edits that resolve a rule's mechanical violations, each made
-//! to a TOML document so the file keeps its layout and comments.
+//! to a TOML document so the file keeps its layout and comments, or to the
+//! lines of a file that isn't TOML, such as a justfile.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -10,14 +11,23 @@ use toml_edit::{DocumentMut, Item, Value};
 use super::{Error, Finding, Rule};
 use crate::config::{self, Deviation, Stale};
 
-/// A mechanical edit to one TOML file, which `cargo xtask standard --fix`
+/// A mechanical edit to one file, which `cargo xtask standard --fix`
 /// makes.
 pub struct Fix {
     /// The file, from the repository's root.
     pub path: PathBuf,
     /// What it changes, such as "add `[lints] workspace = true`".
     pub what: String,
-    edit: Box<dyn Fn(&mut DocumentMut)>,
+    edit: Edit,
+}
+
+/// How a fix changes its file.
+enum Edit {
+    /// An edit to a TOML file's document.
+    Toml(Box<dyn Fn(&mut DocumentMut)>),
+    /// The replacement of a line, from 1, of a file that isn't TOML, with
+    /// text that may span lines.
+    Line(usize, String),
 }
 
 impl Fix {
@@ -30,7 +40,17 @@ impl Fix {
         Self {
             path: path.into(),
             what,
-            edit: Box::new(edit),
+            edit: Edit::Toml(Box::new(edit)),
+        }
+    }
+
+    /// A fix replacing `line`, from 1, of `path`, a file that isn't TOML,
+    /// with `text`, which may span lines. A line past the end is added.
+    pub(super) fn line(path: impl Into<PathBuf>, what: String, line: usize, text: String) -> Self {
+        Self {
+            path: path.into(),
+            what,
+            edit: Edit::Line(line, text),
         }
     }
 
@@ -83,16 +103,36 @@ impl Fix {
                     source,
                 })?;
             }
-            let mut document: DocumentMut =
-                text.parse()
-                    .map_err(|error: toml_edit::TomlError| Error::Toml {
-                        path: path.to_owned(),
-                        message: error.to_string(),
-                    })?;
-            for fix in fixes {
-                (fix.edit)(&mut document);
+            let mut written = text.clone();
+            if fixes.iter().any(|fix| matches!(fix.edit, Edit::Toml(_))) {
+                let mut document: DocumentMut =
+                    text.parse()
+                        .map_err(|error: toml_edit::TomlError| Error::Toml {
+                            path: path.to_owned(),
+                            message: error.to_string(),
+                        })?;
+                for fix in &fixes {
+                    if let Edit::Toml(edit) = &fix.edit {
+                        edit(&mut document);
+                    }
+                }
+                written = document.to_string();
             }
-            let mut written = document.to_string();
+            let mut lines: Vec<String> = written.lines().map(str::to_owned).collect();
+            let mut replaced = false;
+            for fix in &fixes {
+                if let Edit::Line(line, new) = &fix.edit {
+                    let index = line.saturating_sub(1);
+                    match lines.get_mut(index) {
+                        Some(old) => new.clone_into(old),
+                        None => lines.push(new.clone()),
+                    }
+                    replaced = true;
+                }
+            }
+            if replaced {
+                written = lines.into_iter().map(|line| line + "\n").collect();
+            }
             if text.contains("\r\n") {
                 written = written.replace("\r\n", "\n").replace('\n', "\r\n");
             }
