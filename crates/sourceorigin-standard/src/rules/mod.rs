@@ -5,6 +5,7 @@
 //! their docs.
 
 mod budget;
+mod generated_lints;
 mod level;
 mod modules;
 mod source;
@@ -85,6 +86,10 @@ rules! {
     /// gives it, none when it lists no ceiling; each name there is a
     /// workspace crate.
     Budget = "budget" => budget,
+    /// Rust files `.gitattributes` marks `linguist-generated` contain no lint
+    /// attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or
+    /// outer): their exceptions sit on their `mod` declaration.
+    GeneratedLints = "generated-lints" => generated_lints,
 }
 
 /// Why the rules couldn't be checked.
