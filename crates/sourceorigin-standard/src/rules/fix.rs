@@ -75,6 +75,12 @@ impl Fix {
         }
     }
 
+    /// A fix adding `text`, which may span lines, at the end of `path`, a
+    /// file that isn't TOML.
+    pub(super) fn append(path: impl Into<PathBuf>, what: String, text: String) -> Self {
+        Self::line(path, what, usize::MAX, text)
+    }
+
     /// Makes `fixes` under `root`: each file's once, in order, and drops a
     /// fix that repeats another. A missing file is written, from an empty
     /// document.

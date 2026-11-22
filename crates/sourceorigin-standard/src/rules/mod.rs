@@ -25,6 +25,7 @@ mod level;
 mod manifest;
 mod modules;
 mod nextest_config;
+mod pr_template;
 mod recipes;
 mod recipes_only;
 mod report;
@@ -244,6 +245,9 @@ rules! {
     /// A workflow runs `just audit` (or `cargo deny`) on a `schedule` at
     /// least weekly: a cron whose day of the month and month are `*`.
     ScheduledAudit = "scheduled-audit" => scheduled_audit,
+    /// `.github/pull_request_template.md` has the headings `## What and
+    /// why` and `## Testing`.
+    PrTemplate = "pr-template" => pr_template,
 }
 
 /// Why the rules couldn't be checked.
@@ -446,6 +450,8 @@ struct Repository {
     t3: Option<T3>,
     /// The workflows and composite actions.
     workflows: Vec<Workflow>,
+    /// The pull request template.
+    pr_template: Option<TextFile>,
 }
 
 impl Repository {
@@ -474,6 +480,7 @@ impl Repository {
             justfile: Justfile::load(root)?,
             t3: T3::load(root)?,
             workflows: Workflow::load_all(root)?,
+            pr_template: TextFile::load_all(root, &[pr_template::PATH])?.pop(),
             metadata,
             sources,
             unparsed,
