@@ -51,3 +51,24 @@ fn every_required_lint_warns_and_others_warn_or_allow() {
         ]
     );
 }
+
+#[test]
+fn fix_adds_each_required_lint_the_workspace_lacks() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        "Cargo.toml",
+        "[workspace]\nmembers = [\"crates/*\"]\n\n[workspace.lints.rust]\nunsafe_code = \"warn\"\n",
+    );
+    fixture.fix_rule(Rule::WorkspaceLints);
+    assert_eq!(
+        fixture.violations(Rule::WorkspaceLints),
+        Vec::<String>::new()
+    );
+    let manifest =
+        std::fs::read_to_string(fixture.0.root().join("Cargo.toml")).expect("the manifest is read");
+    assert!(
+        manifest
+            .contains("\n[workspace.lints.clippy]\nall = { level = \"warn\", priority = -1 }\n"),
+        "{manifest}"
+    );
+}
