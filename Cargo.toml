@@ -17,9 +17,14 @@ anyhow = "1.0.100"
 # Path globs; with `literal_separator`, they match as paths-filter's picomatch
 # does with `dot: true`. Its only default feature is logging.
 globset = { version = "0.4.21", default-features = false }
+# Line numbers of the Rust syntax the rules read, from syn's spans.
+proc-macro2 = { version = "1.0.106", default-features = false, features = ["span-locations"] }
 # `cargo metadata`'s JSON.
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
+# The rules parse Rust files (`full`) and walk them (`visit`); `printing`
+# gives an attribute's span.
+syn = { version = "3.0.10", default-features = false, features = ["full", "parsing", "printing", "visit"] }
 # Scratch git repositories in tests.
 tempfile = "3.27.0"
 thiserror = "2.0.18"

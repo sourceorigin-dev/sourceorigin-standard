@@ -72,6 +72,8 @@ pub(crate) struct Config {
     pub(crate) deviations: Vec<Deviation>,
     /// Settings of `check-changed`.
     pub(crate) check_changed: CheckChanged,
+    /// The modules that may expect `unsafe_code`, such as `my_crate::ffi`.
+    pub(crate) unsafe_modules: Vec<Listed>,
 }
 
 /// A rule the repository departs from on purpose, everywhere or only in
@@ -187,6 +189,7 @@ struct File {
     /// Each rule the repository departs from, and why.
     deviations: BTreeMap<Spanned<Rule>, Written>,
     check_changed: CheckChanged,
+    unsafe_modules: Vec<Spanned<String>>,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -301,9 +304,19 @@ impl Config {
                 })
             })
             .collect::<Result<_, _>>()?;
+        let listed = |values: Vec<Spanned<String>>| {
+            values
+                .into_iter()
+                .map(|value| Listed {
+                    line: line_of(text, value.span().start),
+                    value: value.into_inner(),
+                })
+                .collect()
+        };
         Ok(Self {
             deviations,
             check_changed: file.check_changed,
+            unsafe_modules: listed(file.unsafe_modules),
         })
     }
 

@@ -46,6 +46,8 @@ pub(crate) struct Dependency {
 /// A package's library, binary, test, example, benchmark or build script.
 #[derive(Debug, Deserialize)]
 pub(crate) struct Target {
+    /// Its crate's name, such as `sourceorigin-standard` for a library.
+    pub(crate) name: String,
     pub(crate) kind: Vec<TargetKind>,
     /// Its root source file.
     pub(crate) src_path: PathBuf,
@@ -118,6 +120,13 @@ impl Metadata {
     }
 }
 
+impl Target {
+    /// Whether it is a library of any kind.
+    fn is_library(&self) -> bool {
+        self.kind.iter().any(|kind| kind.is_library())
+    }
+}
+
 impl Package {
     /// Whether the crate, whose directory `dir` is the workspace's root,
     /// owns `path`, relative to it: whether one of its targets lives under
@@ -134,9 +143,6 @@ impl Package {
 
     /// Whether the crate has a library, which doc tests need.
     pub(crate) fn has_library(&self) -> bool {
-        self.targets
-            .iter()
-            .flat_map(|target| &target.kind)
-            .any(|kind| kind.is_library())
+        self.targets.iter().any(Target::is_library)
     }
 }

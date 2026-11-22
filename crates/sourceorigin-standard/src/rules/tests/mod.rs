@@ -1,6 +1,7 @@
 //! A fixture workspace the rules check, shared by the tests of each rule.
 
 mod framework;
+mod unsafe_modules;
 mod workspace_lints;
 
 use super::Rule;
