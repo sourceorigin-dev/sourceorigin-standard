@@ -29,13 +29,6 @@ pub struct Fix {
 pub(super) type TomlEdit = Box<dyn Fn(&mut DocumentMut)>;
 
 /// How a fix changes its file.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "The rules stacked on this one make the first line, write, delete and move fixes."
-    )
-)]
 enum Edit {
     /// Edits it as a TOML document, keeping its layout and comments.
     Toml(TomlEdit),

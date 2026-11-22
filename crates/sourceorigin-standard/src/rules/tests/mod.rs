@@ -12,6 +12,7 @@ mod framework;
 mod generated_lints;
 mod layout;
 mod report;
+mod toolchain;
 mod unsafe_modules;
 mod workspace_lints;
 mod workspace_manifest;
@@ -109,10 +110,16 @@ self_named_module_files = \"warn\"
 
 /// The configuration files every fixture holds, as the standard has them,
 /// so a rule's fixes touch only what a test writes.
-const CONFIG: [(&str, &str); 1] = [(
-    ".cargo/config.toml",
-    "[alias]\nxtask = \"run --locked --package xtask --\"\n",
-)];
+const CONFIG: [(&str, &str); 2] = [
+    (
+        ".cargo/config.toml",
+        "[alias]\nxtask = \"run --locked --package xtask --\"\n",
+    ),
+    (
+        "rust-toolchain.toml",
+        "[toolchain]\nchannel = \"stable\"\ncomponents = [\"rustfmt\", \"clippy\"]\n",
+    ),
+];
 
 /// A manifest tail inheriting the workspace's lints.
 const INHERITS: &str = "[lints]\nworkspace = true\n";
