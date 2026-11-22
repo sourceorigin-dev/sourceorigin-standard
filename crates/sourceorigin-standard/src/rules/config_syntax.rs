@@ -53,6 +53,12 @@ impl Unreadable {
         self.0.contains_key(Path::new(path))
     }
 
+    /// Whether a file under `dir`, from the repository's root, doesn't
+    /// parse.
+    pub(super) fn any_under(&self, dir: &str) -> bool {
+        self.0.keys().any(|path| path.starts_with(dir))
+    }
+
     /// Records each other configuration file under `root` that doesn't
     /// parse as its format: the TOML files, `.github`'s YAML, `t3.json`,
     /// and the justfile, as `just --dump` reads it.
