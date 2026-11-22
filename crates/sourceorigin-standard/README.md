@@ -19,6 +19,11 @@ first makes the fixes that need no judgement and prints each: it adds
 `warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
 crate holds, and removes a stale deviation or entry of one. It edits each
 TOML file as a document, so its layout and comments stay.
+[`rules::report`], behind `cargo xtask standard report`, gives as JSON each
+rule's violations and deviation, deviated or not, with the repository's
+`#[expect]` attributes by lint, its `// INVARIANT:` comments and the lints
+`[workspace.lints]` allows: the monthly cleanup pass aggregates them across
+repositories to find the rules causing the most friction.
 [`rules::describe`] lists the rules with their docs as Markdown, which
 `cargo xtask standard rules` prints.
 
@@ -72,6 +77,7 @@ piqueld = 2
 [`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
 [`rules::check`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.check.html
 [`rules::fix`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.fix.html
+[`rules::report`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.report.html
 [`rules::describe`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.describe.html
 
 ## `check-changed`

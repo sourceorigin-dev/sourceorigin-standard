@@ -6,6 +6,7 @@ mod config_comments;
 mod fix;
 mod framework;
 mod generated_lints;
+mod report;
 mod unsafe_modules;
 mod workspace_lints;
 
