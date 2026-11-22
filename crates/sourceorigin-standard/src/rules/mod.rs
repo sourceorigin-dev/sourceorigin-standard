@@ -4,6 +4,7 @@
 //! rules `standard.toml` deviates from. [`describe`] lists the rules with
 //! their docs.
 
+mod actions_pinned;
 mod agent_files;
 mod agents_md;
 mod anyhow_edges;
@@ -236,6 +237,10 @@ rules! {
     /// `standard / pr-checks`, it is one of the repository's two required
     /// checks.
     CiShape = "ci-shape" => ci_shape,
+    /// Every `uses:` of a workflow or composite action naming another
+    /// repository's action or workflow pins it to a 40-character commit
+    /// SHA, followed by a `# v…` comment giving its version.
+    ActionsPinned = "actions-pinned" => actions_pinned,
 }
 
 /// Why the rules couldn't be checked.
