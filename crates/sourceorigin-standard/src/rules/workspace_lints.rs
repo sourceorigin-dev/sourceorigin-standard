@@ -1,31 +1,11 @@
 //! `workspace-lints`: every crate inherits the workspace's lints, which all
 //! warn.
 
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
-
-use serde::Deserialize;
-use toml::Spanned;
-
 use super::fix::{Checked, Fix};
 use super::level::Level;
-use super::{Error, Finding, Repository};
-use crate::config::line_of;
-use crate::metadata::Metadata;
-
-/// A workspace crate's manifest, reduced to its `[lints]` table.
-pub(super) struct Manifest {
-    /// From the repository's root.
-    path: PathBuf,
-    /// Its `[lints]` table's line, and whether it says `workspace = true`.
-    lints: Option<(usize, bool)>,
-}
-
-/// A manifest's `[lints]` table, with where it is.
-#[derive(Deserialize)]
-struct Lints {
-    lints: Option<Spanned<toml::Table>>,
-}
+use super::manifest::{ROOT, RootManifest, Setting};
+use super::toml_file::TomlFile;
+use super::{Finding, Repository};
 
 /// The lints the standard requires the workspace to set to `warn`, as
 /// `[workspace.lints.<tool>] <lint>`.
@@ -57,57 +37,24 @@ pub(super) struct LintLevel {
     line: usize,
 }
 
-/// A lint's setting in a manifest: its level, alone or in a table beside
-/// its priority.
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum Setting {
-    Level(Level),
-    Table { level: Level },
-}
-
-/// The root manifest's `[workspace.lints]`, each lint with where it is.
-#[derive(Deserialize)]
-struct Root {
-    workspace: Option<RootWorkspace>,
-}
-
-#[derive(Deserialize)]
-struct RootWorkspace {
-    #[serde(default)]
-    lints: BTreeMap<String, BTreeMap<Spanned<String>, Setting>>,
-}
-
 impl LintLevel {
-    /// The root manifest.
-    pub(super) const PATH: &str = "Cargo.toml";
-
-    /// The lints `[workspace.lints]` sets, from the root manifest under
-    /// `root`.
-    pub(super) fn load_all(root: &Path) -> Result<Vec<Self>, Error> {
-        let path = root.join(Self::PATH);
-        let text = std::fs::read_to_string(&path).map_err(|source| Error::Read { path, source })?;
-        let manifest: Root = toml::from_str(&text).map_err(|error| Error::Toml {
-            path: Self::PATH.into(),
-            message: error.to_string(),
-        })?;
-        let tools = manifest
+    /// The lints the root manifest's `[workspace.lints]` sets.
+    pub(super) fn all(root: &TomlFile<RootManifest>) -> Vec<Self> {
+        root.value
             .workspace
-            .map_or_else(BTreeMap::new, |workspace| workspace.lints);
-        Ok(tools
-            .into_iter()
+            .lints
+            .iter()
             .flat_map(|(tool, lints)| {
-                let text = &text;
-                lints.into_iter().map(move |(name, setting)| Self {
+                lints.iter().map(move |(name, setting)| Self {
                     tool: tool.clone(),
-                    line: line_of(text, name.span().start),
-                    name: name.into_inner(),
+                    line: root.line(name),
+                    name: name.get_ref().clone(),
                     level: match setting {
-                        Setting::Level(level) | Setting::Table { level } => level,
+                        Setting::Level(level) | Setting::Table { level } => *level,
                     },
                 })
             })
-            .collect())
+            .collect()
     }
 
     /// Its name as attributes write it, such as `clippy::panic`.
@@ -125,37 +72,6 @@ impl LintLevel {
     }
 }
 
-impl Manifest {
-    /// The manifest of every crate `metadata` lists.
-    pub(super) fn load_all(metadata: &Metadata) -> Result<Vec<Self>, Error> {
-        metadata
-            .packages
-            .iter()
-            .map(|package| Self::load(&package.manifest_path, &metadata.workspace_root))
-            .collect()
-    }
-
-    fn load(path: &Path, root: &Path) -> Result<Self, Error> {
-        let text = std::fs::read_to_string(path).map_err(|source| Error::Read {
-            path: path.to_owned(),
-            source,
-        })?;
-        let path = path.strip_prefix(root).unwrap_or(path).to_owned();
-        let manifest: Lints = toml::from_str(&text).map_err(|error| Error::Toml {
-            path: path.clone(),
-            message: error.to_string(),
-        })?;
-        let lints = manifest.lints.map(|lints| {
-            let inherits = lints
-                .get_ref()
-                .get("workspace")
-                .and_then(toml::Value::as_bool);
-            (line_of(&text, lints.span().start), inherits == Some(true))
-        });
-        Ok(Self { path, lints })
-    }
-}
-
 impl Repository {
     /// Each crate whose manifest lacks `[lints] workspace = true`, which
     /// Cargo allows only without lint tables of the crate's own; each lint
@@ -166,20 +82,28 @@ impl Repository {
         let crates = self
             .manifests
             .iter()
-            .filter_map(|manifest| match manifest.lints {
+            .filter_map(|manifest| match &manifest.value.lints {
                 None => Some(Finding {
                     path: manifest.path.clone(),
                     line: 1,
                     message: "no `[lints]`: add `[lints] workspace = true`".to_owned(),
                 }),
-                Some((line, false)) => Some(Finding {
-                    path: manifest.path.clone(),
-                    line,
-                    message: "`[lints]` declares the crate's own lints: move them to \
-                          `[workspace.lints]`, and inherit those with `workspace = true`"
-                        .to_owned(),
-                }),
-                Some((_, true)) => None,
+                Some(lints)
+                    if lints
+                        .get_ref()
+                        .get("workspace")
+                        .and_then(toml::Value::as_bool)
+                        != Some(true) =>
+                {
+                    Some(Finding {
+                        path: manifest.path.clone(),
+                        line: manifest.line(lints),
+                        message: "`[lints]` declares the crate's own lints: move them to \
+                              `[workspace.lints]`, and inherit those with `workspace = true`"
+                            .to_owned(),
+                    })
+                }
+                Some(_) => None,
             });
         let levels = self.lint_levels.iter().filter_map(|lint| {
             let message = match lint.level {
@@ -195,7 +119,7 @@ impl Repository {
                 ),
             };
             Some(Finding {
-                path: LintLevel::PATH.into(),
+                path: ROOT.into(),
                 line: lint.line,
                 message,
             })
@@ -209,7 +133,7 @@ impl Repository {
                     .any(|lint| lint.tool == *tool && lint.name == *name)
             })
             .map(|(tool, name)| Finding {
-                path: LintLevel::PATH.into(),
+                path: ROOT.into(),
                 line: 1,
                 message: format!(
                     "the standard requires `{name} = \"warn\"` in `[workspace.lints.{tool}]`"
@@ -218,7 +142,7 @@ impl Repository {
         let inherit = self
             .manifests
             .iter()
-            .filter(|manifest| manifest.lints.is_none())
+            .filter(|manifest| manifest.value.lints.is_none())
             .map(|manifest| {
                 Fix::new(
                     manifest.path.clone(),
@@ -233,7 +157,7 @@ impl Repository {
             .map(|lint| {
                 let (tool, name) = (lint.tool.clone(), lint.name.clone());
                 Fix::new(
-                    LintLevel::PATH,
+                    ROOT,
                     format!("make `{}` `warn`", lint.lint()),
                     move |document| {
                         let item = &mut document["workspace"]["lints"][&tool][&name];

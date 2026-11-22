@@ -10,11 +10,13 @@ mod config_comments;
 mod fix;
 mod generated_lints;
 mod level;
+mod manifest;
 mod modules;
 mod report;
 mod source;
 #[cfg(test)]
 mod tests;
+mod toml_file;
 mod unsafe_modules;
 mod workspace_lints;
 
@@ -28,10 +30,12 @@ use budget::Budget;
 use config_comments::Commented;
 use fix::Checked;
 pub use fix::Fix;
+use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
 use source::{Source, Unparsed};
-use workspace_lints::{LintLevel, Manifest};
+use toml_file::TomlFile;
+use workspace_lints::LintLevel;
 
 /// Declares the rules: each variant's doc comment is the doc [`Rule::doc`]
 /// returns, its string its stable name, and its method the check it runs on
@@ -257,7 +261,7 @@ struct Repository {
     /// The workspace's crates.
     metadata: Metadata,
     /// The manifests of the workspace's crates.
-    manifests: Vec<Manifest>,
+    manifests: Vec<TomlFile<Manifest>>,
     /// The lints `[workspace.lints]` sets.
     lint_levels: Vec<LintLevel>,
     /// Every Rust file git tracks or would track that parses, by path.
@@ -278,10 +282,11 @@ impl Repository {
     fn load(root: &Path) -> Result<Self, Error> {
         let metadata = Metadata::load(Workspace::new(root))?;
         let (sources, unparsed) = Source::load_all(root)?;
+        let root_manifest = TomlFile::<RootManifest>::load_root(root)?;
         Ok(Self {
             config: Config::load(root)?,
-            manifests: Manifest::load_all(&metadata)?,
-            lint_levels: LintLevel::load_all(&metadata.workspace_root)?,
+            manifests: TomlFile::load_all(&metadata)?,
+            lint_levels: LintLevel::all(&root_manifest),
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,
