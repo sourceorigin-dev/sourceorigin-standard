@@ -56,6 +56,7 @@ A repository adopts the standard in four steps:
 - `ci-shape`: `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job that needs every other job and runs `if: always()`: with `standard / pr-checks`, it is one of the repository's two required checks.
 - `actions-pinned`: Every `uses:` of a workflow or composite action naming another repository's action or workflow pins it to a 40-character commit SHA, followed by a `# v…` comment giving its version.
 - `workflow-permissions`: Every workflow's top-level `permissions` is exactly `contents: read`, or `{}`; a job that needs more sets its own.
+- `job-timeouts`: Every job of a workflow sets `timeout-minutes`, except one calling a reusable workflow.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
