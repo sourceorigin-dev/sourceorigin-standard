@@ -14,6 +14,7 @@ mod deny_config;
 mod fix;
 mod framework;
 mod generated_lints;
+mod job_timeouts;
 mod layout;
 mod nextest_config;
 mod recipes;
