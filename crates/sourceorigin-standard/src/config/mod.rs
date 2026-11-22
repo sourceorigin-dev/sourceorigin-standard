@@ -90,6 +90,8 @@ pub(crate) struct Config {
     pub(crate) unsafe_modules: Vec<Listed>,
     /// The crates whose code outside tests uses no `json!`.
     pub(crate) no_json_macro: Vec<Listed>,
+    /// The modules that own HTTP paths, such as `my_app::routes`.
+    pub(crate) route_modules: Vec<Listed>,
     /// The `[comments]` table.
     pub(crate) comments: Comments,
     /// The libraries that may depend on `anyhow`, as the edge of a binary.
@@ -248,6 +250,7 @@ struct File {
     check_changed: CheckChanged,
     unsafe_modules: Vec<Spanned<String>>,
     no_json_macro: Vec<Spanned<String>>,
+    route_modules: Vec<Spanned<String>>,
     comments: Comments,
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
@@ -384,6 +387,7 @@ impl Config {
             check_changed: file.check_changed,
             unsafe_modules: listed(file.unsafe_modules),
             no_json_macro: listed(file.no_json_macro),
+            route_modules: listed(file.route_modules),
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),
