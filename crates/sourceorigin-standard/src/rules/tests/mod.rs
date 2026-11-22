@@ -18,6 +18,7 @@ mod recipes;
 mod recipes_only;
 mod report;
 mod rustfmt_config;
+mod t3_setup;
 mod toolchain;
 mod unsafe_modules;
 mod workspace_dependencies;

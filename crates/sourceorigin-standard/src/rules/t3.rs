@@ -17,8 +17,12 @@ pub(super) struct T3 {
 
 /// A script T3 Code offers, or runs on an event.
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(super) struct Script {
     pub(super) command: String,
+    /// Whether it runs when a worktree is created.
+    #[serde(default)]
+    pub(super) run_on_worktree_create: bool,
 }
 
 /// `t3.json` as written.

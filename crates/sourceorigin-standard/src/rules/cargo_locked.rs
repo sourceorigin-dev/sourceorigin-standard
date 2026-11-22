@@ -62,7 +62,7 @@ impl TextFile {
     /// The words of `line`, each with the byte it starts at, trimmed of
     /// quotes and of just's `@` and `-`. A `;`, `|` or `&` ends a word and
     /// is a `;` word of its own.
-    fn tokens(line: &str) -> Vec<(usize, &str)> {
+    pub(super) fn tokens(line: &str) -> Vec<(usize, &str)> {
         let mut words = Vec::new();
         let mut start = None;
         for (at, c) in line.char_indices().chain([(line.len(), ' ')]) {

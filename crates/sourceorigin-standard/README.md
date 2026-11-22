@@ -51,6 +51,7 @@ A repository adopts the standard in four steps:
 - `anyhow-edges`: No library depends on `anyhow` (dev-dependencies aside), unless `standard.toml`'s `anyhow-crates` lists it as a binary's edge, such as a crate holding a CLI's commands. Each listed name is a workspace crate.
 - `recipes`: The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`, `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and `check-changed`. `just` alone runs `validate` or `check-changed`; `validate` runs `fmt` first, then at least `lint`, `standard`, `test`, `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test` takes `*ARGS`, defaulting to `--workspace`.
 - `recipes-only`: Every command of `t3.json` runs `just`, and no line of a workflow's or composite action's `run:` starts with `cargo` unless `standard.toml`'s `cargo-in-ci` lists it; each listed line is one a `run:` holds.
+- `t3-setup`: A recipe `t3.json` runs on worktree creation that runs Cargo, itself or through the recipes it runs, sets `CARGO_BUILD_JOBS` to a default, half the cores, that a set one overrides, and runs the build with `nice -n 10`, both in its own body.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
