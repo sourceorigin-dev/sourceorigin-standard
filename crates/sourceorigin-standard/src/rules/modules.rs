@@ -2,7 +2,7 @@
 //! as rustc does: from its root file through each `mod` item, `#[path]`
 //! included.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component, Path, PathBuf};
 
 use syn::{Expr, Lit, Meta};
@@ -16,7 +16,11 @@ use crate::metadata::Metadata;
 /// `build_script_build` for a build script. A file a module tree shares,
 /// through `#[path]`, has several.
 #[derive(Debug, Default)]
-pub(super) struct Modules(BTreeMap<PathBuf, Vec<Vec<String>>>);
+pub(super) struct Modules {
+    paths: BTreeMap<PathBuf, Vec<Vec<String>>>,
+    /// The files a `mod` item's `#[path]` names, which moving would break.
+    named: BTreeSet<PathBuf>,
+}
 
 impl Modules {
     /// The module trees of every target of `metadata`'s crates, over
@@ -44,7 +48,13 @@ impl Modules {
     /// The module paths of `path`, from the repository's root: none for a
     /// file no target reaches.
     pub(super) fn of_file(&self, path: &Path) -> &[Vec<String>] {
-        self.0.get(path).map_or(&[], Vec::as_slice)
+        self.paths.get(path).map_or(&[], Vec::as_slice)
+    }
+
+    /// Whether a `mod` item's `#[path]` names `path`, from the
+    /// repository's root.
+    pub(super) fn named_by_path(&self, path: &Path) -> bool {
+        self.named.contains(path)
     }
 
     /// Records `file` as `module`, whose child modules' files live in
@@ -59,7 +69,7 @@ impl Modules {
         let Some(source) = sources.get(file) else {
             return;
         };
-        let paths = self.0.entry(file.to_owned()).or_default();
+        let paths = self.paths.entry(file.to_owned()).or_default();
         if paths.iter().any(|path| path == module) {
             return;
         }
@@ -98,6 +108,7 @@ impl Modules {
                 Self::normalize(&base.join(path))
             });
             let found = attribute
+                .clone()
                 .into_iter()
                 .chain([
                     dir.join(format!("{name}.rs")),
@@ -105,6 +116,9 @@ impl Modules {
                 ])
                 .find(|candidate| sources.contains_key(candidate.as_path()));
             if let Some(found) = found {
+                if attribute.as_ref() == Some(&found) {
+                    self.named.insert(found.clone());
+                }
                 let child_dir = if found.file_name().is_some_and(|file| file == "mod.rs") {
                     found.parent().map_or_else(PathBuf::new, Path::to_owned)
                 } else {

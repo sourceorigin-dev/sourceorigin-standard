@@ -16,6 +16,7 @@ use crate::workspace::Workspace;
 pub(super) struct Source {
     /// From the repository's root.
     pub(super) path: PathBuf,
+    pub(super) text: String,
     pub(super) syntax: syn::File,
     /// Every lint attribute in it, inner and outer, at any depth.
     pub(super) lints: Vec<LintAttribute>,
@@ -87,12 +88,24 @@ impl Source {
         lints.visit_file(&syntax);
         Ok(Self {
             path,
+            text: text.to_owned(),
             syntax,
             lints: lints.0,
             generated: false,
             comments,
             doc_blocks,
         })
+    }
+
+    /// The macros and attribute that name a file relative to the one they
+    /// are in.
+    const RELATIVE: [&str; 4] = ["include!", "include_str!", "include_bytes!", "#[path"];
+
+    /// Whether `text`, part of a Rust file, may name another file by a
+    /// path relative to its own: an `include!`, `include_str!` or
+    /// `include_bytes!`, or a `#[path]` attribute, even in a comment.
+    pub(super) fn names_files(text: &str) -> bool {
+        Self::RELATIVE.iter().any(|name| text.contains(name))
     }
 }
 

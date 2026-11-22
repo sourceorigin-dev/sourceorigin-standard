@@ -11,6 +11,7 @@ mod anyhow_edges;
 mod budget;
 mod cache_saves;
 mod cargo_locked;
+mod childless_mod_rs;
 mod ci_shape;
 mod clippy_config;
 mod comments;
@@ -54,6 +55,7 @@ mod workspace_manifest;
 mod yaml;
 
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -282,6 +284,12 @@ rules! {
     /// `standard.toml`'s `[wording]` rejects, such as
     /// `"Source Origin" = "SourceOrigin"`.
     Wording = "wording" => wording,
+    /// A module is `foo/mod.rs` only when its directory holds another Rust
+    /// file, parsed or not; otherwise it is `foo.rs`. A `mod.rs` beside an
+    /// integration test's, benchmark's or example's root, such as
+    /// `tests/common/mod.rs`, passes, and so does one under `src/bin`, where
+    /// binaries share modules.
+    ChildlessModRs = "childless-mod-rs" => childless_mod_rs,
 }
 
 /// Why the rules couldn't be checked.
@@ -443,6 +451,8 @@ struct Repository {
     sources: Vec<Source>,
     /// Every one that doesn't.
     unparsed: Vec<Unparsed>,
+    /// Every file git tracks or would track, from the root.
+    files: BTreeSet<PathBuf>,
     /// The configuration files that don't parse.
     unreadable: Unreadable,
     /// Each Rust file's module paths.
@@ -545,6 +555,11 @@ impl Repository {
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
+            files: Workspace::new(root)
+                .files(&[])?
+                .into_iter()
+                .map(PathBuf::from)
+                .collect(),
             sources,
             unparsed,
             unreadable,
@@ -621,6 +636,15 @@ impl Repository {
                 .then(|| self.budget.key_at(finding.line))
                 .flatten()
         })
+    }
+
+    /// Every Rust file, from the repository's root, whether it parses or
+    /// not.
+    fn rust_files(&self) -> impl Iterator<Item = &Path> {
+        self.sources
+            .iter()
+            .map(|source| source.path.as_path())
+            .chain(self.unparsed.iter().map(|unparsed| unparsed.path.as_path()))
     }
 
     /// The name of the crate owning `path`, from the repository's root.
