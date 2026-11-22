@@ -2,6 +2,7 @@
 
 mod budget;
 mod comments;
+mod config_comments;
 mod framework;
 mod generated_lints;
 mod unsafe_modules;

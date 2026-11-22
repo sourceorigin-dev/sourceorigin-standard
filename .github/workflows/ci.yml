@@ -1,19 +1,6 @@
-# Continuous integration for sourceorigin-standard. Jobs group the `just`
-# validation recipes by what they compile, so each compilation happens once
-# per job:
-#
-#   checks -> fmt-check, audit, unused, which compile nothing
-#   rust   -> lint, doc, test, doc-test, and package, which builds the crate
-#             from its package as crates.io would, without uploading it
-#
-# Pull requests run only the jobs whose inputs changed (see `changes`). Pushes
-# to main and manual runs run everything. `ci` is the single status to
-# require: it fails if any job failed and passes when the rest succeeded or
-# were skipped. audit.yml audits new advisories weekly.
-#
-# The Rust cache is saved from main only: GitHub scopes a cache to the branch
-# that saved it, and every other branch can read main's, so a pull request
-# never evicts it with a copy no other branch can read.
+# CI runs the `just` recipes grouped by what they compile: `checks` compiles
+# nothing, `rust` builds once for the rest. Pull requests run only the jobs
+# whose inputs changed (see `changes`); `ci` is the single required status.
 
 name: CI
 
@@ -95,6 +82,8 @@ jobs:
       - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2
         with:
           tool: just,cargo-nextest
+      # Saved from main only, which every branch can read, so a pull request
+      # never evicts it with a copy no other branch can read.
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
