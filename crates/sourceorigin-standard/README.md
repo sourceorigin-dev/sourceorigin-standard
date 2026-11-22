@@ -73,6 +73,7 @@ A repository adopts the standard in five steps:
 - `inline-limits`: `Duration::from_*` with a number, or arithmetic on numbers, sits only in a `const` or `static` item, a `const fn` or test code: a limit, timeout or size is a named constant. Test code is what a test attribute such as `#[tokio::test]`, or a `cfg` requiring `test` or a feature named for tests (`test-util`), marks, the files such a module declares, and integration tests and benchmarks.
 - `no-json-macro`: Code outside tests, in the crates `standard.toml`'s `no-json-macro` lists, invokes no `json!`: it serializes structs. Each name there is a workspace crate.
 - `route-literals`: When `standard.toml`'s `route-modules` lists modules, such as `my_app::routes`, code outside them, tests and examples passes no string literal starting with `/` to `Router::route`, `route_service`, `nest` or `nest_service`, or to a `Redirect` constructor: it uses the paths those modules name. Each listed module is a file of a library or binary.
+- `duplicate-items`: No function body outside test code with at least 20 tokens repeats another, token for token once its local bindings (parameters and the names its patterns bind) are renamed in the order they appear; paths, fields, methods and types stay as written.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

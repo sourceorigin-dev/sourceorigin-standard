@@ -20,6 +20,7 @@ mod config_syntax;
 mod deny_config;
 mod docs_images;
 mod docs_summary;
+mod duplicate_items;
 mod fix;
 mod generated_lints;
 mod inline_limits;
@@ -319,6 +320,11 @@ rules! {
     /// paths those modules name. Each listed module is a file of a library
     /// or binary.
     RouteLiterals = "route-literals" => route_literals,
+    /// No function body outside test code with at least 20 tokens repeats
+    /// another, token for token once its local bindings (parameters and
+    /// the names its patterns bind) are renamed in the order they appear;
+    /// paths, fields, methods and types stay as written.
+    DuplicateItems = "duplicate-items" => duplicate_items,
 }
 
 /// Why the rules couldn't be checked.
