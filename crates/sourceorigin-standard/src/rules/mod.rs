@@ -9,6 +9,7 @@ mod agents_md;
 mod anyhow_edges;
 mod budget;
 mod cargo_locked;
+mod ci_shape;
 mod clippy_config;
 mod comments;
 mod config_comments;
@@ -230,6 +231,11 @@ rules! {
     /// default, half the cores, that a set one overrides, and runs the build
     /// with `nice -n 10`, both in its own body.
     T3Setup = "t3-setup" => t3_setup,
+    /// `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job
+    /// that needs every other job and runs `if: always()`: with
+    /// `standard / pr-checks`, it is one of the repository's two required
+    /// checks.
+    CiShape = "ci-shape" => ci_shape,
 }
 
 /// Why the rules couldn't be checked.

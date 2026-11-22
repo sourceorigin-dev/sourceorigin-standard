@@ -1,10 +1,12 @@
 # CI runs the `just` recipes grouped by what they compile: `checks` compiles
 # nothing, `rust` builds once for the rest. Pull requests run only the jobs
-# whose inputs changed (see `changes`); `ci` is the single required status.
+# whose inputs changed (see `changes`); `ci` sums them up, and is one of the
+# two required checks with `standard / pr-checks`.
 
 name: CI
 
 on:
+  merge_group:
   pull_request:
   push:
     branches: [main]

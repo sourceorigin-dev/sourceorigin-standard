@@ -45,6 +45,19 @@ impl Workflow {
         Ok(workflows)
     }
 
+    /// The events that trigger it, from `on` as a name, a list or a
+    /// mapping.
+    pub(super) fn triggers(&self) -> Vec<&str> {
+        let Some(on) = self.document.get("on") else {
+            return Vec::new();
+        };
+        on.as_str()
+            .into_iter()
+            .chain(on.items().iter().filter_map(Node::as_str))
+            .chain(on.entries().iter().filter_map(|(event, _)| event.as_str()))
+            .collect()
+    }
+
     /// Its jobs, each with its key; none for an action.
     pub(super) fn jobs(&self) -> &[(Node, Node)] {
         self.document.get("jobs").map_or(&[], Node::entries)
