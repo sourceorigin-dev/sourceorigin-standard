@@ -13,6 +13,7 @@ mod comments;
 mod config_comments;
 mod config_syntax;
 mod deny_config;
+mod docs_images;
 mod docs_summary;
 mod fix;
 mod framework;
