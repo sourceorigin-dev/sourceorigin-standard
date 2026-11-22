@@ -19,16 +19,21 @@ path = "ui/wildcard_enum_local.rs"
 name = "string_literal_logic"
 path = "ui/string_literal_logic.rs"
 
+[[example]]
+name = "error_source_not_marked"
+path = "ui/error_source_not_marked.rs"
+
 [dependencies]
 # Pinned to the toolchain's nightly (rust-toolchain.toml), which each release
 # builds against, and to the cargo-dylint CI installs.
 clippy_utils = "=0.1.100"
 dylint_linting = "=6.3.2"
 
-# The UI cases' (de)serializers.
+# The UI cases' (de)serializers and error types.
 [dev-dependencies]
 dylint_testing = "=6.3.2"
 serde = "1.0.228"
+thiserror = "2.0.18"
 
 # Not the repository's workspace: this one builds on the nightly.
 [workspace]

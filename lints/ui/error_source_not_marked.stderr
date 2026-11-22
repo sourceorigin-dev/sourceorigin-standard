@@ -1,0 +1,57 @@
+warning: this error is not marked as the error's source
+  --> $DIR/error_source_not_marked.rs:14:5
+   |
+LL |     io: io::Error,
+   |     ^^^^^^^^^^^^^
+   |
+   = help: mark it `#[source]`, or `#[from]` to convert from it, and leave it out of the `#[error]` message
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_source_not_marked, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(error_source_not_marked)]` on by default
+
+warning: this error is not marked as the error's source
+  --> $DIR/error_source_not_marked.rs:20:10
+   |
+LL |     Port(ParseIntError),
+   |          ^^^^^^^^^^^^^
+   |
+   = help: mark it `#[source]`, or `#[from]` to convert from it, and leave it out of the `#[error]` message
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_source_not_marked, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is not marked as the error's source
+  --> $DIR/error_source_not_marked.rs:22:12
+   |
+LL |     Plugin(Box<dyn Error + Send + Sync>),
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: mark it `#[source]`, or `#[from]` to convert from it, and leave it out of the `#[error]` message
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_source_not_marked, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is not marked as the error's source
+  --> $DIR/error_source_not_marked.rs:24:14
+   |
+LL |     Shared { cause: Option<Arc<io::Error>> },
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: mark it `#[source]`, or `#[from]` to convert from it, and leave it out of the `#[error]` message
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_source_not_marked, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is not marked as the error's source
+  --> $DIR/error_source_not_marked.rs:50:10
+   |
+LL |     Read(io::Error),
+   |          ^^^^^^^^^
+   |
+   = help: mark it `#[source]`, or `#[from]` to convert from it, and leave it out of the `#[error]` message
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_source_not_marked, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is not marked as the error's source
+  --> $DIR/error_source_not_marked.rs:52:11
+   |
+LL |     Parse(ParseIntError),
+   |           ^^^^^^^^^^^^^
+   |
+   = help: mark it `#[source]`, or `#[from]` to convert from it, and leave it out of the `#[error]` message
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_source_not_marked, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: 6 warnings emitted
+

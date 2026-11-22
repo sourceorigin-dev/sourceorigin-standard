@@ -12,6 +12,8 @@ extern crate rustc_session;
 extern crate rustc_span;
 
 mod code;
+mod error;
+mod error_source_not_marked;
 mod report;
 mod string_literal_logic;
 mod wildcard_enum_local;
@@ -39,5 +41,6 @@ pub fn register_lints(sess: &rustc_session::Session, store: &mut rustc_lint::Lin
     register!(store:
         wildcard_enum_local::WILDCARD_ENUM_LOCAL => wildcard_enum_local::WildcardEnumLocal,
         string_literal_logic::STRING_LITERAL_LOGIC => string_literal_logic::StringLiteralLogic,
+        error_source_not_marked::ERROR_SOURCE_NOT_MARKED => error_source_not_marked::ErrorSourceNotMarked,
     );
 }
