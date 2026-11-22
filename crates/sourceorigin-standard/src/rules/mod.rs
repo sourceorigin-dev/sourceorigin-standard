@@ -83,8 +83,7 @@ rules! {
     /// and `clippy` lints of its lint block) to `warn`, and every other lint
     /// to `warn` or `allow`.
     WorkspaceLints = "workspace-lints" => workspace_lints,
-    /// Every Rust file git tracks or would track parses as Rust, so the
-    /// rules can read it.
+    /// Every Rust file git tracks or would track parses as Rust.
     RustSyntax = "rust-syntax" => rust_syntax,
     /// `#[expect(unsafe_code, …)]` sits only inside the modules
     /// `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or
@@ -93,7 +92,7 @@ rules! {
     UnsafeModules = "unsafe-modules" => unsafe_modules,
     /// Each crate holds at most as many `#[expect]` attributes (inner,
     /// outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table
-    /// gives it, and at most as many `// INVARIANT:` comments as its
+    /// gives it, and at most as many lines starting `// INVARIANT:` as its
     /// `[invariant]` table does; none for a crate a table doesn't list. Each
     /// name there is a workspace crate.
     Budget = "budget" => budget,

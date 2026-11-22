@@ -1,11 +1,13 @@
 //! sourceorigin-standard's own development tasks, run with `cargo xtask`:
 //! `standard` checks the repository against the standard's rules (`--fix`
 //! first makes their mechanical fixes), `standard report` prints JSON for the
-//! cleanup pass, `standard rules` lists them, and `check-changed [base]` runs CI's checks
+//! cleanup pass, `standard rules` lists them, `readme` writes that list into
+//! the crate's README, and `check-changed [base]` runs CI's checks
 //! for what changed. It uses the crate as piqueld, sourceorigin and
 //! DirkEngine do, so this repository runs the checks it ships.
 
 mod ci;
+mod readme;
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -59,10 +61,16 @@ fn main() -> Result<ExitCode> {
             println!("{}", report.to_json().context("print the report as JSON")?);
             Ok(ExitCode::SUCCESS)
         }
+        ["readme"] => {
+            readme::write().context("write the README's rules")?;
+            Ok(ExitCode::SUCCESS)
+        }
         ["standard", "rules"] => {
             print!("{}", rules::describe());
             Ok(ExitCode::SUCCESS)
         }
-        _ => bail!("usage: cargo xtask (standard [--fix | report | rules] | check-changed [base])"),
+        _ => bail!(
+            "usage: cargo xtask (standard [--fix | report | rules] | check-changed [base] | readme)"
+        ),
     }
 }
