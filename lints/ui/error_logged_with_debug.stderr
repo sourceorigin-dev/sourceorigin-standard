@@ -1,0 +1,75 @@
+warning: this error is logged through `Debug`
+  --> $DIR/error_logged_with_debug.rs:14:5
+   |
+LL |     tracing::error!(?error, "read failed");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(error_logged_with_debug)]` on by default
+
+warning: this error is logged through `Debug`
+  --> $DIR/error_logged_with_debug.rs:15:29
+   |
+LL |     tracing::warn!(error = ?boxed, "plugin failed");
+   |                             ^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is logged through `Debug`
+  --> $DIR/error_logged_with_debug.rs:16:29
+   |
+LL |     tracing::info!(cause = ?shared, "retrying");
+   |                             ^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is logged through `Debug`
+  --> $DIR/error_logged_with_debug.rs:18:5
+   |
+LL |     tracing::debug!(?source, "source");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is formatted with `{:?}` in a `tracing` event
+  --> $DIR/error_logged_with_debug.rs:28:5
+   |
+LL |     tracing::error!("read failed: {error:?}");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is formatted with `{:?}` in a `tracing` event
+  --> $DIR/error_logged_with_debug.rs:29:5
+   |
+LL |     tracing::warn!("plugin failed: {:?}", boxed);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is formatted with `{:?}` in a `tracing` event
+  --> $DIR/error_logged_with_debug.rs:30:5
+   |
+LL |     tracing::info!("maybe: {missing:?}");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: this error is formatted with `{:?}` in a `tracing` event
+  --> $DIR/error_logged_with_debug.rs:32:5
+   |
+LL |     tracing::info!("result: {result:?}");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%`, wrapped in the repository's helper that prints its source chain (`chain_helper` under `[error_logged_with_debug]` in `dylint.toml` names it here)
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: 8 warnings emitted
+

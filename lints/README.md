@@ -10,6 +10,7 @@ and how to challenge the lint when it is wrong.
 | [`wildcard_enum_local`](src/wildcard_enum_local.rs) | a `_` or catch-all binding arm in a `match` on an enum of the workspace |
 | [`string_literal_logic`](src/string_literal_logic.rs) | comparing or matching a value against a string literal or constant outside parsing, display and tests |
 | [`error_source_not_marked`](src/error_source_not_marked.rs) | an error field of a `thiserror` type that isn't `#[source]` or `#[from]` |
+| [`error_logged_with_debug`](src/error_logged_with_debug.rs) | an error a `tracing` event formats through `Debug` (`?error`, `{error:?}`) |
 
 ## In a repository
 
@@ -40,6 +41,14 @@ without Dylint too:
 ```
 
 A lint that is wrong more than once is changed here instead.
+
+`dylint.toml`, beside the workspace's `Cargo.toml`, configures the lints:
+
+```toml
+[error_logged_with_debug]
+# The type that displays an error with its source chain, which the help names.
+chain_helper = "ErrorChain"
+```
 
 ## Developing
 

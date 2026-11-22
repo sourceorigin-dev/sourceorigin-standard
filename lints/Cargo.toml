@@ -23,17 +23,27 @@ path = "ui/string_literal_logic.rs"
 name = "error_source_not_marked"
 path = "ui/error_source_not_marked.rs"
 
+[[example]]
+name = "error_logged_with_debug"
+path = "ui/error_logged_with_debug.rs"
+
+[[example]]
+name = "error_logged_with_debug_configured"
+path = "ui/error_logged_with_debug_configured.rs"
+
 [dependencies]
 # Pinned to the toolchain's nightly (rust-toolchain.toml), which each release
 # builds against, and to the cargo-dylint CI installs.
 clippy_utils = "=0.1.100"
 dylint_linting = "=6.3.2"
+# `dylint.toml`'s tables.
+serde = { version = "1.0.228", features = ["derive"] }
 
-# The UI cases' (de)serializers and error types.
+# The UI cases' error types and logs.
 [dev-dependencies]
 dylint_testing = "=6.3.2"
-serde = "1.0.228"
 thiserror = "2.0.18"
+tracing = "0.1.41"
 
 # Not the repository's workspace: this one builds on the nightly.
 [workspace]
