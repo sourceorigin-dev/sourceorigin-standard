@@ -10,6 +10,11 @@ in this crate, a CI check on the pull request, a cleanup-pass skill.
   documentation and shows how a repository's xtask uses it.
 - `tools/xtask`: this repository's own `cargo xtask`, which uses the crate
   as the other repositories do.
+- `.github/workflows/pr-checks.yml`: the reusable workflow that checks a
+  pull request itself (its title, description, commits and the exceptions
+  it adds), which each repository calls and this one dogfoods from
+  `pr.yml`. Its logic is in `.github/pr-checks`, Node scripts without
+  dependencies, tested by `just test-pr-checks`.
 
 Terms that are easy to mix up:
 
@@ -83,7 +88,9 @@ this list and say which entries applied:
 - the crate's README, whose example is how a repository's xtask wires it in;
 - the pull request's note of what each repository's xtask must change when
   the API breaks;
-- this repository's own `tools/xtask`, which uses the crate as the others do.
+- this repository's own `tools/xtask`, which uses the crate as the others do;
+- for `pr-checks.yml`, the README's caller workflow and `[pr-checks]`
+  settings, and this repository's own `pr.yml` and `standard.toml`.
 
 ## Issues, commits & pull requests
 

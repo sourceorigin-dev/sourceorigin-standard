@@ -249,6 +249,10 @@ struct File {
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
     wording: BTreeMap<Spanned<String>, String>,
+    /// The settings of the pull request checks (`.github/workflows/pr-checks.yml`
+    /// in sourceorigin-standard), which read and validate it themselves.
+    #[serde(rename = "pr-checks")]
+    _pr_checks: toml::Table,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table

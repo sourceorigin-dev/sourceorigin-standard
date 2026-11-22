@@ -18,6 +18,15 @@ fn a_missing_file_is_the_defaults() {
 }
 
 #[test]
+fn the_pull_request_checks_table_is_theirs_to_read() {
+    Config::parse(
+        "[pr-checks]\nscopes = [\"rules\"]\n\n[pr-checks.deviations]\npr-title = \"why\"\n",
+    )
+    .expect("any [pr-checks] table parses");
+    assert!(message("pr-checks = 1\n").contains("invalid type"));
+}
+
+#[test]
 fn check_changed_reads_the_crates_that_build_others() {
     let config = Config::parse(
         "[check-changed]\nbuilds = [{ builder = \"daemon\", built = \"dashboard\" }]\n",

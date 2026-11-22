@@ -39,6 +39,7 @@ jobs:
     outputs:
       rust: ${{ github.event_name != 'pull_request' || steps.filter.outputs.rust == 'true' }}
       deny: ${{ github.event_name != 'pull_request' || steps.filter.outputs.deny == 'true' }}
+      pr-checks: ${{ github.event_name != 'pull_request' || steps.filter.outputs.pr-checks == 'true' }}
     steps:
       # The filters file only: the action lists the changed paths through
       # the GitHub API.
@@ -113,6 +114,22 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: just standard
 
+  # The scripts of pr-checks.yml, the workflow other repositories call.
+  pr-check-scripts:
+    name: pr-check-scripts
+    needs: changes
+    if: needs.changes.outputs.pr-checks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2
+        with:
+          tool: just
+      - run: just test-pr-checks
+
   ci:
     name: ci
     if: always()
@@ -121,10 +138,11 @@ jobs:
       - checks
       - rust
       - standard
+      - pr-check-scripts
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
-          allowed-skips: checks, rust
+          allowed-skips: checks, rust, pr-check-scripts
           jobs: ${{ toJSON(needs) }}

@@ -20,3 +20,8 @@ deny:
   - *workspace
   - deny.toml
   - '**/Cargo.toml'
+pr-checks:
+  - .github/workflows/ci.yml
+  - .github/filters.yml
+  - justfile
+  - .github/pr-checks/**

@@ -1,0 +1,4 @@
+# How this repository applies the standard it ships (see the crate's README).
+
+[pr-checks]
+scopes = ["check-changed", "rules", "lints", "pr-checks", "skills", "xtask"]

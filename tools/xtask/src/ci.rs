@@ -10,16 +10,18 @@ pub enum Filter {
     Workspace,
     Rust,
     Deny,
+    PrChecks,
 }
 
 impl check_changed::Filter for Filter {
-    const ALL: &'static [Self] = &[Self::Workspace, Self::Rust, Self::Deny];
+    const ALL: &'static [Self] = &[Self::Workspace, Self::Rust, Self::Deny, Self::PrChecks];
 
     fn name(self) -> &'static str {
         match self {
             Self::Workspace => "workspace",
             Self::Rust => "rust",
             Self::Deny => "deny",
+            Self::PrChecks => "pr-checks",
         }
     }
 }
@@ -60,6 +62,11 @@ pub const CI: Ci<Filter> = Ci {
                 just(&["just", "doc-test"]),
                 just(&["just", "package"]),
             ],
+        },
+        Job {
+            id: "pr-check-scripts",
+            trigger: Trigger::AnyOf(&[Filter::PrChecks]),
+            recipes: &[just(&["just", "test-pr-checks"])],
         },
     ],
     ignored: &["ci"],
