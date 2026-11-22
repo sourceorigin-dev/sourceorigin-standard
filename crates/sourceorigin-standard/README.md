@@ -55,6 +55,7 @@ A repository adopts the standard in four steps:
 - `t3-setup`: A recipe `t3.json` runs on worktree creation that runs Cargo, itself or through the recipes it runs, sets `CARGO_BUILD_JOBS` to a default, half the cores, that a set one overrides, and runs the build with `nice -n 10`, both in its own body.
 - `ci-shape`: `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job that needs every other job and runs `if: always()`: with `standard / pr-checks`, it is one of the repository's two required checks.
 - `actions-pinned`: Every `uses:` of a workflow or composite action naming another repository's action or workflow pins it to a 40-character commit SHA, followed by a `# v…` comment giving its version.
+- `workflow-permissions`: Every workflow's top-level `permissions` is exactly `contents: read`, or `{}`; a job that needs more sets its own.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

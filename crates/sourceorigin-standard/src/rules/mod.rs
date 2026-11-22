@@ -38,6 +38,7 @@ mod text_file;
 mod toml_file;
 mod toolchain;
 mod unsafe_modules;
+mod workflow_permissions;
 mod workflows;
 mod workspace_dependencies;
 mod workspace_lints;
@@ -241,6 +242,9 @@ rules! {
     /// repository's action or workflow pins it to a 40-character commit
     /// SHA, followed by a `# v…` comment giving its version.
     ActionsPinned = "actions-pinned" => actions_pinned,
+    /// Every workflow's top-level `permissions` is exactly
+    /// `contents: read`, or `{}`; a job that needs more sets its own.
+    WorkflowPermissions = "workflow-permissions" => workflow_permissions,
 }
 
 /// Why the rules couldn't be checked.
