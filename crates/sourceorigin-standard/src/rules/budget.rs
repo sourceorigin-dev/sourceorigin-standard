@@ -6,6 +6,7 @@ use std::path::Path;
 use serde::Deserialize;
 use toml::Spanned;
 
+use super::comments::Comment;
 use super::level::Level;
 use super::{Error, Finding, Repository};
 use crate::config::line_of;
@@ -31,6 +32,8 @@ struct Ceiling {
 pub(super) struct Budget {
     /// `[expect]`: `#[expect]` attributes.
     expect: Ceilings,
+    /// `[invariant]`: `// INVARIANT:` comments.
+    invariant: Ceilings,
 }
 
 /// `budget.toml` as written, before its spans become lines.
@@ -38,6 +41,7 @@ pub(super) struct Budget {
 #[serde(default, deny_unknown_fields)]
 struct File {
     expect: BTreeMap<Spanned<String>, usize>,
+    invariant: BTreeMap<Spanned<String>, usize>,
 }
 
 impl Budget {
@@ -57,6 +61,7 @@ impl Budget {
         })?;
         Ok(Self {
             expect: Ceilings::of(&text, file.expect),
+            invariant: Ceilings::of(&text, file.invariant),
         })
     }
 }
@@ -124,8 +129,8 @@ impl Repository {
         counts
     }
 
-    /// Each crate over its ceiling of `#[expect]` attributes, and each
-    /// budgeted name that is no crate.
+    /// Each crate over its ceiling of `#[expect]` attributes or of
+    /// `// INVARIANT:` comments, and each budgeted name that is no crate.
     pub(super) fn budget(&self) -> Vec<Finding> {
         let expects = self.per_crate(|source| {
             source
@@ -134,8 +139,17 @@ impl Repository {
                 .filter(|lint| lint.level == Level::Expect)
                 .count()
         });
-        self.budget
-            .expect
-            .findings("expect", "`#[expect]` attributes", &expects)
+        let invariants =
+            self.per_crate(|source| source.comments.iter().map(Comment::invariants).sum());
+        let mut findings =
+            self.budget
+                .expect
+                .findings("expect", "`#[expect]` attributes", &expects);
+        findings.extend(self.budget.invariant.findings(
+            "invariant",
+            "`// INVARIANT:` comments",
+            &invariants,
+        ));
+        findings
     }
 }

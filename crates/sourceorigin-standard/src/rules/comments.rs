@@ -24,6 +24,15 @@ pub(super) struct Comment {
 }
 
 impl Comment {
+    /// How many of its lines start with [`INVARIANT`]: each states one
+    /// fact the code relies on.
+    pub(super) fn invariants(&self) -> usize {
+        self.lines
+            .iter()
+            .filter(|line| line.starts_with(INVARIANT))
+            .count()
+    }
+
     /// Whether its first line starts with one of the [`MARKERS`].
     pub(super) fn marked(&self) -> bool {
         self.lines
@@ -32,8 +41,12 @@ impl Comment {
     }
 }
 
+/// The marker of a fact the code relies on that neither the types nor a
+/// test can hold, which `budget.toml` caps per crate.
+pub(super) const INVARIANT: &str = "INVARIANT:";
+
 /// What a Rust comment that isn't a doc comment may start with.
-pub(super) const MARKERS: [&str; 1] = ["SAFETY:"];
+pub(super) const MARKERS: [&str; 2] = ["SAFETY:", INVARIANT];
 
 /// The doc comments and `#[doc]` attributes on one item, or inside one
 /// module.
