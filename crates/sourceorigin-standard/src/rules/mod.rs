@@ -29,6 +29,7 @@ mod recipes;
 mod recipes_only;
 mod report;
 mod rustfmt_config;
+mod scheduled_audit;
 mod settings;
 mod source;
 mod t3;
@@ -240,6 +241,9 @@ rules! {
     /// `actions/cache`, which saves on a miss: they use
     /// `actions/cache/restore`, saving with `actions/cache/save` from `main`.
     CacheSaves = "cache-saves" => cache_saves,
+    /// A workflow runs `just audit` (or `cargo deny`) on a `schedule` at
+    /// least weekly: a cron whose day of the month and month are `*`.
+    ScheduledAudit = "scheduled-audit" => scheduled_audit,
 }
 
 /// Why the rules couldn't be checked.
