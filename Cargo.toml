@@ -30,6 +30,8 @@ tempfile = "3.27.0"
 thiserror = "2.0.18"
 # `standard.toml` and the manifests the rules read.
 toml = { version = "1.2.0", default-features = false, features = ["std", "serde", "parse"] }
+# `--fix` edits TOML files as documents, keeping their layout and comments.
+toml_edit = { version = "0.25.20", default-features = false, features = ["parse", "display"] }
 # Pure Rust, and it resolves the YAML anchors filters reuse each other with.
 # Its only default feature decodes non-UTF-8 input, which a string never is.
 yaml-rust2 = { version = "0.13.2", default-features = false }
