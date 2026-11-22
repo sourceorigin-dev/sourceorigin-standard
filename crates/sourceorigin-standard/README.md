@@ -109,7 +109,8 @@ piqueld = 2
 - `cargo xtask standard --fix` first runs [`rules::fix`], which makes the
   fixes that need no judgement and prints each, such as adding
   `[lints] workspace = true`, making a workspace lint at `deny` or `forbid`
-  `warn` (never an `allow`), making a crate inherit the workspace's edition,
+  `warn` (never an `allow`), adding a required lint the workspace lacks,
+  making a crate inherit the workspace's edition,
   lowering a ceiling of `budget.toml` to what the crate holds, or removing a
   stale deviation or entry of one. It edits each
   TOML file as a document, so its layout and comments stay.
