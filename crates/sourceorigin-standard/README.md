@@ -47,6 +47,7 @@ A repository adopts the standard in four steps:
 - `clippy-config`: `clippy.toml` sets `allow-expect-in-tests`, `allow-panic-in-tests` and `allow-dbg-in-tests` to `true`, and never `allow-unwrap-in-tests`.
 - `nextest-config`: `.config/nextest.toml`'s default profile sets a `slow-timeout`, every `slow-timeout` in it has a `terminate-after`, and no profile or override sets `retries`.
 - `workspace-dependencies`: Every dependency of a workspace crate, of every kind and target, is inherited with `workspace = true` from the root's `[workspace.dependencies]`, where each `path` dependency also has a `version`.
+- `deny-config`: `deny.toml` sets `unknown-registry` and `unknown-git` under `[sources]`, and `wildcards` under `[bans]`, to `"deny"`, allows at least one license, and gives every ignored advisory a `reason`: `{ id = "…", reason = "…" }`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

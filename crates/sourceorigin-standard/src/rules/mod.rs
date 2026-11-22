@@ -11,6 +11,7 @@ mod cargo_locked;
 mod clippy_config;
 mod comments;
 mod config_comments;
+mod deny_config;
 mod fix;
 mod generated_lints;
 mod layout;
@@ -41,6 +42,7 @@ use crate::workspace::Workspace;
 use agent_files::AgentFiles;
 use budget::Budget;
 use config_comments::Commented;
+use deny_config::DenyConfig;
 use fix::Checked;
 pub use fix::Fix;
 use layout::CargoConfig;
@@ -174,6 +176,11 @@ rules! {
     /// `[workspace.dependencies]`, where each `path` dependency also has a
     /// `version`.
     WorkspaceDependencies = "workspace-dependencies" => workspace_dependencies,
+    /// `deny.toml` sets `unknown-registry` and `unknown-git` under
+    /// `[sources]`, and `wildcards` under `[bans]`, to `"deny"`, allows at
+    /// least one license, and gives every ignored advisory a `reason`:
+    /// `{ id = "…", reason = "…" }`.
+    DenyConfig = "deny-config" => deny_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -347,6 +354,8 @@ struct Repository {
     commented: Vec<Commented>,
     /// `.config/nextest.toml`, empty when missing.
     nextest: TomlFile<NextestConfig>,
+    /// `deny.toml`.
+    deny: Option<TomlFile<DenyConfig>>,
 }
 
 impl Repository {
@@ -371,6 +380,7 @@ impl Repository {
             scripts: TextFile::load_all(root, &cargo_locked::FILES)?,
             agent_files: AgentFiles::load(root)?,
             nextest: TomlFile::load_or_empty(root, nextest_config::PATH)?,
+            deny: TomlFile::load(root, deny_config::PATH)?,
             metadata,
             sources,
             unparsed,

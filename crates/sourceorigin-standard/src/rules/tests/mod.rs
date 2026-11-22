@@ -7,6 +7,7 @@ mod cargo_locked;
 mod clippy_config;
 mod comments;
 mod config_comments;
+mod deny_config;
 mod fix;
 mod framework;
 mod generated_lints;
