@@ -6,6 +6,7 @@
 
 mod agent_files;
 mod agents_md;
+mod anyhow_edges;
 mod budget;
 mod cargo_locked;
 mod clippy_config;
@@ -202,6 +203,11 @@ rules! {
     /// least one license, and gives every ignored advisory a `reason`:
     /// `{ id = "…", reason = "…" }`.
     DenyConfig = "deny-config" => deny_config,
+    /// No library depends on `anyhow` (dev-dependencies aside), unless
+    /// `standard.toml`'s `anyhow-crates` lists it as a binary's edge, such
+    /// as a crate holding a CLI's commands. Each listed name is a workspace
+    /// crate.
+    AnyhowEdges = "anyhow-edges" => anyhow_edges,
 }
 
 /// Why the rules couldn't be checked.

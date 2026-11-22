@@ -76,6 +76,8 @@ pub(crate) struct Config {
     pub(crate) unsafe_modules: Vec<Listed>,
     /// The `[comments]` table.
     pub(crate) comments: Comments,
+    /// The libraries that may depend on `anyhow`, as the edge of a binary.
+    pub(crate) anyhow_crates: Vec<Listed>,
 }
 
 /// The `[comments]` table: what comments the rules allow.
@@ -224,6 +226,7 @@ struct File {
     check_changed: CheckChanged,
     unsafe_modules: Vec<Spanned<String>>,
     comments: Comments,
+    anyhow_crates: Vec<Spanned<String>>,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -352,6 +355,7 @@ impl Config {
             check_changed: file.check_changed,
             unsafe_modules: listed(file.unsafe_modules),
             comments: file.comments,
+            anyhow_crates: listed(file.anyhow_crates),
         })
     }
 
