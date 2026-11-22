@@ -33,4 +33,17 @@ impl TextFile {
             })
             .collect()
     }
+
+    /// Every file git tracks or would track under `root` matching any of
+    /// `globs`, such as `crates/*/migrations/*.sql`; none without globs.
+    pub(super) fn load_globs(root: &Path, globs: &[String]) -> Result<Vec<Self>, Error> {
+        if globs.is_empty() {
+            return Ok(Vec::new());
+        }
+        let pathspecs: Vec<String> = globs.iter().map(|glob| format!(":(glob){glob}")).collect();
+        Self::load_all(
+            root,
+            &pathspecs.iter().map(String::as_str).collect::<Vec<_>>(),
+        )
+    }
 }

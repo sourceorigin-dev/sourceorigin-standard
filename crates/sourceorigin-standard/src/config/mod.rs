@@ -84,6 +84,9 @@ pub(crate) struct Config {
     /// The `[wording]` table: each rejected spelling, with its line, and
     /// the one to write instead.
     pub(crate) wording: Vec<(Listed, String)>,
+    /// The globs of the database migrations, such as
+    /// `crates/*/migrations/*.sql`.
+    pub(crate) migrations: Vec<String>,
 }
 
 /// The `[comments]` table: what comments the rules allow.
@@ -235,6 +238,7 @@ struct File {
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
     wording: BTreeMap<Spanned<String>, String>,
+    migrations: Vec<String>,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -365,6 +369,7 @@ impl Config {
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),
+            migrations: file.migrations,
             wording: file
                 .wording
                 .into_iter()

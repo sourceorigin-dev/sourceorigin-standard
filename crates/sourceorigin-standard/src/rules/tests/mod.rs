@@ -19,6 +19,7 @@ mod framework;
 mod generated_lints;
 mod job_timeouts;
 mod layout;
+mod migration_header;
 mod nextest_config;
 mod pr_template;
 mod recipes;

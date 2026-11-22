@@ -25,6 +25,7 @@ mod justfile;
 mod layout;
 mod level;
 mod manifest;
+mod migration_header;
 mod modules;
 mod nextest_config;
 mod pr_template;
@@ -262,6 +263,9 @@ rules! {
     /// `standard.toml`'s `[wording]` rejects, such as
     /// `"Source Origin" = "SourceOrigin"`.
     Wording = "wording" => wording,
+    /// Every file matching `standard.toml`'s `migrations` globs, such as
+    /// `crates/*/migrations/*.sql`, starts with a `--` comment.
+    MigrationHeader = "migration-header" => migration_header,
 }
 
 /// Why the rules couldn't be checked.
@@ -470,6 +474,8 @@ struct Repository {
     book: Option<TomlFile<Book>>,
     /// Every Markdown file.
     markdown: Vec<TextFile>,
+    /// The files `migrations` matches.
+    migrations: Vec<TextFile>,
 }
 
 impl Repository {
@@ -479,8 +485,8 @@ impl Repository {
         let metadata = Metadata::load(Workspace::new(root))?;
         let (sources, unparsed) = Source::load_all(root)?;
         let root_manifest = TomlFile::<RootManifest>::load_root(root)?;
+        let config = Config::load(root)?;
         Ok(Self {
-            config: Config::load(root)?,
             manifests: TomlFile::load_all(&metadata)?,
             lint_levels: LintLevel::all(&root_manifest),
             root_manifest,
@@ -501,6 +507,8 @@ impl Repository {
             pr_template: TextFile::load_all(root, &[pr_template::PATH])?.pop(),
             book: TomlFile::load(root, docs_summary::BOOK)?,
             markdown: TextFile::load_all(root, &["*.md"])?,
+            migrations: TextFile::load_globs(root, &config.migrations)?,
+            config,
             metadata,
             sources,
             unparsed,

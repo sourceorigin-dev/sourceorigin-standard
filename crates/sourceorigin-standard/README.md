@@ -62,6 +62,7 @@ A repository adopts the standard in four steps:
 - `docs-summary`: With a `book.toml`, every Markdown page under its `src` is linked from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
 - `docs-images`: Every image in a Markdown file, outside code blocks, has alt text: `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
 - `wording`: No Markdown file, outside code, holds as a word a spelling `standard.toml`'s `[wording]` rejects, such as `"Source Origin" = "SourceOrigin"`.
+- `migration-header`: Every file matching `standard.toml`'s `migrations` globs, such as `crates/*/migrations/*.sql`, starts with a `--` comment.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -86,6 +87,9 @@ anyhow-crates = ["my-cli"]
 # The lines of workflows' `run:` that run Cargo rather than a recipe, each
 # whole, such as a check on the minimum supported Rust version.
 cargo-in-ci = ["cargo +1.85 check --locked --workspace"]
+
+# The database migrations, each of which starts with a `--` comment.
+migrations = ["crates/*/migrations/*.sql"]
 
 # Rules the repository departs from, each with its reason: everywhere, or
 # only in the files `paths` matches and the crates `crates` names. A
