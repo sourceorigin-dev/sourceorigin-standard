@@ -17,6 +17,8 @@ mod level;
 mod manifest;
 mod modules;
 mod report;
+mod rustfmt_config;
+mod settings;
 mod source;
 #[cfg(test)]
 mod tests;
@@ -42,6 +44,7 @@ use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
+use settings::Settings;
 use source::{Source, Unparsed};
 use text_file::TextFile;
 use toml_file::TomlFile;
@@ -151,6 +154,9 @@ rules! {
     /// `rust-toolchain.toml` pins `channel = "stable"` and installs at
     /// least the `rustfmt` and `clippy` components.
     Toolchain = "toolchain" => toolchain,
+    /// `rustfmt.toml` sets `edition = "2024"`, `newline_style = "Unix"` and
+    /// `use_field_init_shorthand = true`.
+    RustfmtConfig = "rustfmt-config" => rustfmt_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -297,6 +303,8 @@ struct Repository {
     root_manifest: TomlFile<RootManifest>,
     /// `rust-toolchain.toml`.
     toolchain: Option<TomlFile<ToolchainFile>>,
+    /// `rustfmt.toml`, empty when missing.
+    rustfmt: TomlFile<Settings>,
     /// `.cargo/config.toml`.
     cargo_config: Option<TomlFile<CargoConfig>>,
     /// The manifests of the workspace's crates.
@@ -334,6 +342,7 @@ impl Repository {
             root_manifest,
             cargo_config: TomlFile::load(root, layout::CARGO_CONFIG)?,
             toolchain: TomlFile::load(root, toolchain::PATH)?,
+            rustfmt: TomlFile::load_or_empty(root, rustfmt_config::PATH)?,
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,

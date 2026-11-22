@@ -28,6 +28,20 @@ impl<T: DeserializeOwned> TomlFile<T> {
         }
     }
 
+    /// The file at `path`, from `root`, or an empty one when there is
+    /// none, which a fix writes.
+    pub(super) fn load_or_empty(root: &Path, path: impl Into<PathBuf>) -> Result<Self, Error>
+    where
+        T: Default,
+    {
+        let path = path.into();
+        Ok(Self::load(root, &path)?.unwrap_or_else(|| Self {
+            path,
+            text: String::new(),
+            value: T::default(),
+        }))
+    }
+
     /// The file at `path`, from `root`, which must exist.
     pub(super) fn require(root: &Path, path: impl Into<PathBuf>) -> Result<Self, Error> {
         let path = path.into();
