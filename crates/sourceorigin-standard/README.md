@@ -48,6 +48,7 @@ A repository adopts the standard in four steps:
 - `nextest-config`: `.config/nextest.toml`'s default profile sets a `slow-timeout`, every `slow-timeout` in it has a `terminate-after`, and no profile or override sets `retries`.
 - `workspace-dependencies`: Every dependency of a workspace crate, of every kind and target, is inherited with `workspace = true` from the root's `[workspace.dependencies]`, where each `path` dependency also has a `version`.
 - `deny-config`: `deny.toml` sets `unknown-registry` and `unknown-git` under `[sources]`, and `wildcards` under `[bans]`, to `"deny"`, allows at least one license, and gives every ignored advisory a `reason`: `{ id = "…", reason = "…" }`.
+- `anyhow-edges`: No library depends on `anyhow` (dev-dependencies aside), unless `standard.toml`'s `anyhow-crates` lists it as a binary's edge, such as a crate holding a CLI's commands. Each listed name is a workspace crate.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -60,17 +61,21 @@ is optional, and a missing file means the defaults. An unknown key, or a
 rule name that doesn't exist, fails with the parser's message naming it.
 
 ```toml
+# The modules that may expect `unsafe_code`, on the smallest item inside
+# them that needs it. A target's root module is its crate's name, such as
+# `build_script_build` for a build script.
+unsafe-modules = ["my_crate::ffi"]
+
+# The libraries that may depend on `anyhow`, each a binary's edge, such as
+# a crate holding a CLI's commands. A crate with no library may anyway.
+anyhow-crates = ["my-cli"]
+
 # Rules the repository departs from, each with its reason: everywhere, or
 # only in the files `paths` matches and the crates `crates` names. A
 # deviation, or an entry of its scope, that excuses no violation is one.
 [deviations]
 rule-name = "why the repository departs from it everywhere"
 other-rule = { reason = "why", paths = ["crates/generated/**"], crates = ["vendored"] }
-
-# The modules that may expect `unsafe_code`, on the smallest item inside
-# them that needs it. A target's root module is its crate's name, such as
-# `build_script_build` for a build script.
-unsafe-modules = ["my_crate::ffi"]
 
 [comments]
 # The most lines of prose an item's or module's docs may span, code blocks

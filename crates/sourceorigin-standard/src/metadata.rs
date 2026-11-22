@@ -41,6 +41,16 @@ pub(crate) struct Package {
 #[derive(Debug, Deserialize)]
 pub(crate) struct Dependency {
     pub(crate) name: String,
+    /// Its kind; `None` for a normal dependency.
+    pub(crate) kind: Option<DependencyKind>,
+}
+
+/// A dependency other than a normal one, as `cargo metadata` names it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum DependencyKind {
+    Dev,
+    Build,
 }
 
 /// A package's library, binary, test, example, benchmark or build script.
@@ -149,6 +159,13 @@ impl Package {
                 .strip_prefix(dir)
                 .is_ok_and(|source| source.components().next() == entry)
         })
+    }
+
+    /// Whether the crate has a normal dependency on `name`.
+    pub(crate) fn depends_on(&self, name: &str) -> bool {
+        self.dependencies
+            .iter()
+            .any(|dependency| dependency.name == name && dependency.kind.is_none())
     }
 
     /// Whether the crate has a library, which doc tests need.

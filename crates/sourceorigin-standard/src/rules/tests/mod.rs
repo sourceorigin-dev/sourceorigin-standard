@@ -2,6 +2,7 @@
 
 mod agent_files;
 mod agents_md;
+mod anyhow_edges;
 mod budget;
 mod cargo_locked;
 mod clippy_config;
