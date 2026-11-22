@@ -1,5 +1,6 @@
 //! The repository a check runs in, and the commands it runs there.
 
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::string::FromUtf8Error;
@@ -73,6 +74,51 @@ impl<'a> Workspace<'a> {
             }
         }
         command
+    }
+
+    /// The files git tracks or would track, from the root, matching
+    /// `pathspec`, such as `*.rs`.
+    pub(crate) fn files(self, pathspec: &str) -> Result<BTreeSet<String>, CommandError> {
+        let files = self.output(
+            "git",
+            &[
+                "ls-files",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+                "-z",
+                "--",
+                pathspec,
+            ],
+        )?;
+        Ok(files
+            .split('\0')
+            .filter(|path| !path.is_empty())
+            .map(str::to_owned)
+            .collect())
+    }
+
+    /// Those of `paths` that `.gitattributes` gives `attribute`, set or
+    /// `true`. Unlike an `attr` pathspec, it reads untracked files too.
+    pub(crate) fn with_attribute<'p>(
+        self,
+        attribute: &str,
+        paths: &'p BTreeSet<String>,
+    ) -> Result<BTreeSet<&'p str>, CommandError> {
+        if paths.is_empty() {
+            return Ok(BTreeSet::new());
+        }
+        let mut args = vec!["check-attr", "-z", attribute, "--"];
+        args.extend(paths.iter().map(String::as_str));
+        let output = self.output("git", &args)?;
+        let fields: Vec<&str> = output.split('\0').collect();
+        Ok(fields
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .filter(|[_, _, value]| matches!(*value, "set" | "true"))
+            .filter_map(|[path, _, _]| paths.get(*path).map(String::as_str))
+            .collect())
     }
 
     /// Runs `program` with `args` from the root, and returns what it printed.

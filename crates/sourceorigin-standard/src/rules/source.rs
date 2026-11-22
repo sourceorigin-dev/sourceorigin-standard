@@ -18,6 +18,8 @@ pub(super) struct Source {
     pub(super) syntax: syn::File,
     /// Every lint attribute in it, inner and outer, at any depth.
     pub(super) lints: Vec<LintAttribute>,
+    /// Whether `.gitattributes` marks it `linguist-generated`.
+    pub(super) generated: bool,
 }
 
 /// A Rust file that doesn't parse, which the rules can't read.
@@ -34,21 +36,12 @@ impl Source {
     /// Every Rust file git tracks or would track under `root`: those that
     /// parse, and those that don't.
     pub(super) fn load_all(root: &Path) -> Result<(Vec<Self>, Vec<Unparsed>), Error> {
-        let files = Workspace::new(root).output(
-            "git",
-            &[
-                "ls-files",
-                "--cached",
-                "--others",
-                "--exclude-standard",
-                "-z",
-                "--",
-                "*.rs",
-            ],
-        )?;
+        let workspace = Workspace::new(root);
+        let paths = workspace.files("*.rs")?;
+        let generated = workspace.with_attribute("linguist-generated", &paths)?;
         let mut sources = Vec::new();
         let mut unparsed = Vec::new();
-        for path in files.split('\0').filter(|path| !path.is_empty()) {
+        for path in &paths {
             let text = match std::fs::read_to_string(root.join(path)) {
                 Ok(text) => text,
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
@@ -60,12 +53,13 @@ impl Source {
                 }
             };
             match Self::parse(PathBuf::from(path), &text) {
-                Ok(source) => sources.push(source),
+                Ok(mut source) => {
+                    source.generated = generated.contains(path.as_str());
+                    sources.push(source);
+                }
                 Err(failure) => unparsed.push(failure),
             }
         }
-        sources.sort_by(|a, b| a.path.cmp(&b.path));
-        sources.dedup_by(|a, b| a.path == b.path);
         Ok((sources, unparsed))
     }
 
@@ -79,6 +73,7 @@ impl Source {
                     path,
                     syntax,
                     lints: lints.0,
+                    generated: false,
                 })
             }
             Err(error) => Err(Unparsed {

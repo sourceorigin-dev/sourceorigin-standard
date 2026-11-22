@@ -2,6 +2,7 @@
 
 mod budget;
 mod framework;
+mod generated_lints;
 mod unsafe_modules;
 mod workspace_lints;
 
