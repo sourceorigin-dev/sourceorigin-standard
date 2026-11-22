@@ -141,25 +141,6 @@ impl Metadata {
         })
     }
 
-    /// Whether `path`, from the workspace's root, is a Dylint library's UI
-    /// case: the root of an example of a crate depending on
-    /// `dylint_testing`. Such a case is a test fixture, whose `#[expect]`s are
-    /// what it tests.
-    pub(crate) fn is_ui_case(&self, path: &Path) -> bool {
-        let file = self.workspace_root.join(path);
-        self.packages
-            .iter()
-            .filter(|package| {
-                package
-                    .dependencies
-                    .iter()
-                    .any(|dependency| dependency.name == "dylint_testing")
-            })
-            .flat_map(|package| &package.targets)
-            .filter(|target| target.kind.contains(&TargetKind::Example))
-            .any(|target| target.src_path == file)
-    }
-
     /// Whether the workspace has a crate named `name`.
     pub(crate) fn has(&self, name: &str) -> bool {
         self.packages.iter().any(|package| package.name == name)

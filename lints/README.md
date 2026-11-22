@@ -8,6 +8,7 @@ and how to challenge the lint when it is wrong.
 | Lint | Flags |
 | --- | --- |
 | [`wildcard_enum_local`](src/wildcard_enum_local.rs) | a `_` or catch-all binding arm in a `match` on an enum of the workspace |
+| [`string_literal_logic`](src/string_literal_logic.rs) | comparing or matching a value against a string literal or constant outside parsing, display and tests |
 
 ## In a repository
 
@@ -43,8 +44,8 @@ A lint that is wrong more than once is changed here instead.
 
 `lints/` is a crate of its own, on the nightly `rust-toolchain.toml` pins
 with `rustc-dev`: Dylint, `clippy_utils` and that nightly move together.
-Each lint is a module of `src/`, registered in `src/lib.rs`; `report`
-holds what every lint shares. A lint's doc says what it
+Each lint is a module of `src/`, registered in `src/lib.rs`; `report` and
+`code` hold what several lints share. A lint's doc says what it
 flags and what to write instead, and `Report` adds how to challenge it.
 
 `just lints`, from the repository's root, checks formatting, runs Clippy,

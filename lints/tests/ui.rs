@@ -4,7 +4,7 @@
 use dylint_testing::ui::Test;
 
 /// Every lint of the library, which each test allows but its own.
-const LINTS: &[&str] = &["wildcard_enum_local"];
+const LINTS: &[&str] = &["wildcard_enum_local", "string_literal_logic"];
 
 /// The test of `lint` on the example `example`.
 fn ui(lint: &str, example: &str) -> Test {
@@ -30,4 +30,4 @@ macro_rules! lints {
     };
 }
 
-lints!(wildcard_enum_local,);
+lints!(wildcard_enum_local, string_literal_logic,);

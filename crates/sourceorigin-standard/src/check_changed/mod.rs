@@ -428,6 +428,13 @@ impl<F: Filter> Ci<F> {
     }
 
     /// The ways the table and `workflow` disagree.
+    #[cfg_attr(
+        dylint_lib = "standard_lints",
+        expect(
+            string_literal_logic,
+            reason = "compares workflow job ids, which ci.yml writes as strings"
+        )
+    )]
     fn drifts(&self, workflow: &Workflow) -> Vec<Drift> {
         let mut drifts = Vec::new();
         for job in self.jobs {
@@ -552,6 +559,13 @@ impl<F: Filter> fmt::Display for Trigger<F> {
 impl Recipe {
     /// The `just` recipe it runs, such as `lint` for `just lint --workspace`,
     /// if it runs one.
+    #[cfg_attr(
+        dylint_lib = "standard_lints",
+        expect(
+            string_literal_logic,
+            reason = "reads a recipe's command line, whose program is a string"
+        )
+    )]
     fn just(&self) -> Option<&'static str> {
         match self.command {
             ["just", recipe, ..] => Some(recipe),

@@ -55,6 +55,13 @@ impl<'a> Workspace<'a> {
     /// `CARGO_MANIFEST_DIR`, so passing the xtask's on to cargo, directly or
     /// through `just`, would make every nested build, and the next ordinary
     /// one, recompile them and their dependents.
+    #[cfg_attr(
+        dylint_lib = "standard_lints",
+        expect(
+            string_literal_logic,
+            reason = "names Cargo's environment variables, which are strings"
+        )
+    )]
     pub(crate) fn command(self, program: &str) -> Command {
         let mut command = Command::new(program);
         command.current_dir(self.root);
@@ -105,6 +112,13 @@ impl<'a> Workspace<'a> {
 
     /// Those of `paths` that `.gitattributes` gives `attribute`, set or
     /// `true`. Unlike an `attr` pathspec, it reads untracked files too.
+    #[cfg_attr(
+        dylint_lib = "standard_lints",
+        expect(
+            string_literal_logic,
+            reason = "reads `git check-attr` values, which it prints as text"
+        )
+    )]
     pub(crate) fn with_attribute<'p>(
         self,
         attribute: &str,

@@ -19,6 +19,13 @@ fn path() -> PathBuf {
 }
 
 /// `readme` with the list between its markers replaced by the rules'.
+#[cfg_attr(
+    dylint_lib = "standard_lints",
+    expect(
+        string_literal_logic,
+        reason = "finds the markers it writes into the README, which are text"
+    )
+)]
 fn render(readme: &str) -> Result<String> {
     let (before, rest) = readme
         .split_once(START)

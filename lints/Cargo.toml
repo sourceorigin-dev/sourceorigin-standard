@@ -15,14 +15,20 @@ crate-type = ["cdylib"]
 name = "wildcard_enum_local"
 path = "ui/wildcard_enum_local.rs"
 
+[[example]]
+name = "string_literal_logic"
+path = "ui/string_literal_logic.rs"
+
 [dependencies]
 # Pinned to the toolchain's nightly (rust-toolchain.toml), which each release
 # builds against, and to the cargo-dylint CI installs.
 clippy_utils = "=0.1.100"
 dylint_linting = "=6.3.2"
 
+# The UI cases' (de)serializers.
 [dev-dependencies]
 dylint_testing = "=6.3.2"
+serde = "1.0.228"
 
 # Not the repository's workspace: this one builds on the nightly.
 [workspace]

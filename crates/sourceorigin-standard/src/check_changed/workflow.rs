@@ -120,6 +120,13 @@ impl Workflow {
     /// Adds the `just` recipes the `run:` scripts anywhere in `node` call,
     /// such as `lint` in `just lint` or `nix develop --command just docs`.
     /// A recipe named by an expression, `just ${{ … }}`, isn't one.
+    #[cfg_attr(
+        dylint_lib = "standard_lints",
+        expect(
+            string_literal_logic,
+            reason = "reads ci.yml's `run` steps and their `just` commands, which the YAML holds as text"
+        )
+    )]
     fn recipes(node: &Yaml, recipes: &mut BTreeSet<String>) {
         match node {
             Yaml::Hash(entries) => {

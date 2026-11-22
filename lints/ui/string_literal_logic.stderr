@@ -1,0 +1,129 @@
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:15:13
+   |
+LL |     mode == "fast"
+   |             ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(string_literal_logic)]` on by default
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:19:5
+   |
+LL |     "slow" != mode
+   |     ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: matching a value against a string literal
+  --> $DIR/string_literal_logic.rs:24:9
+   |
+LL |         "fast" => 0,
+   |         ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: matching a value against a string literal
+  --> $DIR/string_literal_logic.rs:25:9
+   |
+LL |         "slow" | "slower" => 1,
+   |         ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:31:22
+   |
+LL |     path.starts_with("/api") || path.to_owned().ends_with(".json")
+   |                      ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:31:59
+   |
+LL |     path.starts_with("/api") || path.to_owned().ends_with(".json")
+   |                                                           ^^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string constant
+  --> $DIR/string_literal_logic.rs:38:13
+   |
+LL |     mode == FAST || SLOW != mode
+   |             ^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string constant
+  --> $DIR/string_literal_logic.rs:38:21
+   |
+LL |     mode == FAST || SLOW != mode
+   |                     ^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: matching a value against a string constant
+  --> $DIR/string_literal_logic.rs:43:9
+   |
+LL |         FAST => 0,
+   |         ^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:49:13
+   |
+LL |     mode == Some("fast")
+   |             ^^^^^^^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:54:23
+   |
+LL |         .strip_prefix("Bearer ")
+   |                       ^^^^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:55:39
+   |
+LL |         .or_else(|| header.split_once(": ").map(|(_, value)| value))
+   |                                       ^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: matching a value against a string literal
+  --> $DIR/string_literal_logic.rs:67:20
+   |
+LL |     matches!(mode, "fast")
+   |                    ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: comparing a value against a string literal
+  --> $DIR/string_literal_logic.rs:115:17
+   |
+LL |         name == "fast"
+   |                 ^^^^^^
+   |
+   = help: parse the string into a type (an enum, a newtype) where it enters, in `FromStr`, `TryFrom<&str>`, `From<&str>` or serde, and compare that
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(string_literal_logic, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: 14 warnings emitted
+
