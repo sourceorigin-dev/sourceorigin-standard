@@ -24,7 +24,7 @@ const LOCKED: [&str; 2] = ["--locked", "--frozen"];
 
 /// A Cargo command without `--locked`: the line its subcommand is on, and
 /// where `--locked` goes in it.
-struct Unlocked<'a> {
+pub(super) struct Unlocked<'a> {
     subcommand: &'a str,
     /// The line, from 1.
     line: usize,
@@ -109,7 +109,7 @@ impl Unlocked<'_> {
     /// trimmed of just's `@` and `-`. A `;`, `|` or `&` ends a word and is a
     /// `;` word of its own. A quoted string is one word, which is no
     /// command.
-    fn tokens(line: &str) -> Vec<(usize, &str)> {
+    pub(super) fn tokens(line: &str) -> Vec<(usize, &str)> {
         let mut words = Vec::new();
         let mut start = None;
         let mut quote: Option<char> = None;
