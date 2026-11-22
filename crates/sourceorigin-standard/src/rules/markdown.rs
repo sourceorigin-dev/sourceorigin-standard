@@ -1,5 +1,5 @@
 //! The repository's Markdown files as the docs rules read them: their lines
-//! outside fenced code, and the text of each outside inline code.
+//! outside fenced code, and which bytes of each line are prose.
 
 use std::path::Path;
 
@@ -60,6 +60,38 @@ impl MarkdownLine<'_> {
             .filter(|&(at, _)| !code[at])
             .map(|(_, c)| c)
             .collect()
+    }
+
+    /// Which of its bytes are prose: not inline code, a link's destination
+    /// `(…)` after `]`, an HTML tag `<a …>` or autolink `<…://…>`, or a URL,
+    /// from its scheme to the next space.
+    pub(super) fn prose(&self) -> Vec<bool> {
+        let text = self.text;
+        let mut prose: Vec<bool> = self.code().into_iter().map(|code| !code).collect();
+        for (at, _) in text.match_indices("](") {
+            let end = text[at..]
+                .find(')')
+                .map_or(text.len(), |close| at + close + 1);
+            prose[at + 1..end].fill(false);
+        }
+        for (at, _) in text.match_indices('<') {
+            let tag = text[at + 1..].starts_with(|c: char| c.is_ascii_alphabetic() || c == '/');
+            if let Some(close) = text[at..].find('>')
+                && (tag || text[at..at + close].contains("://"))
+            {
+                prose[at..=at + close].fill(false);
+            }
+        }
+        for (at, _) in text.match_indices("://") {
+            let scheme = text[..at]
+                .rfind(|c: char| !c.is_ascii_alphanumeric() && !matches!(c, '+' | '-' | '.'))
+                .map_or(0, |before| before + 1);
+            let end = text[at..]
+                .find(char::is_whitespace)
+                .map_or(text.len(), |space| at + space);
+            prose[scheme..end].fill(false);
+        }
+        prose
     }
 }
 
