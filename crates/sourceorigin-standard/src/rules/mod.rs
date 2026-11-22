@@ -17,6 +17,7 @@ mod comments;
 mod config_comments;
 mod config_syntax;
 mod deny_config;
+mod docs_summary;
 mod fix;
 mod generated_lints;
 mod job_timeouts;
@@ -61,6 +62,7 @@ use budget::{Budget, OtherWorkspace};
 use config_comments::Commented;
 use config_syntax::Unreadable;
 use deny_config::DenyConfig;
+use docs_summary::Book;
 use fix::Checked;
 pub use fix::Fix;
 use justfile::Justfile;
@@ -264,6 +266,9 @@ rules! {
     /// `.github/pull_request_template.md` has the headings `## What and
     /// why` and `## Testing`.
     PrTemplate = "pr-template" => pr_template,
+    /// With a `book.toml`, every Markdown page under its `src` is linked
+    /// from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
+    DocsSummary = "docs-summary" => docs_summary,
 }
 
 /// Why the rules couldn't be checked.
@@ -467,6 +472,10 @@ struct Repository {
     justfile: Option<Justfile>,
     /// The pull request template.
     pr_template: Option<TextFile>,
+    /// mdBook's `book.toml`.
+    book: Option<TomlFile<Book>>,
+    /// Every Markdown file.
+    markdown: Vec<TextFile>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -518,6 +527,8 @@ impl Repository {
             deny: TomlFile::load(root, deny_config::PATH, &mut unreadable)?,
             justfile: Justfile::load(root),
             pr_template: TextFile::load_all(root, &[pr_template::PATH], &mut unreadable)?.pop(),
+            book: TomlFile::load(root, docs_summary::BOOK, &mut unreadable)?,
+            markdown: TextFile::load_all(root, &["*.md"], &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
