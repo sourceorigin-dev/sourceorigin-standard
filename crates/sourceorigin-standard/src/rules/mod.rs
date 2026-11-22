@@ -8,6 +8,7 @@ mod agent_files;
 mod agents_md;
 mod budget;
 mod cargo_locked;
+mod clippy_config;
 mod comments;
 mod config_comments;
 mod fix;
@@ -157,6 +158,10 @@ rules! {
     /// `rustfmt.toml` sets `edition = "2024"`, `newline_style = "Unix"` and
     /// `use_field_init_shorthand = true`.
     RustfmtConfig = "rustfmt-config" => rustfmt_config,
+    /// `clippy.toml` sets `allow-expect-in-tests`, `allow-panic-in-tests`
+    /// and `allow-dbg-in-tests` to `true`, and never
+    /// `allow-unwrap-in-tests`.
+    ClippyConfig = "clippy-config" => clippy_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -305,6 +310,8 @@ struct Repository {
     toolchain: Option<TomlFile<ToolchainFile>>,
     /// `rustfmt.toml`, empty when missing.
     rustfmt: TomlFile<Settings>,
+    /// `clippy.toml`, empty when missing.
+    clippy: TomlFile<Settings>,
     /// `.cargo/config.toml`.
     cargo_config: Option<TomlFile<CargoConfig>>,
     /// The manifests of the workspace's crates.
@@ -343,6 +350,7 @@ impl Repository {
             cargo_config: TomlFile::load(root, layout::CARGO_CONFIG)?,
             toolchain: TomlFile::load(root, toolchain::PATH)?,
             rustfmt: TomlFile::load_or_empty(root, rustfmt_config::PATH)?,
+            clippy: TomlFile::load_or_empty(root, clippy_config::PATH)?,
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,
