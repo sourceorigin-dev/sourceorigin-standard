@@ -15,11 +15,13 @@ mod config_comments;
 mod deny_config;
 mod fix;
 mod generated_lints;
+mod justfile;
 mod layout;
 mod level;
 mod manifest;
 mod modules;
 mod nextest_config;
+mod recipes;
 mod report;
 mod rustfmt_config;
 mod settings;
@@ -46,6 +48,7 @@ use config_comments::Commented;
 use deny_config::DenyConfig;
 use fix::Checked;
 pub use fix::Fix;
+use justfile::Justfile;
 use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
@@ -187,6 +190,13 @@ rules! {
     /// as a crate holding a CLI's commands. Each listed name is a workspace
     /// crate.
     AnyhowEdges = "anyhow-edges" => anyhow_edges,
+    /// The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`,
+    /// `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and
+    /// `check-changed`. `just` alone runs `validate` or `check-changed`;
+    /// `validate` runs `fmt` first, then at least `lint`, `standard`, `test`,
+    /// `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test`
+    /// takes `*ARGS`, defaulting to `--workspace`.
+    Recipes = "recipes" => recipes,
 }
 
 /// Why the rules couldn't be checked.
@@ -219,6 +229,9 @@ pub enum Error {
         #[source]
         source: std::io::Error,
     },
+    /// `just --dump` printed what isn't a justfile's description.
+    #[error("parse `just --dump --dump-format json`")]
+    Justfile(#[source] serde_json::Error),
     /// A manifest isn't valid TOML.
     #[error("{}: {message}", path.display())]
     Toml {
@@ -362,6 +375,8 @@ struct Repository {
     nextest: TomlFile<NextestConfig>,
     /// `deny.toml`.
     deny: Option<TomlFile<DenyConfig>>,
+    /// The justfile, as `just` describes it.
+    justfile: Option<Justfile>,
 }
 
 impl Repository {
@@ -387,6 +402,7 @@ impl Repository {
             agent_files: AgentFiles::load(root)?,
             nextest: TomlFile::load_or_empty(root, nextest_config::PATH)?,
             deny: TomlFile::load(root, deny_config::PATH)?,
+            justfile: Justfile::load(root)?,
             metadata,
             sources,
             unparsed,
