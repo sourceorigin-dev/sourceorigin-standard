@@ -5,8 +5,11 @@
 //! their docs.
 
 mod level;
+mod modules;
+mod source;
 #[cfg(test)]
 mod tests;
+mod unsafe_modules;
 mod workspace_lints;
 
 use std::fmt;
@@ -15,6 +18,8 @@ use std::path::{Path, PathBuf};
 use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
+use modules::Modules;
+use source::{Source, Unparsed};
 use workspace_lints::{LintLevel, Manifest};
 
 /// Declares the rules: each variant's doc comment is the doc [`Rule::doc`]
@@ -65,6 +70,14 @@ rules! {
     /// and `clippy` lints of its lint block) to `warn`, and every other lint
     /// to `warn` or `allow`.
     WorkspaceLints = "workspace-lints" => workspace_lints,
+    /// Every Rust file git tracks or would track parses as Rust, so the
+    /// rules can read it.
+    RustSyntax = "rust-syntax" => rust_syntax,
+    /// `#[expect(unsafe_code, …)]` sits only inside the modules
+    /// `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or
+    /// `build_script_build` (a target's root module is its crate's name),
+    /// and every listed module holds one.
+    UnsafeModules = "unsafe-modules" => unsafe_modules,
 }
 
 /// Why the rules couldn't be checked.
@@ -85,6 +98,9 @@ pub enum Error {
         #[source]
         source: std::io::Error,
     },
+    /// git couldn't list the repository's files.
+    #[error(transparent)]
+    Command(#[from] crate::CommandError),
     /// A manifest isn't valid TOML.
     #[error("{}: {message}", path.display())]
     Toml {
@@ -132,6 +148,23 @@ struct Finding {
     path: PathBuf,
     line: usize,
     message: String,
+}
+
+impl Repository {
+    /// Each Rust file that doesn't parse.
+    fn rust_syntax(&self) -> Vec<Finding> {
+        self.unparsed
+            .iter()
+            .map(|unparsed| Finding {
+                path: unparsed.path.clone(),
+                line: unparsed.line,
+                message: format!(
+                    "{}: fix it, or deviate by path for a fixture that mustn't parse",
+                    unparsed.message
+                ),
+            })
+            .collect()
+    }
 }
 
 impl Stale {
@@ -182,6 +215,12 @@ struct Repository {
     manifests: Vec<Manifest>,
     /// The lints `[workspace.lints]` sets.
     lint_levels: Vec<LintLevel>,
+    /// Every Rust file git tracks or would track that parses, by path.
+    sources: Vec<Source>,
+    /// Every one that doesn't.
+    unparsed: Vec<Unparsed>,
+    /// Each Rust file's module paths.
+    modules: Modules,
 }
 
 impl Repository {
@@ -189,11 +228,15 @@ impl Repository {
     /// fail.
     fn load(root: &Path) -> Result<Self, Error> {
         let metadata = Metadata::load(Workspace::new(root))?;
+        let (sources, unparsed) = Source::load_all(root)?;
         Ok(Self {
             config: Config::load(root)?,
             manifests: Manifest::load_all(&metadata)?,
             lint_levels: LintLevel::load_all(&metadata.workspace_root)?,
+            modules: Modules::of(&metadata, &sources),
             metadata,
+            sources,
+            unparsed,
         })
     }
 

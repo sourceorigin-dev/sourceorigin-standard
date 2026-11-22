@@ -28,6 +28,11 @@ rule name that doesn't exist, fails with the parser's message naming it.
 rule-name = "why the repository departs from it everywhere"
 other-rule = { reason = "why", paths = ["crates/generated/**"], crates = ["vendored"] }
 
+# The modules that may expect `unsafe_code`, on the smallest item inside
+# them that needs it. A target's root module is its crate's name, such as
+# `build_script_build` for a build script.
+unsafe-modules = ["my_crate::ffi"]
+
 [check-changed]
 # Crates that build another without depending on it, such as a build
 # script compiling a crate it embeds: a change to `built` reaches `builder`.
