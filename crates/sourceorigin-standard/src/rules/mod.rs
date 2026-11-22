@@ -11,6 +11,7 @@ mod fix;
 mod generated_lints;
 mod level;
 mod modules;
+mod report;
 mod source;
 #[cfg(test)]
 mod tests;
@@ -28,6 +29,7 @@ use config_comments::Commented;
 use fix::Checked;
 pub use fix::Fix;
 use modules::Modules;
+pub use report::{Report, RuleReport};
 use source::{Source, Unparsed};
 use workspace_lints::{LintLevel, Manifest};
 
@@ -38,7 +40,9 @@ macro_rules! rules {
     ($($(#[doc = $doc:literal])+ $rule:ident = $name:literal => $check:ident,)*) => {
         /// A rule of the standard. `cargo xtask standard rules` prints each
         /// with its doc.
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+        #[derive(
+            Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize, serde::Serialize,
+        )]
         pub enum Rule {
             $($(#[doc = $doc])+ #[serde(rename = $name)] $rule,)*
         }
@@ -155,7 +159,7 @@ pub enum Error {
 
 /// A place a repository breaks a rule. It prints its location, rule and
 /// fix, then the two ways to challenge the rule instead.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct Violation {
     /// The rule it breaks.
     pub rule: Rule,
@@ -376,6 +380,17 @@ pub fn fix(root: &Path) -> Result<Vec<Fix>, Error> {
     let mut fixes = Repository::load(root)?.fixes();
     Fix::apply_all(root, &mut fixes)?;
     Ok(fixes)
+}
+
+/// The report of the repository at `root`: each rule's violations and
+/// deviation, and its `#[expect]` attributes by lint and `// INVARIANT:`
+/// comments. `cargo xtask standard report` prints it as JSON.
+///
+/// # Errors
+///
+/// When `standard.toml` or a file a rule reads can't be loaded.
+pub fn report(root: &Path) -> Result<Report, Error> {
+    Ok(Repository::load(root)?.report())
 }
 
 /// Every rule with its doc, as a Markdown list: what
