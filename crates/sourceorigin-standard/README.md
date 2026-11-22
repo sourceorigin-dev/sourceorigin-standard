@@ -56,6 +56,7 @@ A repository adopts the standard in four steps:
 - `actions-pinned`: Every `uses:` of a workflow or composite action naming another repository's action or workflow pins it to a 40-character commit SHA, followed by a `# v…` comment giving its version.
 - `workflow-permissions`: Every workflow's top-level `permissions` is exactly `contents: read`; a job that needs more sets its own.
 - `job-timeouts`: Every job of a workflow sets `timeout-minutes`, except one calling a reusable workflow.
+- `cache-saves`: Every `Swatinem/rust-cache` step's `save-if` is `false` or saves from `refs/heads/main` only, and no composite action, nor workflow run by `pull_request`, `pull_request_target` or `merge_group`, uses `actions/cache`, which saves on a miss: they use `actions/cache/restore`, saving with `actions/cache/save` from `main`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
