@@ -11,6 +11,7 @@ extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
+mod boxed_dyn_error_in_api;
 mod code;
 mod error;
 mod error_logged_with_debug;
@@ -46,5 +47,6 @@ pub fn register_lints(sess: &rustc_session::Session, store: &mut rustc_lint::Lin
         error_source_not_marked::ERROR_SOURCE_NOT_MARKED => error_source_not_marked::ErrorSourceNotMarked,
         error_logged_with_debug::ERROR_LOGGED_WITH_DEBUG => error_logged_with_debug::ErrorLoggedWithDebug::configured(),
         free_fn_with_owner::FREE_FN_WITH_OWNER => free_fn_with_owner::FreeFnWithOwner,
+        boxed_dyn_error_in_api::BOXED_DYN_ERROR_IN_API => boxed_dyn_error_in_api::BoxedDynErrorInApi,
     );
 }

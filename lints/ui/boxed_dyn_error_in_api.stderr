@@ -1,0 +1,93 @@
+warning: `BoxError` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:10:10
+   |
+LL | pub type BoxError = Box<dyn Error + Send + Sync>;
+   |          ^^^^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(boxed_dyn_error_in_api)]` on by default
+
+warning: `load` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:12:8
+   |
+LL | pub fn load(path: &str) -> Result<String, Box<dyn Error>> {
+   |        ^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `shared` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:20:8
+   |
+LL | pub fn shared() -> std::sync::Arc<dyn Error + Send + Sync> {
+   |        ^^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `Failure::cause` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:25:9
+   |
+LL |     pub cause: Box<dyn Error + Send + Sync>,
+   |         ^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `Failure::new` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:30:12
+   |
+LL |     pub fn new(cause: BoxError) -> Self {
+   |            ^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `renamed` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:68:8
+   |
+LL | pub fn renamed() -> Box<dyn StdError> {
+   |        ^^^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `through_private_alias` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:74:8
+   |
+LL | pub fn through_private_alias() -> PrivateBox {
+   |        ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `subtrait` exposes an owned `dyn Domain` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:80:8
+   |
+LL | pub fn subtrait(error: Box<dyn Domain>) -> String {
+   |        ^^^^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `borrowed_returning` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:84:8
+   |
+LL | pub fn borrowed_returning(make: &dyn Fn() -> Box<dyn Error>) -> String {
+   |        ^^^^^^^^^^^^^^^^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `<Port as std::str::FromStr>::Err` exposes an owned `dyn std::error::Error` in the public API
+  --> $DIR/boxed_dyn_error_in_api.rs:91:10
+   |
+LL |     type Err = Box<dyn Error>;
+   |          ^^^
+   |
+   = help: use the crate's own error type, a `thiserror` enum callers can match on
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(boxed_dyn_error_in_api, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: 10 warnings emitted
+

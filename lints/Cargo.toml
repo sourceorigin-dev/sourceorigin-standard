@@ -35,6 +35,11 @@ path = "ui/error_logged_with_debug_configured.rs"
 name = "free_fn_with_owner"
 path = "ui/free_fn_with_owner.rs"
 
+[[example]]
+name = "boxed_dyn_error_in_api"
+path = "ui/boxed_dyn_error_in_api.rs"
+crate-type = ["lib"]
+
 [dependencies]
 # Pinned to the toolchain's nightly (rust-toolchain.toml), which each release
 # builds against, and to the cargo-dylint CI installs.

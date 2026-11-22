@@ -12,6 +12,7 @@ and how to challenge the lint when it is wrong.
 | [`error_source_not_marked`](src/error_source_not_marked.rs) | an error field of a `thiserror` type that isn't `#[source]` or `#[from]` |
 | [`error_logged_with_debug`](src/error_logged_with_debug.rs) | an error a `tracing` event formats through `Debug` (`?error`, `{error:?}`) |
 | [`free_fn_with_owner`](src/free_fn_with_owner.rs) | a free function whose first parameter is a type of the crate, which should be its method |
+| [`boxed_dyn_error_in_api`](src/boxed_dyn_error_in_api.rs) | an owned `dyn Error` (`Box<dyn Error>`) in a library's public API |
 
 ## In a repository
 

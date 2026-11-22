@@ -10,6 +10,7 @@ const LINTS: &[&str] = &[
     "error_source_not_marked",
     "error_logged_with_debug",
     "free_fn_with_owner",
+    "boxed_dyn_error_in_api",
 ];
 
 /// The test of `lint` on the example `example`.
@@ -42,6 +43,7 @@ lints!(
     error_source_not_marked,
     error_logged_with_debug,
     free_fn_with_owner,
+    boxed_dyn_error_in_api,
 );
 
 #[test]
