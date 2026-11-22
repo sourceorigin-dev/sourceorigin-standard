@@ -60,6 +60,7 @@ A repository adopts the standard in four steps:
 - `scheduled-audit`: A workflow runs `just audit` (or `cargo deny`) on a `schedule` at least weekly: a cron whose day of the month and month are `*`.
 - `pr-template`: `.github/pull_request_template.md` has the headings `## What and why` and `## Testing`.
 - `docs-summary`: With a `book.toml`, every Markdown page under its `src` is linked from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
+- `docs-images`: Every image in a Markdown file, outside code blocks, has alt text: `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

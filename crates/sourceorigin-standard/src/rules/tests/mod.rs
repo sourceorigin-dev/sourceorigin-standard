@@ -12,6 +12,7 @@ mod clippy_config;
 mod comments;
 mod config_comments;
 mod deny_config;
+mod docs_images;
 mod docs_summary;
 mod fix;
 mod framework;
