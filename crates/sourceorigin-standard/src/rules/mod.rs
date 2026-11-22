@@ -4,6 +4,7 @@
 //! rules `standard.toml` deviates from. [`describe`] lists the rules with
 //! their docs.
 
+mod agent_files;
 mod budget;
 mod cargo_locked;
 mod comments;
@@ -35,6 +36,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::{CommandError, Workspace};
+use agent_files::AgentFiles;
 use budget::{Budget, OtherWorkspace};
 use config_comments::Commented;
 use config_syntax::Unreadable;
@@ -157,6 +159,10 @@ rules! {
     /// or `nice -n N`; quoted text and a heredoc's body are no command, and
     /// a folded `run: >` block is one.
     CargoLocked = "cargo-locked" => cargo_locked,
+    /// `AGENTS.md` sits at the root, and no `CLAUDE.md` exists. Each skill
+    /// is `.agents/skills/<name>/SKILL.md`, its frontmatter's `name` is
+    /// `<name>`, and `.claude/skills` is a symlink to `../.agents/skills`.
+    AgentFiles = "agent-files" => agent_files,
 }
 
 /// Why the rules couldn't be checked.
@@ -341,6 +347,8 @@ struct Repository {
     root_manifest: Option<TomlFile<RootManifest>>,
     /// `.cargo/config.toml`.
     cargo_config: Option<TomlFile<CargoConfig>>,
+    /// `AGENTS.md`, any `CLAUDE.md`, and the skills.
+    agent_files: AgentFiles,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -384,6 +392,7 @@ impl Repository {
             cargo_config: TomlFile::load(root, layout::CARGO_CONFIG, &mut unreadable)?,
             workflows: Workflow::load_all(root, &mut unreadable)?,
             t3: T3::load(root, &mut unreadable)?,
+            agent_files: AgentFiles::load(root, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
