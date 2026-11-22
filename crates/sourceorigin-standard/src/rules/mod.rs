@@ -5,6 +5,7 @@
 //! their docs.
 
 mod budget;
+mod cargo_locked;
 mod comments;
 mod config_comments;
 mod config_syntax;
@@ -16,12 +17,16 @@ mod manifest;
 mod modules;
 mod report;
 mod source;
+mod t3;
 #[cfg(test)]
 mod tests;
+mod text_file;
 mod toml_file;
 mod unsafe_modules;
+mod workflows;
 mod workspace_lints;
 mod workspace_manifest;
+mod yaml;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -40,7 +45,10 @@ use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
 use source::{Source, Unparsed};
+use t3::T3;
+use text_file::TextFile;
 use toml_file::TomlFile;
+use workflows::Workflow;
 use workspace_lints::LintLevel;
 
 /// Declares the rules: each variant's doc comment is the doc [`Rule::doc`]
@@ -141,6 +149,14 @@ rules! {
     /// `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases
     /// `cargo xtask` to `run --locked --package xtask --`.
     Layout = "layout" => layout,
+    /// Every `cargo build`, `check`, `clippy`, `doc`, `llvm-cov`,
+    /// `nextest`, `publish`, `run` and `test` run by a justfile's recipe
+    /// (and a `*.just` file's), a workflow's or composite action's `run:`,
+    /// or a `t3.json` command passes `--locked` (or `--frozen`). Cargo runs
+    /// only as a command word, after any `NAME=value`, `env`, `exec`, `time`
+    /// or `nice -n N`; quoted text and a heredoc's body are no command, and
+    /// a folded `run: >` block is one.
+    CargoLocked = "cargo-locked" => cargo_locked,
 }
 
 /// Why the rules couldn't be checked.
@@ -313,6 +329,12 @@ struct Repository {
     other_workspaces: Vec<OtherWorkspace>,
     /// Each manifest's lints set to `allow`, by its path.
     manifest_allows: BTreeMap<String, usize>,
+    /// The justfiles, whose recipes the rules read.
+    justfiles: Vec<TextFile>,
+    /// The workflows and composite actions.
+    workflows: Vec<Workflow>,
+    /// `t3.json`.
+    t3: Option<T3>,
     /// The manifests, justfiles and workflows, with their comments.
     commented: Vec<Commented>,
     /// The root manifest.
@@ -360,7 +382,10 @@ impl Repository {
             manifest_allows,
             root_manifest,
             cargo_config: TomlFile::load(root, layout::CARGO_CONFIG, &mut unreadable)?,
+            workflows: Workflow::load_all(root, &mut unreadable)?,
+            t3: T3::load(root, &mut unreadable)?,
             commented: Commented::load_all(root)?,
+            justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
             sources,
             unparsed,
@@ -466,8 +491,9 @@ pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
 /// Makes every mechanical fix the rules know in the repository at `root`,
 /// such as adding `[lints] workspace = true` or lowering a budget of
 /// `budget.toml` to what the crate holds, and returns them. Each is an edit
-/// to a TOML document, which keeps the file's layout and comments. What
-/// needs judgement stays a violation for [`check`] to report.
+/// to a TOML document, which keeps the file's layout and comments, or to a
+/// line of another file, such as a justfile. What needs judgement stays a
+/// violation for [`check`] to report.
 ///
 /// # Errors
 ///
