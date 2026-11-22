@@ -22,6 +22,7 @@ mod source;
 mod tests;
 mod text_file;
 mod toml_file;
+mod toolchain;
 mod unsafe_modules;
 mod workspace_lints;
 mod workspace_manifest;
@@ -44,6 +45,7 @@ pub use report::{Report, RuleReport};
 use source::{Source, Unparsed};
 use text_file::TextFile;
 use toml_file::TomlFile;
+use toolchain::ToolchainFile;
 use workspace_lints::LintLevel;
 
 /// Declares the rules: each variant's doc comment is the doc [`Rule::doc`]
@@ -146,6 +148,9 @@ rules! {
     /// AGENTS.md names every workspace crate, by its name in backticks or
     /// its directory, and holds at most 150 lines.
     AgentsMd = "agents-md" => agents_md,
+    /// `rust-toolchain.toml` pins `channel = "stable"` and installs at
+    /// least the `rustfmt` and `clippy` components.
+    Toolchain = "toolchain" => toolchain,
 }
 
 /// Why the rules couldn't be checked.
@@ -290,6 +295,8 @@ struct Repository {
     metadata: Metadata,
     /// The root manifest.
     root_manifest: TomlFile<RootManifest>,
+    /// `rust-toolchain.toml`.
+    toolchain: Option<TomlFile<ToolchainFile>>,
     /// `.cargo/config.toml`.
     cargo_config: Option<TomlFile<CargoConfig>>,
     /// The manifests of the workspace's crates.
@@ -326,6 +333,7 @@ impl Repository {
             lint_levels: LintLevel::all(&root_manifest),
             root_manifest,
             cargo_config: TomlFile::load(root, layout::CARGO_CONFIG)?,
+            toolchain: TomlFile::load(root, toolchain::PATH)?,
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,
