@@ -22,6 +22,7 @@ mod docs_images;
 mod docs_summary;
 mod fix;
 mod generated_lints;
+mod inline_tests;
 mod job_timeouts;
 mod justfile;
 mod layout;
@@ -40,6 +41,7 @@ mod settings;
 mod source;
 mod t3;
 mod t3_setup;
+mod test_code;
 #[cfg(test)]
 mod tests;
 mod text_file;
@@ -290,6 +292,11 @@ rules! {
     /// `tests/common/mod.rs`, passes, and so does one under `src/bin`, where
     /// binaries share modules.
     ChildlessModRs = "childless-mod-rs" => childless_mod_rs,
+    /// An inline `#[cfg(test)] mod … { }` at the top level of a file a
+    /// target reaches outside test code spans fewer than 50 lines or at
+    /// most 30% of the file's; a larger one is a file of its own,
+    /// `mod tests;`.
+    InlineTests = "inline-tests" => inline_tests,
 }
 
 /// Why the rules couldn't be checked.

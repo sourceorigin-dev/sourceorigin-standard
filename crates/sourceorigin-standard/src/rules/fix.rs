@@ -349,16 +349,10 @@ impl Fix {
     pub(super) fn move_to(path: impl Into<PathBuf>, what: String, to: PathBuf) -> Self {
         Self::of(path, what, Edit::Move(to))
     }
-}
 
-impl Fix {
     /// The fix, resolving a violation in `resolves` rather than in its own
     /// file.
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "The first rule whose fix edits another file than its violation's is stacked on this one."
-    )]
     pub(super) fn resolving(self, resolves: PathBuf) -> Self {
         Self { resolves, ..self }
     }
