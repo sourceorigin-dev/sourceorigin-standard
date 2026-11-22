@@ -13,6 +13,8 @@ class PullRequest {
     this.labels = (pr.labels ?? []).map((label) => label.name);
     this.base = pr.base?.sha;
     this.head = pr.head?.sha;
+    /** How many files GitHub says it changes. */
+    this.changedFiles = pr.changed_files;
     this.github = github;
     this.repo = repo;
   }
@@ -35,6 +37,31 @@ class PullRequest {
       per_page: 100,
     });
     return commits.map(({ sha, commit }) => ({ sha, message: commit.message }));
+  }
+
+  /** Each file it changes: `{ path, status, patch, previous }`, where
+   * `patch` is the unified diff, or `undefined` when GitHub leaves out a
+   * large one, and `previous` a renamed file's old path. Throws when GitHub
+   * lists fewer files than it changes, as `listFiles` stops at 3000, so no
+   * check passes on a part of them. */
+  async files() {
+    const files = await this.github.paginate(this.github.rest.pulls.listFiles, {
+      ...this.repo,
+      pull_number: this.number,
+      per_page: 100,
+    });
+    if (files.length < (this.changedFiles ?? 0)) {
+      throw new Error(
+        `GitHub lists ${files.length} of the ${this.changedFiles} files this pull request ` +
+          'changes, so the checks cannot see them all: split it into smaller pull requests.',
+      );
+    }
+    return files.map(({ filename, status, patch, previous_filename: previous }) => ({
+      path: filename,
+      status,
+      patch,
+      previous,
+    }));
   }
 
   /** The text of the file at `path` in commit `sha`, or `null` if it has
