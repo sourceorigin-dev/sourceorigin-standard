@@ -17,6 +17,7 @@ mod report;
 mod rustfmt_config;
 mod toolchain;
 mod unsafe_modules;
+mod workspace_dependencies;
 mod workspace_lints;
 mod workspace_manifest;
 
