@@ -1,31 +1,48 @@
 # sourceorigin-standard
 
 The engineering standard of piqueld, sourceorigin and DirkEngine, as code.
-Each repository's `cargo xtask` depends on this crate and runs its checks, so
-a rule fails a check instead of living in prose that drifts.
+Every rule below is a check that each repository runs with
+`cargo xtask standard`, so the standard is what the checks enforce, not
+prose that drifts beside the code.
+
+Rules exist to help people and agents write better code, never to hold them
+back. Every violation says how to fix it and how to challenge the rule: when
+a rule gets in the way, stop and ask the user why, and with their approval
+add a deviation, with its reason, to the repository's `standard.toml`, or
+change the rule here, in the same pull request.
+
+A repository adopts the standard in four steps:
+
+1. Its `tools/xtask` depends on this crate from crates.io and runs
+   [`rules::check`] as `cargo xtask standard`, as
+   [below](#wiring-it-into-a-repositorys-xtask) shows.
+2. `just standard` runs `cargo xtask standard`, and CI runs it in a job of
+   its own on every change, since the rules read more than the Rust
+   sources.
+3. `[workspace.lints]` sets every lint the standard requires to `warn`, and
+   `just lint` passes `-D warnings`; a lint outside that set may be `allow`
+   there, in one reviewed place.
+4. It commits `standard.toml` when it needs settings or deviations, and
+   `budget.toml`, under `CODEOWNERS`, when it has `#[expect]` attributes or
+   `// INVARIANT:` comments.
 
 ## The rules
 
-Each rule is a variant of [`Rule`], with a stable name and a doc saying what
-it enforces. [`rules::check`] runs every rule over the repository and returns
-its violations, each printed with its location, rule and fix, then how to
-challenge the rule: a deviation in the repository's `standard.toml`, or a
-change to the rule here, after asking the user. The
-repository's `cargo xtask standard` prints them and fails; `just standard`
-runs it, and so does a CI job on every change, since the rules read more
-than the Rust sources. [`rules::fix`], behind `cargo xtask standard --fix`,
-first makes the fixes that need no judgement and prints each: it adds
-`[lints] workspace = true`, makes a workspace lint at `deny` or `forbid`
-`warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
-crate holds, and removes a stale deviation or entry of one. It edits each
-TOML file as a document, so its layout and comments stay.
-[`rules::report`], behind `cargo xtask standard report`, gives as JSON each
-rule's violations and deviation, deviated or not, with the repository's
-`#[expect]` attributes by lint, its `// INVARIANT:` comments and the lints
-`[workspace.lints]` allows: the monthly cleanup pass aggregates them across
-repositories to find the rules causing the most friction.
-[`rules::describe`] lists the rules with their docs as Markdown, which
-`cargo xtask standard rules` prints.
+<!-- rules:start: generated from the docs of `Rule` by `just readme` -->
+- `workspace-lints`: Every workspace crate's manifest has `[lints] workspace = true`; `[workspace.lints]` sets each lint the standard requires (the `rust` and `clippy` lints of its lint block) to `warn`, and every other lint to `warn` or `allow`.
+- `rust-syntax`: Every Rust file git tracks or would track parses as Rust.
+- `unsafe-modules`: `#[expect(unsafe_code, …)]` sits only inside the modules `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or `build_script_build` (a target's root module is its crate's name), and every listed module holds one.
+- `budget`: Each crate holds at most as many `#[expect]` attributes (inner, outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table gives it, and at most as many lines starting `// INVARIANT:` as its `[invariant]` table does; none for a crate a table doesn't list. Each name there is a workspace crate.
+- `generated-lints`: Rust files `.gitattributes` marks `linguist-generated` contain no lint attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or outer): their exceptions sit on their `mod` declaration.
+- `rust-comments`: Rust files that aren't generated hold only doc comments (`///`, `//!`), `// SAFETY:` comments and `// INVARIANT:` comments; any other `//` or `/* */` comment fails.
+- `doc-length`: The prose of each item's or module's docs, in a file that isn't generated, spans at most `standard.toml`'s `[comments] doc-lines` lines (10 by default). Code blocks and a crate root's `//!` docs don't count.
+- `config-comments`: In every `Cargo.toml`, justfile (and `*.just`) and `.github` YAML file, each block of `#` comment lines spans at most `standard.toml`'s `[comments] block-lines` (6 by default), and the file holds at most `[comments] file-lines` comment lines (40 by default).
+<!-- rules:end -->
+
+Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
+violations use, and its doc is the text above.
+
+## Configuration
 
 A repository applies the standard in `standard.toml` at its root. Every key
 is optional, and a missing file means the defaults. An unknown key, or a
@@ -74,6 +91,26 @@ piquelctl = 1
 piqueld = 2
 ```
 
+## Commands
+
+- `cargo xtask standard`, which `just standard` and CI run, runs
+  [`rules::check`] and prints each violation with its location, rule and
+  fix, then how to challenge the rule, suggesting a deviation scoped to its
+  file.
+- `cargo xtask standard --fix` first runs [`rules::fix`], which makes the
+  fixes that need no judgement and prints each: it adds
+  `[lints] workspace = true`, makes a workspace lint at `deny` or `forbid`
+  `warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
+  crate holds, and removes a stale deviation or entry of one. It edits each
+  TOML file as a document, so its layout and comments stay.
+- `cargo xtask standard report` prints [`rules::report`] as JSON: each
+  rule's violations and deviation, deviated or not, with the repository's
+  `#[expect]` attributes by lint, its `// INVARIANT:` lines and the lints
+  `[workspace.lints]` allows. The
+  monthly cleanup pass aggregates them across repositories to find the rules
+  causing the most friction.
+- `cargo xtask standard rules` prints [`rules::describe`], the list above.
+
 [`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
 [`rules::check`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.check.html
 [`rules::fix`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.fix.html
@@ -120,8 +157,9 @@ included, call other `just` recipes than the table's. [`Ci::run`] checks the sam
 ## Wiring it into a repository's xtask
 
 The repository's `tools/xtask` depends on the crate from crates.io, runs the
-rules, and describes its CI for `check-changed`. Its jobs carry the keys `ci.yml` gives them, and each
-filter its name in `.github/filters.yml`:
+rules, and describes its CI for `check-changed`. Its jobs carry the keys
+`ci.yml` gives them, each filter its name in `.github/filters.yml`, and the
+`lint`, `test` and `doc-test` recipes take `--package=<crate>` arguments:
 
 ```rust,no_run
 use std::path::Path;
@@ -169,11 +207,9 @@ const CI: Ci<Filter> = Ci {
             id: "rust",
             trigger: Trigger::AnyOf(&[Filter::Rust]),
             recipes: &[
-                // Each takes `--package=<crate>` arguments.
                 recipe(&["just", "lint"], Run::Crates { libraries_only: false }),
                 recipe(&["just", "test"], Run::Crates { libraries_only: false }),
                 recipe(&["just", "doc-test"], Run::Crates { libraries_only: true }),
-                // It checks files generated from the daemon.
                 recipe(&["just", "openapi-check"], Run::Only(&["daemon"])),
             ],
         },
@@ -196,18 +232,27 @@ fn root() -> &'static Path {
     Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
 }
 
-/// `cargo xtask standard`, `cargo xtask standard rules` and
+/// `cargo xtask standard [--fix | report | rules]` and
 /// `cargo xtask check-changed [base]`. A real xtask parses its tasks with
 /// clap or by hand, and wraps errors with anyhow's context.
 fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
-        ["standard"] => {
+        ["standard", rest @ ..] if matches!(rest, [] | ["--fix"]) => {
+            if rest == ["--fix"] {
+                for fix in rules::fix(root())? {
+                    println!("fixed {fix}");
+                }
+            }
             let violations = rules::check(root())?;
             for violation in &violations {
                 eprintln!("{violation}");
             }
             Ok(if violations.is_empty() { ExitCode::SUCCESS } else { ExitCode::FAILURE })
+        }
+        ["standard", "report"] => {
+            println!("{}", rules::report(root())?.to_json()?);
+            Ok(ExitCode::SUCCESS)
         }
         ["standard", "rules"] => {
             print!("{}", rules::describe());
@@ -216,7 +261,7 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
         ["check-changed", base @ ..] => {
             Ok(CI.run(root(), base.first().copied().unwrap_or(DEFAULT_BASE))?)
         }
-        _ => Err("usage: cargo xtask (standard [rules] | check-changed [base])".into()),
+        _ => Err("usage: cargo xtask (standard [--fix | report | rules] | check-changed [base])".into()),
     }
 }
 

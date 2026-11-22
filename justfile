@@ -63,6 +63,11 @@ unused:
 check-changed *ARGS:
     @cargo xtask check-changed "$@"
 
+# The crate's README is the written standard; a test fails while this is stale.
+# Writes the rules' docs into the crate's README.
+readme:
+    @cargo xtask readme
+
 # Packages the crate and builds it from its package, as crates.io would, without
 # uploading anything. The owner publishes.
 package:
