@@ -4,6 +4,7 @@
 //! rules `standard.toml` deviates from. [`describe`] lists the rules with
 //! their docs.
 
+mod agent_files;
 mod budget;
 mod cargo_locked;
 mod comments;
@@ -30,6 +31,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
+use agent_files::AgentFiles;
 use budget::Budget;
 use config_comments::Commented;
 use fix::Checked;
@@ -136,6 +138,10 @@ rules! {
     /// `nextest`, `publish`, `run` and `test` in a justfile (and `*.just`),
     /// `.github` YAML file or `t3.json` passes `--locked` (or `--frozen`).
     CargoLocked = "cargo-locked" => cargo_locked,
+    /// `AGENTS.md` sits at the root, and no `CLAUDE.md` exists. Each skill
+    /// is `.agents/skills/<name>/SKILL.md`, its frontmatter's `name` is
+    /// `<name>`, and `.claude/skills` is a symlink to `../.agents/skills`.
+    AgentFiles = "agent-files" => agent_files,
 }
 
 /// Why the rules couldn't be checked.
@@ -294,6 +300,8 @@ struct Repository {
     modules: Modules,
     /// Each crate's ceilings of exceptions.
     budget: Budget,
+    /// `AGENTS.md`, any `CLAUDE.md`, and the skills.
+    agent_files: AgentFiles,
     /// The justfiles, workflows and `t3.json`, whose commands the rules
     /// read.
     scripts: Vec<TextFile>,
@@ -318,6 +326,7 @@ impl Repository {
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,
             scripts: TextFile::load_all(root, &cargo_locked::FILES)?,
+            agent_files: AgentFiles::load(root)?,
             metadata,
             sources,
             unparsed,

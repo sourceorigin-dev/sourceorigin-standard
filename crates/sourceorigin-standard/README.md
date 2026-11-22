@@ -40,6 +40,7 @@ A repository adopts the standard in four steps:
 - `workspace-manifest`: The root manifest's `[workspace]` sets `resolver = "3"`, its `[workspace.package]` sets `edition = "2024"`, and every workspace crate inherits it with `edition.workspace = true`.
 - `layout`: Every workspace crate lives under `crates/`, `apps/` or `tools/`, the `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases `cargo xtask` to `run --locked --package xtask --`.
 - `cargo-locked`: Every `cargo build`, `check`, `clippy`, `doc`, `llvm-cov`, `nextest`, `publish`, `run` and `test` in a justfile (and `*.just`), `.github` YAML file or `t3.json` passes `--locked` (or `--frozen`).
+- `agent-files`: `AGENTS.md` sits at the root, and no `CLAUDE.md` exists. Each skill is `.agents/skills/<name>/SKILL.md`, its frontmatter's `name` is `<name>`, and `.claude/skills` is a symlink to `../.agents/skills`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
