@@ -82,14 +82,30 @@ pub(crate) struct Config {
 #[derive(Debug, Deserialize)]
 #[serde(default, deny_unknown_fields, rename_all = "kebab-case")]
 pub(crate) struct Comments {
-    /// The most lines an item's docs may span.
-    pub(crate) doc_lines: usize,
+    /// `doc-lines`: the most lines of prose an item's docs may span.
+    #[serde(rename = "doc-lines")]
+    pub(crate) docs: usize,
+    /// `block-lines`: the most lines a comment in a manifest, justfile or
+    /// workflow may span.
+    #[serde(rename = "block-lines")]
+    pub(crate) block: usize,
+    /// `file-lines`: the most comment lines a manifest, justfile or
+    /// workflow may hold.
+    #[serde(rename = "file-lines")]
+    pub(crate) file: usize,
 }
 
 impl Default for Comments {
     /// Docs of 10 lines: piqueld's and sourceorigin's 99th percentile.
+    /// Comments of 6 lines, piqueld's 95th percentile (sourceorigin's is
+    /// 5), and 40 per file, piqueld's root manifest: what these cut are the
+    /// 40- and 48-line headers of their CI workflows.
     fn default() -> Self {
-        Self { doc_lines: 10 }
+        Self {
+            docs: 10,
+            block: 6,
+            file: 40,
+        }
     }
 }
 

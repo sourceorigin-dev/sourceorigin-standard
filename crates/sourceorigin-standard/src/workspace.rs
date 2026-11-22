@@ -76,21 +76,19 @@ impl<'a> Workspace<'a> {
         command
     }
 
-    /// The files git tracks or would track, from the root, matching
-    /// `pathspec`, such as `*.rs`.
-    pub(crate) fn files(self, pathspec: &str) -> Result<BTreeSet<String>, CommandError> {
-        let files = self.output(
-            "git",
-            &[
-                "ls-files",
-                "--cached",
-                "--others",
-                "--exclude-standard",
-                "-z",
-                "--",
-                pathspec,
-            ],
-        )?;
+    /// The files git tracks or would track, from the root, matching any of
+    /// `pathspecs`, such as `*.rs`.
+    pub(crate) fn files(self, pathspecs: &[&str]) -> Result<BTreeSet<String>, CommandError> {
+        let mut args = vec![
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            "--",
+        ];
+        args.extend(pathspecs);
+        let files = self.output("git", &args)?;
         Ok(files
             .split('\0')
             .filter(|path| !path.is_empty())

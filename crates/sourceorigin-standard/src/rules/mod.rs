@@ -6,6 +6,7 @@
 
 mod budget;
 mod comments;
+mod config_comments;
 mod generated_lints;
 mod level;
 mod modules;
@@ -22,6 +23,7 @@ use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
 use budget::Budget;
+use config_comments::Commented;
 use modules::Modules;
 use source::{Source, Unparsed};
 use workspace_lints::{LintLevel, Manifest};
@@ -100,6 +102,11 @@ rules! {
     /// lines (10 by default). Code blocks and a crate root's `//!` docs
     /// don't count.
     DocLength = "doc-length" => doc_length,
+    /// In every `Cargo.toml`, justfile (and `*.just`) and `.github` YAML file,
+    /// each block of `#` comment lines spans at most `standard.toml`'s
+    /// `[comments] block-lines` (6 by default), and the file holds at most
+    /// `[comments] file-lines` comment lines (40 by default).
+    ConfigComments = "config-comments" => config_comments,
 }
 
 /// Why the rules couldn't be checked.
@@ -245,6 +252,8 @@ struct Repository {
     modules: Modules,
     /// Each crate's ceilings of exceptions.
     budget: Budget,
+    /// The manifests, justfiles and workflows, with their comments.
+    commented: Vec<Commented>,
 }
 
 impl Repository {
@@ -259,6 +268,7 @@ impl Repository {
             lint_levels: LintLevel::load_all(&metadata.workspace_root)?,
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
+            commented: Commented::load_all(root)?,
             metadata,
             sources,
             unparsed,

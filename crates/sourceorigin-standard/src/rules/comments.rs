@@ -321,7 +321,7 @@ impl Repository {
     /// prose spans more lines than `[comments] doc-lines`. A crate root's
     /// inner docs, the crate's own documentation, are exempt.
     pub(super) fn doc_length(&self) -> Vec<Finding> {
-        let limit = self.config.comments.doc_lines;
+        let limit = self.config.comments.docs;
         self.sources
             .iter()
             .filter(|source| !source.generated)

@@ -37,6 +37,10 @@ unsafe-modules = ["my_crate::ffi"]
 # The most lines of prose an item's or module's docs may span, code blocks
 # and a crate root's `//!` docs aside.
 doc-lines = 10
+# The most lines a `#` comment in a manifest, justfile or `.github` YAML
+# file may span, and the most comment lines such a file may hold.
+block-lines = 6
+file-lines = 40
 
 [check-changed]
 # Crates that build another without depending on it, such as a build
