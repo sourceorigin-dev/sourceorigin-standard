@@ -37,6 +37,7 @@ A repository adopts the standard in four steps:
 - `rust-comments`: Rust files that aren't generated hold only doc comments (`///`, `//!`), `// SAFETY:` comments and `// INVARIANT:` comments; any other `//` or `/* */` comment fails.
 - `doc-length`: The prose of each item's or module's docs, in a file that isn't generated, spans at most `standard.toml`'s `[comments] doc-lines` lines (10 by default). Code blocks and a crate root's `//!` docs don't count.
 - `config-comments`: In every `Cargo.toml`, justfile (and `*.just`) and `.github` YAML file, each block of `#` comment lines spans at most `standard.toml`'s `[comments] block-lines` (6 by default), and the file holds at most `[comments] file-lines` comment lines (40 by default).
+- `workspace-manifest`: The root manifest's `[workspace]` sets `resolver = "3"`, its `[workspace.package]` sets `edition = "2024"`, and every workspace crate inherits it with `edition.workspace = true`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -98,10 +99,11 @@ piqueld = 2
   fix, then how to challenge the rule, suggesting a deviation scoped to its
   file.
 - `cargo xtask standard --fix` first runs [`rules::fix`], which makes the
-  fixes that need no judgement and prints each: it adds
-  `[lints] workspace = true`, makes a workspace lint at `deny` or `forbid`
-  `warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
-  crate holds, and removes a stale deviation or entry of one. It edits each
+  fixes that need no judgement and prints each, such as adding
+  `[lints] workspace = true`, making a workspace lint at `deny` or `forbid`
+  `warn` (never an `allow`), making a crate inherit the workspace's edition,
+  lowering a ceiling of `budget.toml` to what the crate holds, or removing a
+  stale deviation or entry of one. It edits each
   TOML file as a document, so its layout and comments stay.
 - `cargo xtask standard report` prints [`rules::report`] as JSON: each
   rule's violations and deviation, deviated or not, with the repository's

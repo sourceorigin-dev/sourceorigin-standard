@@ -19,6 +19,7 @@ mod tests;
 mod toml_file;
 mod unsafe_modules;
 mod workspace_lints;
+mod workspace_manifest;
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -118,6 +119,10 @@ rules! {
     /// `[comments] block-lines` (6 by default), and the file holds at most
     /// `[comments] file-lines` comment lines (40 by default).
     ConfigComments = "config-comments" => config_comments,
+    /// The root manifest's `[workspace]` sets `resolver = "3"`, its
+    /// `[workspace.package]` sets `edition = "2024"`, and every workspace
+    /// crate inherits it with `edition.workspace = true`.
+    WorkspaceManifest = "workspace-manifest" => workspace_manifest,
 }
 
 /// Why the rules couldn't be checked.
@@ -260,6 +265,8 @@ struct Repository {
     config: Config,
     /// The workspace's crates.
     metadata: Metadata,
+    /// The root manifest.
+    root_manifest: TomlFile<RootManifest>,
     /// The manifests of the workspace's crates.
     manifests: Vec<TomlFile<Manifest>>,
     /// The lints `[workspace.lints]` sets.
@@ -287,6 +294,7 @@ impl Repository {
             config: Config::load(root)?,
             manifests: TomlFile::load_all(&metadata)?,
             lint_levels: LintLevel::all(&root_manifest),
+            root_manifest,
             modules: Modules::of(&metadata, &sources),
             budget: Budget::load(root)?,
             commented: Commented::load_all(root)?,
