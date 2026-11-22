@@ -22,6 +22,7 @@ mod docs_images;
 mod docs_summary;
 mod fix;
 mod generated_lints;
+mod inline_limits;
 mod inline_tests;
 mod job_timeouts;
 mod justfile;
@@ -48,6 +49,7 @@ mod text_file;
 mod toml_file;
 mod toolchain;
 mod unsafe_modules;
+mod walk;
 mod wording;
 mod workflow_permissions;
 mod workflows;
@@ -292,11 +294,18 @@ rules! {
     /// `tests/common/mod.rs`, passes, and so does one under `src/bin`, where
     /// binaries share modules.
     ChildlessModRs = "childless-mod-rs" => childless_mod_rs,
-    /// An inline `#[cfg(test)] mod … { }` at the top level of a file a
-    /// target reaches outside test code spans fewer than 50 lines or at
-    /// most 30% of the file's; a larger one is a file of its own,
-    /// `mod tests;`.
+    /// An inline `#[cfg(test)] mod … { }` (or one whose `cfg` requires a
+    /// feature named for tests) at the top level of a file a target reaches
+    /// outside test code spans fewer than 50 lines or at most 30% of the
+    /// file's; a larger one is a file of its own, `mod tests;`.
     InlineTests = "inline-tests" => inline_tests,
+    /// `Duration::from_*` with a number, or arithmetic on numbers, sits only
+    /// in a `const` or `static` item, a `const fn` or test code: a limit,
+    /// timeout or size is a named constant. Test code is what a test
+    /// attribute such as `#[tokio::test]`, or a `cfg` requiring `test` or a
+    /// feature named for tests (`test-util`), marks, the files such a
+    /// module declares, and integration tests and benchmarks.
+    InlineLimits = "inline-limits" => inline_limits,
 }
 
 /// Why the rules couldn't be checked.

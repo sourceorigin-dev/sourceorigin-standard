@@ -19,6 +19,7 @@ mod docs_summary;
 mod fix;
 mod framework;
 mod generated_lints;
+mod inline_limits;
 mod inline_tests;
 mod job_timeouts;
 mod layout;
