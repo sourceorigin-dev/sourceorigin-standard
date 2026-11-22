@@ -193,6 +193,8 @@ check: a deviation in `standard.toml`, or a change to the check here.
   `.github/pull_request_template.md`, each with more than the template's
   comments under it. An issue link is optional; one that closes an issue
   reads `Fixes #123`, or `Fixes PQD-123` where issues live in Linear.
+- `no-co-authors`: neither the description nor a commit message has a
+  `Co-authored-by` trailer.
 
 A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
 this repository's `main`, with the crate's version in the comment. It runs

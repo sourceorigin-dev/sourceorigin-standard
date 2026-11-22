@@ -11,7 +11,11 @@ class Runner {
   /** Every check, each a job of pr-checks.yml's matrix: an object with a
    * `name`, `findings(pr, settings)` and, optionally, `waiver(pr, settings)`,
    * the reason findings shouldn't fail the job, or nothing. */
-  static CHECKS = [require('./pr-title.js'), require('./pr-body.js')];
+  static CHECKS = [
+    require('./pr-title.js'),
+    require('./pr-body.js'),
+    require('./no-co-authors.js'),
+  ];
 
   /** Runs the check named in `CHECK`, with the settings of the pull
    * request's base. Each
