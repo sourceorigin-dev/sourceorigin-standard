@@ -61,7 +61,7 @@ impl Node {
     pub(super) fn as_str(&self) -> Option<&str> {
         match &self.value {
             Value::Scalar(text, _) => Some(text),
-            _ => None,
+            Value::Sequence(_) | Value::Mapping(_) => None,
         }
     }
 
@@ -77,7 +77,7 @@ impl Node {
     pub(super) fn items(&self) -> &[Self] {
         match &self.value {
             Value::Sequence(items) => items,
-            _ => &[],
+            Value::Scalar(..) | Value::Mapping(_) => &[],
         }
     }
 
@@ -85,7 +85,7 @@ impl Node {
     pub(super) fn entries(&self) -> &[(Self, Self)] {
         match &self.value {
             Value::Mapping(entries) => entries,
-            _ => &[],
+            Value::Scalar(..) | Value::Sequence(_) => &[],
         }
     }
 
@@ -101,7 +101,7 @@ impl Node {
             Value::Scalar(text, Style::Plain | Style::Quoted) => {
                 text.lines().map(|line| (self.line, line)).collect()
             }
-            _ => Vec::new(),
+            Value::Sequence(_) | Value::Mapping(_) => Vec::new(),
         }
     }
 }

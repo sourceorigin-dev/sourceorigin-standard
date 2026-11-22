@@ -1,0 +1,39 @@
+warning: catch-all arm on `Kind`, an enum of this workspace
+  --> $DIR/wildcard_enum_local.rs:16:9
+   |
+LL |         _ => 1,
+   |         ^
+   |
+   = help: match its remaining variants by name: `Kind::Tuple(_) | Kind::Struct { .. }`
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(wildcard_enum_local, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(wildcard_enum_local)]` on by default
+
+warning: catch-all arm on `Kind`, an enum of this workspace
+  --> $DIR/wildcard_enum_local.rs:23:9
+   |
+LL |         other => wildcard(&other),
+   |         ^^^^^
+   |
+   = help: match its remaining variants by name: `Kind::Unit | Kind::Struct { .. }`
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(wildcard_enum_local, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: catch-all arm on `Kind`, an enum of this workspace
+  --> $DIR/wildcard_enum_local.rs:30:9
+   |
+LL |         other @ _ => wildcard(&other),
+   |         ^^^^^^^^^
+   |
+   = help: match its remaining variants by name: `Kind::Tuple(_) | Kind::Struct { .. }`
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(wildcard_enum_local, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: catch-all arm on `Kind`, an enum of this workspace
+  --> $DIR/wildcard_enum_local.rs:38:9
+   |
+LL |         _ => 0,
+   |         ^
+   |
+   = help: match its remaining variants by name: `Kind::Unit | Kind::Tuple(_)`
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(wildcard_enum_local, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: 4 warnings emitted
+

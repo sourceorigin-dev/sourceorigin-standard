@@ -25,3 +25,8 @@ pr-checks:
   - .github/filters.yml
   - justfile
   - .github/pr-checks/**
+lints:
+  - *workspace
+  - crates/**
+  - tools/**
+  - lints/**

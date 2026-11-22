@@ -40,6 +40,7 @@ jobs:
       rust: ${{ github.event_name != 'pull_request' || steps.filter.outputs.rust == 'true' }}
       deny: ${{ github.event_name != 'pull_request' || steps.filter.outputs.deny == 'true' }}
       pr-checks: ${{ github.event_name != 'pull_request' || steps.filter.outputs.pr-checks == 'true' }}
+      lints: ${{ github.event_name != 'pull_request' || steps.filter.outputs.lints == 'true' }}
     steps:
       # The filters file only: the action lists the changed paths through
       # the GitHub API.
@@ -130,6 +131,26 @@ jobs:
           tool: just
       - run: just test-pr-checks
 
+  # rustup installs lints/rust-toolchain.toml's nightly on first use.
+  lints:
+    name: lints
+    needs: changes
+    if: needs.changes.outputs.lints == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2
+        with:
+          tool: just,cargo-nextest,cargo-deny,cargo-dylint@6.3.2,dylint-link@6.3.2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: lints
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: just lints
+
   ci:
     name: ci
     if: always()
@@ -139,10 +160,11 @@ jobs:
       - rust
       - standard
       - pr-check-scripts
+      - lints
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
         with:
-          allowed-skips: checks, rust, pr-check-scripts
+          allowed-skips: checks, rust, pr-check-scripts, lints
           jobs: ${{ toJSON(needs) }}

@@ -59,8 +59,28 @@ audit:
 unused:
     @cargo machete
 
-# tools/xtask/src/ci.rs maps each CI job to its recipes; none is left to CI,
-# as every one is quick.
+# CI only: needs lints/rust-toolchain.toml's nightly, cargo-dylint and
+# dylint-link. Run from `cargo xtask`, RUSTUP_TOOLCHAIN would override the
+# nightly; dylint-link names the library for its toolchain. The UI tests run
+# one at a time: on a cold cache, each would build the Dylint driver at once.
+# The Dylint lints: formatting, Clippy with warnings denied, the UI tests and
+# the audit of lints/, then the lints on this repository, warnings denied.
+lints:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    unset RUSTUP_TOOLCHAIN
+    (
+        cd lints
+        export RUSTFLAGS='-C linker=dylint-link'
+        cargo fmt -- --check
+        cargo clippy --locked --lib --tests -- -D warnings
+        cargo nextest run --locked --config-file ../.config/nextest.toml --test-threads 1
+        cargo deny --locked check
+    )
+    DYLINT_RUSTFLAGS='-D warnings' cargo dylint --all -- --locked --all-targets
+
+# tools/xtask/src/ci.rs maps each CI job to its recipes; only `lints` is left
+# to CI, as it needs its own toolchain.
 # CI's checks, for only what changed since the merge base with a branch
 # (origin/main unless named), counting uncommitted and untracked files.
 [positional-arguments]

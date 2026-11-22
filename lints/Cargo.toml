@@ -1,0 +1,51 @@
+[package]
+name = "standard_lints"
+description = "The engineering standard's rules that need types, as one Dylint library"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/sourceorigin-dev/sourceorigin-standard"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+# Each lint's UI cases, an example so they can use their crates.
+[[example]]
+name = "wildcard_enum_local"
+path = "ui/wildcard_enum_local.rs"
+
+[dependencies]
+# Pinned to the toolchain's nightly (rust-toolchain.toml), which each release
+# builds against, and to the cargo-dylint CI installs.
+clippy_utils = "=0.1.100"
+dylint_linting = "=6.3.2"
+
+[dev-dependencies]
+dylint_testing = "=6.3.2"
+
+# Not the repository's workspace: this one builds on the nightly.
+[workspace]
+
+# The repository's lints (../Cargo.toml); `just lints` runs Clippy with
+# `-D warnings`.
+[lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+dbg_macro = "warn"
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+undocumented_unsafe_blocks = "warn"
+self_named_module_files = "warn"
+
+[package.metadata.rust-analyzer]
+rustc_private = true

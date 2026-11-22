@@ -11,10 +11,17 @@ pub enum Filter {
     Rust,
     Deny,
     PrChecks,
+    Lints,
 }
 
 impl check_changed::Filter for Filter {
-    const ALL: &'static [Self] = &[Self::Workspace, Self::Rust, Self::Deny, Self::PrChecks];
+    const ALL: &'static [Self] = &[
+        Self::Workspace,
+        Self::Rust,
+        Self::Deny,
+        Self::PrChecks,
+        Self::Lints,
+    ];
 
     fn name(self) -> &'static str {
         match self {
@@ -22,6 +29,7 @@ impl check_changed::Filter for Filter {
             Self::Rust => "rust",
             Self::Deny => "deny",
             Self::PrChecks => "pr-checks",
+            Self::Lints => "lints",
         }
     }
 }
@@ -35,7 +43,8 @@ const fn just(recipe: &'static [&'static str]) -> Recipe {
     }
 }
 
-/// CI's jobs. Every check is quick, so none is left to CI.
+/// CI's jobs. Every check is quick, so only `lints`, which needs its own
+/// toolchain, is left to CI.
 pub const CI: Ci<Filter> = Ci {
     jobs: &[
         Job {
@@ -67,6 +76,14 @@ pub const CI: Ci<Filter> = Ci {
             id: "pr-check-scripts",
             trigger: Trigger::AnyOf(&[Filter::PrChecks]),
             recipes: &[just(&["just", "test-pr-checks"])],
+        },
+        Job {
+            id: "lints",
+            trigger: Trigger::AnyOf(&[Filter::Lints]),
+            recipes: &[Recipe {
+                command: &["just", "lints"],
+                run: Run::InCi("needs the pinned nightly, cargo-dylint and dylint-link"),
+            }],
         },
     ],
     ignored: &["ci"],

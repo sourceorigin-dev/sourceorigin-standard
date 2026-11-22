@@ -19,6 +19,10 @@ in this crate, a CI check on the pull request, a cleanup-pass skill.
   it adds), which each repository calls and this one dogfoods from
   `pr.yml`. Its logic is in `.github/pr-checks`, Node scripts without
   dependencies, tested by `just test-pr-checks`.
+- `lints`: the rules that need types, as one Dylint library the
+  repositories load from this repository's git: a crate of its own, on a
+  pinned nightly. Its README lists the lints and shows how a repository runs
+  them.
 
 Terms that are easy to mix up:
 
@@ -80,6 +84,12 @@ standard, and a test fails until it does.
 `check-changed`: change the two together, as its `ci_matches_the_workflow`
 test fails until they agree.
 
+`just lints` checks `lints/` (formatting, Clippy, the UI tests and the
+audit), then runs the lints on this repository. It runs in CI only, and
+`check-changed` prints it: it needs the nightly `lints/rust-toolchain.toml`
+pins, and `cargo-dylint` and `dylint-link` at the version
+`lints/Cargo.toml` pins.
+
 A new worktree runs `just setup-worktree`, which builds the workspace at low
 priority on half the cores.
 
@@ -96,7 +106,8 @@ this list and say which entries applied:
   the API breaks;
 - this repository's own `tools/xtask`, which uses the crate as the others do;
 - for `pr-checks.yml`, the README's caller workflow and `[pr-checks]`
-  settings, and this repository's own `pr.yml` and `standard.toml`.
+  settings, and this repository's own `pr.yml` and `standard.toml`;
+- for a lint, the table in `lints/README.md`.
 
 ## Issues, commits & pull requests
 
