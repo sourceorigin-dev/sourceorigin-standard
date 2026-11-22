@@ -1,5 +1,6 @@
 //! A fixture workspace the rules check, shared by the tests of each rule.
 
+mod budget;
 mod framework;
 mod unsafe_modules;
 mod workspace_lints;

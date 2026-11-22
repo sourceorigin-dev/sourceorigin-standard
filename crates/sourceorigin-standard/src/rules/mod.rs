@@ -4,6 +4,7 @@
 //! rules `standard.toml` deviates from. [`describe`] lists the rules with
 //! their docs.
 
+mod budget;
 mod level;
 mod modules;
 mod source;
@@ -18,6 +19,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
+use budget::Budget;
 use modules::Modules;
 use source::{Source, Unparsed};
 use workspace_lints::{LintLevel, Manifest};
@@ -78,6 +80,11 @@ rules! {
     /// `build_script_build` (a target's root module is its crate's name),
     /// and every listed module holds one.
     UnsafeModules = "unsafe-modules" => unsafe_modules,
+    /// Each crate holds at most as many `#[expect]` attributes (inner,
+    /// outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table
+    /// gives it, none when it lists no ceiling; each name there is a
+    /// workspace crate.
+    Budget = "budget" => budget,
 }
 
 /// Why the rules couldn't be checked.
@@ -221,6 +228,8 @@ struct Repository {
     unparsed: Vec<Unparsed>,
     /// Each Rust file's module paths.
     modules: Modules,
+    /// Each crate's ceilings of exceptions.
+    budget: Budget,
 }
 
 impl Repository {
@@ -234,6 +243,7 @@ impl Repository {
             manifests: Manifest::load_all(&metadata)?,
             lint_levels: LintLevel::load_all(&metadata.workspace_root)?,
             modules: Modules::of(&metadata, &sources),
+            budget: Budget::load(root)?,
             metadata,
             sources,
             unparsed,
