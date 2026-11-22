@@ -118,6 +118,16 @@ impl Metadata {
             .max_by_key(|(_, dir)| dir.components().count())
             .map(|(package, _)| package)
     }
+
+    /// Whether `path`, from the workspace's root, is a crate's root file,
+    /// such as `src/lib.rs`, a binary's `main.rs` or an integration test.
+    pub(crate) fn is_crate_root(&self, path: &Path) -> bool {
+        let file = self.workspace_root.join(path);
+        self.packages
+            .iter()
+            .flat_map(|package| &package.targets)
+            .any(|target| target.src_path == file)
+    }
 }
 
 impl Target {

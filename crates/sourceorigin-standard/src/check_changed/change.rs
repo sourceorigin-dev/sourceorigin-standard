@@ -13,8 +13,8 @@ use crate::workspace::Workspace;
 impl Workspace<'_> {
     /// The merge base of HEAD and `base`, and the paths changed since,
     /// from the repository's root: committed, staged, unstaged, and
-    /// untracked but not ignored. A renamed file counts under both paths,
-    /// as paths-filter counts it.
+    /// untracked but not ignored, by diffing the working tree. A renamed
+    /// file counts under both paths, as paths-filter counts it.
     pub(super) fn changed_paths(self, base: &str) -> Result<(String, BTreeSet<String>), Error> {
         let merge_base = self
             .output("git", &["merge-base", base, "HEAD"])
@@ -24,7 +24,6 @@ impl Workspace<'_> {
             })?
             .trim()
             .to_owned();
-        // Against the working tree, so it includes uncommitted changes.
         let diff = self.output(
             "git",
             &["diff", "--name-only", "--no-renames", "-z", &merge_base],
@@ -83,7 +82,6 @@ impl Scope {
                 None => return Self::Workspace { path: path.clone() },
             };
         }
-        // Until no crate depends on one reached but is unreached itself.
         while let Some(dependent) = metadata.packages.iter().find(|package| {
             !reached.contains(package.name.as_str())
                 && (package

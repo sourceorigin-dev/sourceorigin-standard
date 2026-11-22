@@ -10,10 +10,10 @@ fn docs(patterns: &str, quantifier: Quantifier) -> Filters<Filter> {
     Filters::parse(&yaml, quantifier).expect("the filters parse")
 }
 
+/// Each case checked against picomatch 2.3.1, which paths-filter 4.0.3
+/// bundles, with `{ dot: true }`.
 #[test]
 fn globs_match_as_picomatch_does() {
-    // Each checked against picomatch 2.3.1, which paths-filter 4.0.3
-    // bundles, with `{ dot: true }`.
     let cases = [
         ("crates/**", "crates/core/src/lib.rs", true),
         ("crates/**", "crates/core/.env", true),
@@ -57,11 +57,11 @@ fn globs_match_as_picomatch_does() {
 /// `some-with-excludes`.
 type Expected = (&'static str, bool, bool, bool);
 
+/// The examples of paths-filter 4.0.3's README, DirkEngine's and
+/// sourceorigin's filters, and a filter of negated patterns only, each
+/// checked against paths-filter's `isMatch` over picomatch 2.3.1.
 #[test]
 fn quantifiers_combine_negated_patterns_as_paths_filter_does() {
-    // The examples of paths-filter 4.0.3's README, and DirkEngine's and
-    // sourceorigin's filters, each checked against its `isMatch` over
-    // picomatch 2.3.1: (path, some, every, some-with-excludes).
     let cases: [(&str, &[Expected]); 5] = [
         (
             "['pkg/a/b/c/**', '!**/*.jpeg', '!**/*.md']",
@@ -103,7 +103,6 @@ fn quantifiers_combine_negated_patterns_as_paths_filter_does() {
                 (".prettierrc", true, true, true),
             ],
         ),
-        // Only negated patterns: nothing to include them.
         (
             "['!docs/**']",
             &[

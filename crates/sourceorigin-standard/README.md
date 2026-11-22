@@ -33,6 +33,11 @@ other-rule = { reason = "why", paths = ["crates/generated/**"], crates = ["vendo
 # `build_script_build` for a build script.
 unsafe-modules = ["my_crate::ffi"]
 
+[comments]
+# The most lines of prose an item's or module's docs may span, code blocks
+# and a crate root's `//!` docs aside.
+doc-lines = 10
+
 [check-changed]
 # Crates that build another without depending on it, such as a build
 # script compiling a crate it embeds: a change to `built` reaches `builder`.

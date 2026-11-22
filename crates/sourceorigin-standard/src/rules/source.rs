@@ -8,6 +8,7 @@ use syn::visit::Visit;
 use syn::{Attribute, Meta, Token};
 
 use super::Error;
+use super::comments::{Comment, DocBlock, Scan};
 use super::level::Level;
 use crate::workspace::Workspace;
 
@@ -20,6 +21,10 @@ pub(super) struct Source {
     pub(super) lints: Vec<LintAttribute>,
     /// Whether `.gitattributes` marks it `linguist-generated`.
     pub(super) generated: bool,
+    /// Its comments that aren't doc comments.
+    pub(super) comments: Vec<Comment>,
+    /// The docs of each of its items and modules.
+    pub(super) doc_blocks: Vec<DocBlock>,
 }
 
 /// A Rust file that doesn't parse, which the rules can't read.
@@ -65,23 +70,28 @@ impl Source {
 
     /// Parses `text`, the file at `path`.
     pub(super) fn parse(path: PathBuf, text: &str) -> Result<Self, Unparsed> {
-        match syn::parse_file(text) {
-            Ok(syntax) => {
-                let mut lints = LintAttributes(Vec::new());
-                lints.visit_file(&syntax);
-                Ok(Self {
-                    path,
-                    syntax,
-                    lints: lints.0,
-                    generated: false,
-                })
-            }
-            Err(error) => Err(Unparsed {
-                path,
-                line: error.span().start().line,
-                message: error.to_string(),
-            }),
-        }
+        let unparsed = |path: PathBuf, start: proc_macro2::LineColumn, message: String| Unparsed {
+            path,
+            line: start.line,
+            message,
+        };
+        let syntax = syn::parse_file(text)
+            .map_err(|error| unparsed(path.clone(), error.span().start(), error.to_string()))?;
+        let tokens: proc_macro2::TokenStream =
+            text.parse().map_err(|error: proc_macro2::LexError| {
+                unparsed(path.clone(), error.span().start(), error.to_string())
+            })?;
+        let (comments, doc_blocks) = Scan::of(text, tokens);
+        let mut lints = LintAttributes(Vec::new());
+        lints.visit_file(&syntax);
+        Ok(Self {
+            path,
+            syntax,
+            lints: lints.0,
+            generated: false,
+            comments,
+            doc_blocks,
+        })
     }
 }
 
