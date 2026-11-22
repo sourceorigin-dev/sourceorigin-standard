@@ -19,6 +19,7 @@ mod generated_lints;
 mod job_timeouts;
 mod layout;
 mod nextest_config;
+mod pr_template;
 mod recipes;
 mod recipes_only;
 mod report;
@@ -125,7 +126,7 @@ self_named_module_files = \"warn\"
 
 /// The configuration files every fixture holds, as the standard has them,
 /// so a rule's fixes touch only what a test writes.
-const CONFIG: [(&str, &str); 4] = [
+const CONFIG: [(&str, &str); 5] = [
     (
         ".cargo/config.toml",
         "[alias]\nxtask = \"run --locked --package xtask --\"\n",
@@ -141,6 +142,10 @@ const CONFIG: [(&str, &str); 4] = [
     (
         "clippy.toml",
         "allow-expect-in-tests = true\nallow-panic-in-tests = true\nallow-dbg-in-tests = true\n",
+    ),
+    (
+        ".github/pull_request_template.md",
+        "## What and why\n\n## Testing\n",
     ),
 ];
 
