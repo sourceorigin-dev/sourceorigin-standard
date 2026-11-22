@@ -19,6 +19,9 @@ Terms that are easy to mix up:
   more filters, that a job's `if:` reads.
 - **Job and recipe:** a job is a job of the repository's `ci.yml`; a recipe
   is one of the `just` commands it runs.
+- **Rule, violation and deviation:** a rule is one check of the standard; a
+  violation is a place a repository breaks it; a deviation is a rule a
+  repository's `standard.toml` departs from, with its reason.
 
 ## Hazards
 
@@ -54,6 +57,13 @@ the code and runs every check: run it when a change is workspace-wide or
 when asked. While iterating, run only what you changed, such as
 `just test -p sourceorigin-standard`. If a step can't run, report the exact
 command and why.
+
+`just standard` runs `cargo xtask standard`, which checks the repository
+against the standard's rules (`cargo xtask standard rules` lists them), with
+`standard.toml` holding how a repository applies them; CI runs it on every
+change. A new rule is a
+variant of `Rule` in `crates/sourceorigin-standard/src/rules/mod.rs`, whose
+doc comment is the rule's text, and a method on its `Repository`.
 
 `tools/xtask/src/ci.rs` describes `.github/workflows/ci.yml` for
 `check-changed`: change the two together, as its `ci_matches_the_workflow`

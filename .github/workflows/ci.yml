@@ -104,6 +104,24 @@ jobs:
       - run: just doc-test
       - run: just package
 
+  # Every change, since the rules read more than the Rust sources:
+  # standard.toml, budget.toml, .gitattributes and every workflow.
+  standard:
+    name: standard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@3f74d7c16a4242f1c95561e98edc25d36adb4375 # v2
+        with:
+          tool: just
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: just standard
+
   ci:
     name: ci
     if: always()
@@ -111,6 +129,7 @@ jobs:
       - changes
       - checks
       - rust
+      - standard
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

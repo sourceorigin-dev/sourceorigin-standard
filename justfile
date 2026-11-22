@@ -5,7 +5,7 @@
 default: validate
 
 # Formats the sources, then runs every check CI runs.
-validate: fmt lint test doc doc-test audit unused package
+validate: fmt lint standard test doc doc-test audit unused package
 
 build:
     @cargo build --locked --workspace --all-targets
@@ -29,6 +29,10 @@ lint:
     for manifest in crates/*/Cargo.toml tools/*/Cargo.toml; do
         cargo clippy --locked --manifest-path "$manifest" --all-targets -- -D warnings
     done
+
+# The standard's rules; `cargo xtask standard rules` lists them.
+standard:
+    @cargo xtask standard
 
 # Arguments replace `--workspace`, such as `just test -p sourceorigin-standard`.
 # The tests; arguments go on to nextest.

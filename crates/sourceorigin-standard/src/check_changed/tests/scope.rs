@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use super::super::Builds;
 use super::super::change::{Crate, Scope};
-use super::super::metadata::{Dependency, Metadata, Package, Target, TargetKind};
 use super::paths;
+use crate::config::Builds;
+use crate::metadata::{Dependency, Metadata, Package, Target, TargetKind};
 
 /// A crate in `/w/<dir>`, depending on `dependencies`, with a library or a
 /// binary at `<dir>/src`.
@@ -54,10 +54,13 @@ fn piqueld() -> Metadata {
     ])
 }
 
-const BUILDS: &[Builds] = &[Builds {
-    builder: "daemon",
-    built: "ui",
-}];
+/// The daemon embeds the dashboard.
+fn builds() -> [Builds; 1] {
+    [Builds {
+        builder: "daemon".to_owned(),
+        built: "ui".to_owned(),
+    }]
+}
 
 fn crates(names: &[(&str, bool)]) -> Scope {
     Scope::Crates(
@@ -75,7 +78,7 @@ fn crates(names: &[(&str, bool)]) -> Scope {
 fn a_change_reaches_its_crates_dependents() {
     let changed = paths(&["crates/client/src/lib.rs"]);
     assert_eq!(
-        Scope::new(&piqueld(), BUILDS, &changed),
+        Scope::new(&piqueld(), &builds(), &changed),
         crates(&[
             ("client", true),
             ("cli", true),
@@ -90,7 +93,7 @@ fn a_change_reaches_its_crates_dependents() {
 fn a_change_reaches_the_crate_building_it() {
     let changed = paths(&["apps/ui/src/app.rs"]);
     assert_eq!(
-        Scope::new(&piqueld(), BUILDS, &changed),
+        Scope::new(&piqueld(), &builds(), &changed),
         crates(&[("ui", true), ("daemon", true)])
     );
 }
@@ -99,7 +102,7 @@ fn a_change_reaches_the_crate_building_it() {
 fn a_path_in_no_crate_reaches_the_workspace() {
     let changed = paths(&["apps/cli/src/main.rs", "Cargo.lock"]);
     assert_eq!(
-        Scope::new(&piqueld(), BUILDS, &changed),
+        Scope::new(&piqueld(), &builds(), &changed),
         Scope::Workspace {
             path: "Cargo.lock".to_owned()
         }

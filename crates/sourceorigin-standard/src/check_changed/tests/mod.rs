@@ -118,7 +118,6 @@ const CI: Ci<Filter> = Ci {
         },
     ],
     ignored: &["ci"],
-    builds: &[],
 };
 
 fn paths(paths: &[&str]) -> BTreeSet<String> {
