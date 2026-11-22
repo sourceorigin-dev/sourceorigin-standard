@@ -8,6 +8,7 @@ mod clippy_config;
 mod comments;
 mod config_comments;
 mod config_syntax;
+mod deny_config;
 mod fix;
 mod framework;
 mod generated_lints;
