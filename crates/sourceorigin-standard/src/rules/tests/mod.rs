@@ -29,6 +29,7 @@ mod scheduled_audit;
 mod t3_setup;
 mod toolchain;
 mod unsafe_modules;
+mod wording;
 mod workflow_permissions;
 mod workspace_dependencies;
 mod workspace_lints;

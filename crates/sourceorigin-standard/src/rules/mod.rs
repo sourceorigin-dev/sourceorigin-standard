@@ -43,6 +43,7 @@ mod text_file;
 mod toml_file;
 mod toolchain;
 mod unsafe_modules;
+mod wording;
 mod workflow_permissions;
 mod workflows;
 mod workspace_dependencies;
@@ -257,6 +258,10 @@ rules! {
     /// Every image in a Markdown file, outside code blocks, has alt text:
     /// `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
     DocsImages = "docs-images" => docs_images,
+    /// No Markdown file, outside code, holds as a word a spelling
+    /// `standard.toml`'s `[wording]` rejects, such as
+    /// `"Source Origin" = "SourceOrigin"`.
+    Wording = "wording" => wording,
 }
 
 /// Why the rules couldn't be checked.

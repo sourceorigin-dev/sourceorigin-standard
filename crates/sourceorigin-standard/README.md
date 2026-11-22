@@ -61,6 +61,7 @@ A repository adopts the standard in four steps:
 - `pr-template`: `.github/pull_request_template.md` has the headings `## What and why` and `## Testing`.
 - `docs-summary`: With a `book.toml`, every Markdown page under its `src` is linked from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
 - `docs-images`: Every image in a Markdown file, outside code blocks, has alt text: `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
+- `wording`: No Markdown file, outside code, holds as a word a spelling `standard.toml`'s `[wording]` rejects, such as `"Source Origin" = "SourceOrigin"`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -101,6 +102,10 @@ doc-lines = 10
 # file may span, and the most comment lines such a file may hold.
 block-lines = 6
 file-lines = 40
+
+# Spellings the docs reject, each with the one to write instead.
+[wording]
+"Source Origin" = "SourceOrigin"
 
 [check-changed]
 # Crates that build another without depending on it, such as a build

@@ -81,6 +81,9 @@ pub(crate) struct Config {
     /// The lines of workflows' `run:` that may run Cargo rather than a
     /// recipe.
     pub(crate) cargo_in_ci: Vec<Listed>,
+    /// The `[wording]` table: each rejected spelling, with its line, and
+    /// the one to write instead.
+    pub(crate) wording: Vec<(Listed, String)>,
 }
 
 /// The `[comments]` table: what comments the rules allow.
@@ -231,6 +234,7 @@ struct File {
     comments: Comments,
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
+    wording: BTreeMap<Spanned<String>, String>,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -361,6 +365,15 @@ impl Config {
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),
+            wording: file
+                .wording
+                .into_iter()
+                .map(|(rejected, preferred)| {
+                    let line = line_of(text, rejected.span().start);
+                    let value = rejected.into_inner();
+                    (Listed { value, line }, preferred)
+                })
+                .collect(),
         })
     }
 
