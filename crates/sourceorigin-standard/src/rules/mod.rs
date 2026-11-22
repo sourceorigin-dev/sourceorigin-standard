@@ -20,6 +20,7 @@ mod tests;
 mod toml_file;
 mod unsafe_modules;
 mod workspace_lints;
+mod workspace_manifest;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -130,6 +131,10 @@ rules! {
     /// `[comments] block-lines` (6 by default), and the file holds at most
     /// `[comments] file-lines` comment lines (40 by default).
     ConfigComments = "config-comments" => config_comments,
+    /// The root manifest's `[workspace]` sets `resolver = "3"`, its
+    /// `[workspace.package]` sets `edition = "2024"`, and every workspace
+    /// crate inherits it with `edition.workspace = true`.
+    WorkspaceManifest = "workspace-manifest" => workspace_manifest,
 }
 
 /// Why the rules couldn't be checked.
@@ -304,6 +309,8 @@ struct Repository {
     manifest_allows: BTreeMap<String, usize>,
     /// The manifests, justfiles and workflows, with their comments.
     commented: Vec<Commented>,
+    /// The root manifest.
+    root_manifest: Option<TomlFile<RootManifest>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -343,11 +350,12 @@ impl Repository {
             budget,
             other_workspaces,
             manifest_allows,
-            unreadable,
+            root_manifest,
             commented: Commented::load_all(root)?,
             metadata,
             sources,
             unparsed,
+            unreadable,
         })))
     }
 
