@@ -39,6 +39,17 @@ unsafe-modules = ["my_crate::ffi"]
 builds = [{ builder = "daemon", built = "dashboard" }]
 ```
 
+`budget.toml`, beside it, holds each crate's ceiling of `#[expect]`
+attributes. More than the ceiling fails; fewer passes. Only raising a
+ceiling needs the owner's review, through `CODEOWNERS`. A crate it doesn't
+list may have none:
+
+```toml
+[expect]
+piqueld = 3
+piquelctl = 1
+```
+
 [`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
 [`rules::check`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.check.html
 [`rules::describe`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.describe.html
