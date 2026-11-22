@@ -11,6 +11,7 @@ fn a() {
     // SAFETY: a marked comment.
     let raw = r#"/* in a raw string */"#; // TODO: not part of the SAFETY: comment.
     let slash = '/';
+    // INVARIANT: a fact the code relies on.
     /* nested /* inner */ still in it */
 }
 //// Four slashes.
@@ -32,12 +33,12 @@ fn only_doc_comments_and_marked_comments_pass() {
     let plain = |line: usize| {
         format!(
             "crates/core/src/lib.rs:{line}: a plain comment: move it into the item's `///` \
-             docs, or remove it; only SAFETY: comments stay (rust-comments)"
+             docs, or remove it; only SAFETY: and INVARIANT: comments stay (rust-comments)"
         )
     };
     assert_eq!(
         fixture.violations(Rule::RustComments),
-        [plain(3), plain(6), plain(8), plain(10), plain(12)]
+        [plain(3), plain(6), plain(8), plain(11), plain(13)]
     );
 }
 

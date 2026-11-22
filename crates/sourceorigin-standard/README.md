@@ -49,14 +49,18 @@ builds = [{ builder = "daemon", built = "dashboard" }]
 ```
 
 `budget.toml`, beside it, holds each crate's ceiling of `#[expect]`
-attributes. More than the ceiling fails; fewer passes. Only raising a
-ceiling needs the owner's review, through `CODEOWNERS`. A crate it doesn't
-list may have none:
+attributes and of `// INVARIANT:` comments, which state a fact the code
+relies on that neither the types nor a test can hold. More than the ceiling
+fails; fewer passes. Only raising a ceiling needs the owner's review,
+through `CODEOWNERS`. A crate a table doesn't list may have none:
 
 ```toml
 [expect]
 piqueld = 3
 piquelctl = 1
+
+[invariant]
+piqueld = 2
 ```
 
 [`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
