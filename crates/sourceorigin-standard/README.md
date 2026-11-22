@@ -11,7 +11,7 @@ a rule gets in the way, stop and ask the user why, and with their approval
 add a deviation, with its reason, to the repository's `standard.toml`, or
 change the rule here, in the same pull request.
 
-A repository adopts the standard in five steps:
+A repository adopts the standard in six steps:
 
 1. Its `tools/xtask` depends on this crate from crates.io and runs
    [`rules::check`] as `cargo xtask standard`, as
@@ -30,6 +30,8 @@ A repository adopts the standard in five steps:
    from), and its ruleset requires two
    checks: `ci`, for the code, and `standard / pr-checks`, for the pull
    request.
+6. It runs `cargo xtask standard skills` and commits the
+   [skills](#skills) it writes into `.agents/skills`.
 
 ## The rules
 
@@ -75,6 +77,7 @@ A repository adopts the standard in five steps:
 - `route-literals`: When `standard.toml`'s `route-modules` lists modules, such as `my_app::routes`, code outside them, tests and examples passes no string literal starting with `/` to `Router::route`, `route_service`, `nest` or `nest_service`, or to a `Redirect` constructor: it uses the paths those modules name. Each listed module is a file of a library or binary.
 - `duplicate-items`: No function body outside test code with at least 20 tokens repeats another, token for token once its local bindings (parameters and the names its patterns bind) are renamed in the order they appear; paths, fields, methods and types stay as written.
 - `tracing-fields`: Outside tests, no `tracing` event or span macro (`info!`, `info_span!`, `event!`, …) records a field whose name, or a run of its dotted parts, `standard.toml`'s `denied-fields` lists: `query` denies `db.query.text`, `url.query` only `url.query` and `http.url.query`. Nor does an `#[instrument]` function, in its `fields(…)` or as an argument it doesn't `skip`.
+- `skills-synced`: Each skill in `.agents/skills` that comes from sourceorigin-standard (`standard`, `cleanup` and `docs`, and any other whose `SKILL.md` says it is synced) matches the crate's copy, file for file. `cargo xtask standard skills` writes them.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -182,8 +185,8 @@ piqueld = 2
   setting a budget of `budget.toml` to what the crate holds, moving a
   childless `foo/mod.rs` to `foo.rs` when that can't change what it reads,
   moving inline tests over their share of a file to a file of their own
-  (`cargo fmt` then reflows the lines a move made shorter), or removing a
-  stale deviation or entry of one. It edits each
+  (`cargo fmt` then reflows the lines a move made shorter), removing a
+  stale deviation or entry of one, or syncing the skills. It edits each
   TOML file as a document, so its layout and comments stay. A deviation
   keeps it from fixing what its scope excuses, and two fixes that conflict
   on one file stop it before it changes anything.
@@ -194,12 +197,39 @@ piqueld = 2
   monthly cleanup pass aggregates them across repositories to find the rules
   causing the most friction.
 - `cargo xtask standard rules` prints [`rules::describe`], the list above.
+- `cargo xtask standard skills` runs [`rules::sync_skills`], which writes
+  the crate's [skills](#skills) into `.agents/skills` and prints each file
+  it changed.
 
 [`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
 [`rules::check`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.check.html
 [`rules::fix`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.fix.html
 [`rules::report`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.report.html
 [`rules::describe`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.describe.html
+[`rules::sync_skills`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.sync_skills.html
+
+## Skills
+
+The crate ships the agent skills every repository shares, so they are
+written once and can't drift apart:
+
+- `standard`: how an agent fixes a violation, uses `--fix`, and asks the
+  user instead of working around a rule; and how to add a rule here.
+- `cleanup`: the monthly cleanup pass. It measures the repository, ranks the
+  rules by friction from `cargo xtask standard report`, answers the
+  judgement checks no rule can enforce, and runs one agent per area, with
+  reviews, a boundary lane and a fix PR per bug.
+- `docs`: how to write the user guide, the developer guide's recipes and
+  doc comments.
+
+`cargo xtask standard skills` writes each into `.agents/skills/<name>/`,
+its `SKILL.md` saying it is synced and where to change it. The
+`skills-synced` rule fails while a copy is missing or differs from the
+crate's, or the crate no longer ships it, and `--fix` syncs them. What differs per
+repository comes from the repository's own files: its issue tracker,
+surfaces and hazards from `AGENTS.md`, its documentation page, and its areas
+from the workspace's layout. Skills of the repository's own, without the
+marker, are left alone.
 
 ## Pull request checks
 
@@ -432,7 +462,7 @@ fn root() -> &'static Path {
     Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
 }
 
-/// `cargo xtask standard [--fix | report | rules]` and
+/// `cargo xtask standard [--fix | report | rules | skills]` and
 /// `cargo xtask check-changed [base]`. A real xtask parses its tasks with
 /// clap or by hand, and wraps errors with anyhow's context.
 fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
@@ -458,10 +488,16 @@ fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
             print!("{}", rules::describe());
             Ok(ExitCode::SUCCESS)
         }
+        ["standard", "skills"] => {
+            for fix in rules::sync_skills(root())? {
+                println!("synced {fix}");
+            }
+            Ok(ExitCode::SUCCESS)
+        }
         ["check-changed", base @ ..] => {
             Ok(CI.run(root(), base.first().copied().unwrap_or(DEFAULT_BASE))?)
         }
-        _ => Err("usage: cargo xtask (standard [--fix | report | rules] | check-changed [base])".into()),
+        _ => Err("usage: cargo xtask (standard [--fix | report | rules | skills] | check-changed [base])".into()),
     }
 }
 

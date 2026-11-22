@@ -33,6 +33,7 @@ mod report;
 mod route_literals;
 mod rustfmt_config;
 mod scheduled_audit;
+mod skills;
 mod t3_setup;
 mod toolchain;
 mod tracing_fields;
@@ -46,8 +47,8 @@ mod workspace_manifest;
 use super::Rule;
 use crate::testing::Repository;
 
-/// A Cargo workspace whose members are `crates/*`, in a scratch git
-/// repository.
+/// A Cargo workspace whose members are `crates/*`, with the crate's skills
+/// synced, in a scratch git repository.
 struct Fixture(Repository);
 
 impl Fixture {
@@ -60,6 +61,7 @@ impl Fixture {
         for (path, text) in CONFIG {
             repository.write(path, text);
         }
+        super::sync_skills(repository.root()).expect("the skills are synced");
         Self(repository)
     }
 

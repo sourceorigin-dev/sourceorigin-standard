@@ -8,6 +8,10 @@ in this crate, a CI check on the pull request, a cleanup-pass skill.
 
 - `crates/sourceorigin-standard`: the published library. Its README is its
   documentation and shows how a repository's xtask uses it.
+- `crates/sourceorigin-standard/skills`: the agent skills (`standard`,
+  `cleanup`, `docs`) the crate embeds and each repository syncs into
+  `.agents/skills` with `cargo xtask standard skills`. Change them here,
+  never in a synced copy, this repository's included.
 - `tools/xtask`: this repository's own `cargo xtask`, which uses the crate
   as the other repositories do.
 - `.github/workflows/pr-checks.yml`: the reusable workflow that checks a
@@ -86,6 +90,8 @@ this list and say which entries applied:
 
 - the public API, with a doc comment on every public item;
 - the crate's README, whose example is how a repository's xtask wires it in;
+- the skills, when a change alters how an agent fixes, challenges or adds a
+  rule, or what the cleanup pass reads;
 - the pull request's note of what each repository's xtask must change when
   the API breaks;
 - this repository's own `tools/xtask`, which uses the crate as the others do;

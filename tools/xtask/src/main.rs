@@ -1,7 +1,8 @@
 //! sourceorigin-standard's own development tasks, run with `cargo xtask`:
 //! `standard` checks the repository against the standard's rules (`--fix`
 //! first makes their mechanical fixes), `standard report` prints JSON for the
-//! cleanup pass, `standard rules` lists them, `readme` writes that list into
+//! cleanup pass, `standard rules` lists them, `standard skills` writes the
+//! crate's agent skills into `.agents/skills`, `readme` writes the rules into
 //! the crate's README, and `check-changed [base]` runs CI's checks
 //! for what changed. It uses the crate as piqueld, sourceorigin and
 //! DirkEngine do, so this repository runs the checks it ships.
@@ -61,6 +62,12 @@ fn main() -> Result<ExitCode> {
             println!("{}", report.to_json().context("print the report as JSON")?);
             Ok(ExitCode::SUCCESS)
         }
+        ["standard", "skills"] => {
+            for fix in rules::sync_skills(root()).context("sync the skills")? {
+                println!("synced {fix}");
+            }
+            Ok(ExitCode::SUCCESS)
+        }
         ["readme"] => {
             readme::write().context("write the README's rules")?;
             Ok(ExitCode::SUCCESS)
@@ -70,7 +77,7 @@ fn main() -> Result<ExitCode> {
             Ok(ExitCode::SUCCESS)
         }
         _ => bail!(
-            "usage: cargo xtask (standard [--fix | report | rules] | check-changed [base] | readme)"
+            "usage: cargo xtask (standard [--fix | report | rules | skills] | check-changed [base] | readme)"
         ),
     }
 }

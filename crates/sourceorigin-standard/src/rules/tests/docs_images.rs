@@ -1,5 +1,6 @@
 use super::{Fixture, INHERITS};
 use crate::rules::Rule;
+use crate::rules::skills::MARKER;
 
 #[test]
 fn every_image_says_what_it_shows() {
@@ -25,8 +26,7 @@ fn synced_skills_are_the_crates() {
         .add_crate("core", INHERITS)
         .write(
             ".agents/skills/docs/SKILL.md",
-            "---\nname: docs\n---\n\n<!-- Synced from the sourceorigin-standard crate by \
-             `cargo xtask standard skills`: change it there, not here. -->\n![](shot.png)\n",
+            &format!("---\nname: docs\n---\n\n{MARKER}\n![](shot.png)\n"),
         )
         .write(
             ".agents/skills/docs/references/guide.md",

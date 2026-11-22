@@ -79,14 +79,21 @@ impl<'a> Workspace<'a> {
     /// The files git tracks or would track, from the root, matching any of
     /// `pathspecs`, such as `*.rs`.
     pub(crate) fn files(self, pathspecs: &[&str]) -> Result<BTreeSet<String>, CommandError> {
-        let mut args = vec![
-            "ls-files",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "-z",
-            "--",
-        ];
+        self.listed(&["--cached", "--others", "--exclude-standard"], pathspecs)
+    }
+
+    /// The files git tracks, from the root, matching any of `pathspecs`:
+    /// those a deletion can be undone for.
+    pub(crate) fn tracked(self, pathspecs: &[&str]) -> Result<BTreeSet<String>, CommandError> {
+        self.listed(&["--cached"], pathspecs)
+    }
+
+    /// The files `git ls-files` lists with `which`, such as `--cached`,
+    /// matching any of `pathspecs`.
+    fn listed(self, which: &[&str], pathspecs: &[&str]) -> Result<BTreeSet<String>, CommandError> {
+        let mut args = vec!["ls-files"];
+        args.extend(which);
+        args.extend(["-z", "--"]);
         args.extend(pathspecs);
         let files = self.output("git", &args)?;
         Ok(files
