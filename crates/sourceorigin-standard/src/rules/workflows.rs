@@ -18,6 +18,8 @@ const FILES: [&str; 4] = [
 pub(super) struct Workflow {
     /// From the repository's root.
     pub(super) path: PathBuf,
+    /// Its text, whose comments the document drops.
+    pub(super) text: String,
     pub(super) document: Node,
 }
 
@@ -30,12 +32,26 @@ impl Workflow {
                 Ok(document) => Some(Ok(Self {
                     document: document?,
                     path: file.path,
+                    text: file.text,
                 })),
                 Err(source) => Some(Err(Error::Yaml {
                     path: file.path,
                     source,
                 })),
             })
+            .collect()
+    }
+
+    /// The events that trigger it, from `on` as a name, a list or a
+    /// mapping.
+    pub(super) fn triggers(&self) -> Vec<&str> {
+        let Some(on) = self.document.get("on") else {
+            return Vec::new();
+        };
+        on.as_str()
+            .into_iter()
+            .chain(on.items().iter().filter_map(Node::as_str))
+            .chain(on.entries().iter().filter_map(|(event, _)| event.as_str()))
             .collect()
     }
 

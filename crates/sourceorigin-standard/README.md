@@ -52,6 +52,7 @@ A repository adopts the standard in four steps:
 - `recipes`: The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`, `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and `check-changed`. `just` alone runs `validate` or `check-changed`; `validate` runs `fmt` first, then at least `lint`, `standard`, `test`, `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test` takes `*ARGS`, defaulting to `--workspace`.
 - `recipes-only`: Every command of `t3.json` runs `just`, and no line of a workflow's or composite action's `run:` starts with `cargo` unless `standard.toml`'s `cargo-in-ci` lists it; each listed line is one a `run:` holds.
 - `t3-setup`: A recipe `t3.json` runs on worktree creation that runs Cargo, itself or through the recipes it runs, sets `CARGO_BUILD_JOBS` to a default, half the cores, that a set one overrides, and runs the build with `nice -n 10`, both in its own body.
+- `ci-shape`: `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job that needs every other job and runs `if: always()`: with `standard / pr-checks`, it is one of the repository's two required checks.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
