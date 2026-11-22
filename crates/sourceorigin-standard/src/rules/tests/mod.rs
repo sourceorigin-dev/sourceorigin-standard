@@ -1,5 +1,6 @@
 //! A fixture workspace the rules check, shared by the tests of each rule.
 
+mod actions_pinned;
 mod agent_files;
 mod agents_md;
 mod anyhow_edges;
