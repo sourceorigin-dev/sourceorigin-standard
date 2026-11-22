@@ -15,6 +15,7 @@ mod code;
 mod error;
 mod error_logged_with_debug;
 mod error_source_not_marked;
+mod free_fn_with_owner;
 mod report;
 mod string_literal_logic;
 mod wildcard_enum_local;
@@ -44,5 +45,6 @@ pub fn register_lints(sess: &rustc_session::Session, store: &mut rustc_lint::Lin
         string_literal_logic::STRING_LITERAL_LOGIC => string_literal_logic::StringLiteralLogic,
         error_source_not_marked::ERROR_SOURCE_NOT_MARKED => error_source_not_marked::ErrorSourceNotMarked,
         error_logged_with_debug::ERROR_LOGGED_WITH_DEBUG => error_logged_with_debug::ErrorLoggedWithDebug::configured(),
+        free_fn_with_owner::FREE_FN_WITH_OWNER => free_fn_with_owner::FreeFnWithOwner,
     );
 }

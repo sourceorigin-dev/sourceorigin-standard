@@ -31,6 +31,10 @@ path = "ui/error_logged_with_debug.rs"
 name = "error_logged_with_debug_configured"
 path = "ui/error_logged_with_debug_configured.rs"
 
+[[example]]
+name = "free_fn_with_owner"
+path = "ui/free_fn_with_owner.rs"
+
 [dependencies]
 # Pinned to the toolchain's nightly (rust-toolchain.toml), which each release
 # builds against, and to the cargo-dylint CI installs.
@@ -39,9 +43,11 @@ dylint_linting = "=6.3.2"
 # `dylint.toml`'s tables.
 serde = { version = "1.0.228", features = ["derive"] }
 
-# The UI cases' error types and logs.
+# The UI cases' extractors, error types and logs.
 [dev-dependencies]
+axum-core = "0.5.5"
 dylint_testing = "=6.3.2"
+http = "1.4.0"
 thiserror = "2.0.18"
 tracing = "0.1.41"
 
