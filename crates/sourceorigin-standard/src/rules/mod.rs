@@ -22,19 +22,23 @@ mod manifest;
 mod modules;
 mod nextest_config;
 mod recipes;
+mod recipes_only;
 mod report;
 mod rustfmt_config;
 mod settings;
 mod source;
+mod t3;
 #[cfg(test)]
 mod tests;
 mod text_file;
 mod toml_file;
 mod toolchain;
 mod unsafe_modules;
+mod workflows;
 mod workspace_dependencies;
 mod workspace_lints;
 mod workspace_manifest;
+mod yaml;
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -56,9 +60,11 @@ use nextest_config::NextestConfig;
 pub use report::{Report, RuleReport};
 use settings::Settings;
 use source::{Source, Unparsed};
+use t3::T3;
 use text_file::TextFile;
 use toml_file::TomlFile;
 use toolchain::ToolchainFile;
+use workflows::Workflow;
 use workspace_lints::LintLevel;
 
 /// Declares the rules: each variant's doc comment is the doc [`Rule::doc`]
@@ -197,6 +203,11 @@ rules! {
     /// `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test`
     /// takes `*ARGS`, defaulting to `--workspace`.
     Recipes = "recipes" => recipes,
+    /// Every command of `t3.json` runs `just`, and no line of a workflow's
+    /// or composite action's `run:` starts with `cargo` unless
+    /// `standard.toml`'s `cargo-in-ci` lists it; each listed line is one a
+    /// `run:` holds.
+    RecipesOnly = "recipes-only" => recipes_only,
 }
 
 /// Why the rules couldn't be checked.
@@ -232,6 +243,24 @@ pub enum Error {
     /// `just --dump` printed what isn't a justfile's description.
     #[error("parse `just --dump --dump-format json`")]
     Justfile(#[source] serde_json::Error),
+    /// A workflow isn't valid YAML.
+    #[error("parse {}", path.display())]
+    Yaml {
+        /// The file, from the repository's root.
+        path: PathBuf,
+        /// Where the parser stopped, and why.
+        #[source]
+        source: yaml_rust2::ScanError,
+    },
+    /// A JSON file, such as `t3.json`, isn't valid or has the wrong shape.
+    #[error("parse {}", path.display())]
+    Json {
+        /// The file, from the repository's root.
+        path: PathBuf,
+        /// Why it couldn't be parsed.
+        #[source]
+        source: serde_json::Error,
+    },
     /// A manifest isn't valid TOML.
     #[error("{}: {message}", path.display())]
     Toml {
@@ -377,6 +406,10 @@ struct Repository {
     deny: Option<TomlFile<DenyConfig>>,
     /// The justfile, as `just` describes it.
     justfile: Option<Justfile>,
+    /// `t3.json`.
+    t3: Option<T3>,
+    /// The workflows and composite actions.
+    workflows: Vec<Workflow>,
 }
 
 impl Repository {
@@ -403,6 +436,8 @@ impl Repository {
             nextest: TomlFile::load_or_empty(root, nextest_config::PATH)?,
             deny: TomlFile::load(root, deny_config::PATH)?,
             justfile: Justfile::load(root)?,
+            t3: T3::load(root)?,
+            workflows: Workflow::load_all(root)?,
             metadata,
             sources,
             unparsed,

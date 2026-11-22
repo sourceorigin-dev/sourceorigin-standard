@@ -15,6 +15,7 @@ mod generated_lints;
 mod layout;
 mod nextest_config;
 mod recipes;
+mod recipes_only;
 mod report;
 mod rustfmt_config;
 mod toolchain;

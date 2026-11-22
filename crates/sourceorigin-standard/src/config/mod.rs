@@ -78,6 +78,9 @@ pub(crate) struct Config {
     pub(crate) comments: Comments,
     /// The libraries that may depend on `anyhow`, as the edge of a binary.
     pub(crate) anyhow_crates: Vec<Listed>,
+    /// The lines of workflows' `run:` that may run Cargo rather than a
+    /// recipe.
+    pub(crate) cargo_in_ci: Vec<Listed>,
 }
 
 /// The `[comments]` table: what comments the rules allow.
@@ -227,6 +230,7 @@ struct File {
     unsafe_modules: Vec<Spanned<String>>,
     comments: Comments,
     anyhow_crates: Vec<Spanned<String>>,
+    cargo_in_ci: Vec<Spanned<String>>,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -356,6 +360,7 @@ impl Config {
             unsafe_modules: listed(file.unsafe_modules),
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
+            cargo_in_ci: listed(file.cargo_in_ci),
         })
     }
 
