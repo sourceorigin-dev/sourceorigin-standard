@@ -12,6 +12,7 @@ mod fix;
 mod framework;
 mod generated_lints;
 mod layout;
+mod nextest_config;
 mod report;
 mod rustfmt_config;
 mod toolchain;

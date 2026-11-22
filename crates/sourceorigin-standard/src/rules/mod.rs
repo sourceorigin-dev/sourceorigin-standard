@@ -18,6 +18,7 @@ mod layout;
 mod level;
 mod manifest;
 mod modules;
+mod nextest_config;
 mod report;
 mod rustfmt_config;
 mod settings;
@@ -50,6 +51,7 @@ pub use fix::Fix;
 use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
+use nextest_config::NextestConfig;
 pub use report::{Report, RuleReport};
 use settings::Settings;
 use source::{Source, Unparsed};
@@ -183,6 +185,10 @@ rules! {
     /// and `allow-dbg-in-tests` to `true`, and never
     /// `allow-unwrap-in-tests`.
     ClippyConfig = "clippy-config" => clippy_config,
+    /// `.config/nextest.toml`'s default profile sets a `slow-timeout`, every
+    /// `slow-timeout` in it has a `terminate-after`, and no profile or
+    /// override sets `retries`.
+    NextestConfig = "nextest-config" => nextest_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -377,6 +383,9 @@ struct Repository {
     /// `clippy.toml`, empty when missing, and `None` when it doesn't
     /// parse.
     clippy: Option<TomlFile<Settings>>,
+    /// `.config/nextest.toml`, empty when missing, and `None` when it
+    /// doesn't parse.
+    nextest: Option<TomlFile<NextestConfig>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -424,6 +433,7 @@ impl Repository {
             toolchain: TomlFile::load(root, toolchain::PATH, &mut unreadable)?,
             rustfmt: TomlFile::load_or_empty(root, rustfmt_config::PATH, &mut unreadable)?,
             clippy: TomlFile::load_or_empty(root, clippy_config::PATH, &mut unreadable)?,
+            nextest: TomlFile::load_or_empty(root, nextest_config::PATH, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
