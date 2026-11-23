@@ -21,13 +21,14 @@ mod toml_file;
 mod unsafe_modules;
 mod workspace_lints;
 
+use std::collections::BTreeMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
 use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::{CommandError, Workspace};
-use budget::Budget;
+use budget::{Budget, OtherWorkspace};
 use config_comments::Commented;
 use config_syntax::Unreadable;
 use fix::Checked;
@@ -102,11 +103,14 @@ rules! {
     /// `build_script_build` (a target's root module is its crate's name),
     /// and every listed module holds one.
     UnsafeModules = "unsafe-modules" => unsafe_modules,
-    /// Each crate holds at most as many `#[expect]` attributes (inner,
-    /// outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table
-    /// gives it, and at most as many lines starting `// INVARIANT:` as its
-    /// `[invariant]` table does; none for a crate a table doesn't list. Each
-    /// name there is a workspace crate.
+    /// Each crate's `#[expect]` lints (each lint an `#[expect]` names,
+    /// inner, outer, through `cfg_attr` or in a `macro_rules!` body) number
+    /// exactly what `budget.toml`'s `[expect]` table gives it, and its lines
+    /// starting `// INVARIANT:` exactly what `[invariant]` does, in the files
+    /// its targets reach; each manifest's lints set to `allow` number what
+    /// `[allow]` gives its path. Zero for one a table doesn't list. The
+    /// crates of other workspaces in the repository count too, but not a
+    /// Dylint library's UI cases, which are test fixtures.
     Budget = "budget" => budget,
     /// Rust files `.gitattributes` marks `linguist-generated` contain no lint
     /// attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or
@@ -291,8 +295,13 @@ struct Repository {
     unreadable: Unreadable,
     /// Each Rust file's module paths.
     modules: Modules,
-    /// Each crate's ceilings of exceptions.
+    /// Each crate's budget of exceptions.
     budget: Budget,
+    /// The other workspaces the repository holds, whose crates have
+    /// budgets too.
+    other_workspaces: Vec<OtherWorkspace>,
+    /// Each manifest's lints set to `allow`, by its path.
+    manifest_allows: BTreeMap<String, usize>,
     /// The manifests, justfiles and workflows, with their comments.
     commented: Vec<Commented>,
 }
@@ -321,6 +330,10 @@ impl Repository {
         let root_manifest = TomlFile::<RootManifest>::load_root(root, &mut unreadable)?;
         let manifests = TomlFile::load_all(&metadata, &mut unreadable)?;
         let budget = Budget::load(root, &mut unreadable)?;
+        let other_workspaces =
+            OtherWorkspace::load_all(root, &metadata, &sources, &mut unreadable)?;
+        let manifest_allows =
+            budget::manifest_allows(root, &metadata, &other_workspaces, &mut unreadable)?;
         unreadable.check_others(root)?;
         Ok(Loaded::Repository(Box::new(Self {
             config: Config::load(root)?,
@@ -328,6 +341,8 @@ impl Repository {
             lint_levels: root_manifest.as_ref().map_or_else(Vec::new, LintLevel::all),
             modules: Modules::of(&metadata, &sources),
             budget,
+            other_workspaces,
+            manifest_allows,
             unreadable,
             commented: Commented::load_all(root)?,
             metadata,
@@ -390,12 +405,22 @@ impl Repository {
         };
         let (excused, kept): (Vec<Finding>, Vec<Finding>) = findings
             .into_iter()
-            .partition(|finding| deviation.excuses(&finding.path, self.crate_of(&finding.path)));
+            .partition(|finding| deviation.excuses(&finding.path, self.crate_of_finding(finding)));
         let excused: Vec<(&Path, Option<&str>)> = excused
             .iter()
-            .map(|finding| (finding.path.as_path(), self.crate_of(&finding.path)))
+            .map(|finding| (finding.path.as_path(), self.crate_of_finding(finding)))
             .collect();
         (kept, deviation.stale(&excused))
+    }
+
+    /// The crate `finding` is about: the one owning its file, or for one
+    /// in `budget.toml`, the crate its line budgets.
+    fn crate_of_finding(&self, finding: &Finding) -> Option<&str> {
+        self.crate_of(&finding.path).or_else(|| {
+            (finding.path == Path::new(budget::PATH))
+                .then(|| self.budget.key_at(finding.line))
+                .flatten()
+        })
     }
 
     /// The name of the crate owning `path`, from the repository's root.
@@ -422,7 +447,7 @@ pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
 }
 
 /// Makes every mechanical fix the rules know in the repository at `root`,
-/// such as adding `[lints] workspace = true` or lowering a ceiling of
+/// such as adding `[lints] workspace = true` or lowering a budget of
 /// `budget.toml` to what the crate holds, and returns them. Each is an edit
 /// to a TOML document, which keeps the file's layout and comments. What
 /// needs judgement stays a violation for [`check`] to report.
