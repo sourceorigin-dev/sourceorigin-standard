@@ -102,7 +102,9 @@ piqueld = 2
   `[lints] workspace = true`, makes a workspace lint at `deny` or `forbid`
   `warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
   crate holds, and removes a stale deviation or entry of one. It edits each
-  TOML file as a document, so its layout and comments stay.
+  TOML file as a document, so its layout and comments stay. A deviation
+  keeps it from fixing what its scope excuses, and two fixes that conflict
+  on one file stop it before it changes anything.
 - `cargo xtask standard report` prints [`rules::report`] as JSON: each
   rule's violations and deviation, deviated or not, with the repository's
   `#[expect]` attributes by lint, its `// INVARIANT:` lines and the lints

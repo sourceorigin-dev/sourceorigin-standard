@@ -120,7 +120,7 @@ impl Ceilings {
             .filter_map(|(name, ceiling)| {
                 let key = name.clone();
                 match counts.get(name.as_str()) {
-                    Some(&count) if count < ceiling.count => Some(Fix::new(
+                    Some(&count) if count < ceiling.count => Some(Fix::toml(
                         PATH,
                         format!(
                             "lower `{name}` under `[{table}]` from {} to {count}",
@@ -136,7 +136,7 @@ impl Ceilings {
                         },
                     )),
                     Some(_) => None,
-                    None => Some(Fix::new(
+                    None => Some(Fix::toml(
                         PATH,
                         format!("remove `{name}`, no workspace crate, from `[{table}]`"),
                         move |document| Fix::remove(&mut document[table], &key),

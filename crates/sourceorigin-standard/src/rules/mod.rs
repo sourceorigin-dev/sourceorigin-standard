@@ -137,6 +137,17 @@ pub enum Error {
     /// git couldn't list the repository's files.
     #[error(transparent)]
     Command(#[from] crate::CommandError),
+    /// Two fixes would change one file in ways that conflict, such as two
+    /// edits of the same lines.
+    #[error("`--fix` would change {} twice: {first}, and {second}", path.display())]
+    Conflict {
+        /// The file, from the repository's root.
+        path: PathBuf,
+        /// What the first fix changes.
+        first: String,
+        /// What the second changes.
+        second: String,
+    },
     /// `--fix` couldn't write a file.
     #[error("write {}", path.display())]
     Write {
@@ -312,8 +323,9 @@ impl Repository {
         violations
     }
 
-    /// The fixes of every rule the repository doesn't deviate from, and the
-    /// removal of each deviation, or entry of one, that excuses nothing.
+    /// The fixes of every rule, except those resolving a file or crate its
+    /// deviation excuses, and the removal of each deviation, or entry of
+    /// one, that excuses nothing.
     fn fixes(&self) -> Vec<Fix> {
         let mut fixes = Vec::new();
         for &rule in Rule::ALL {
@@ -322,6 +334,12 @@ impl Repository {
                 fixes.extend(checked.fixes);
                 continue;
             };
+            fixes.extend(
+                checked
+                    .fixes
+                    .into_iter()
+                    .filter(|fix| !deviation.excuses(&fix.resolves, self.crate_of(&fix.resolves))),
+            );
             let (_, stale) = self.deviate(rule, checked.findings);
             if !stale.is_empty() {
                 fixes.push(Fix::stale(rule, deviation, &stale));
