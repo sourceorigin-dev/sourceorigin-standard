@@ -92,12 +92,20 @@ impl Unlocked<'_> {
     }
 
     /// The delimiter of the heredoc `line` opens, such as `EOF` for
-    /// `cat <<'EOF'`, whose body is text up to a line of it alone.
+    /// `cat <<'EOF'`, whose body is text up to a line of it alone. It
+    /// starts with a letter, `_` or a quote, and sits outside an open
+    /// `$((`, unlike the shifts in `$((1 << 2))` and `$((1 << n))`.
     fn heredoc(line: &str) -> Option<&str> {
         let at = line.match_indices("<<").map(|(at, _)| at).find(|&at| {
-            !line[at + 2..].starts_with('<') && (at == 0 || !line[..at].ends_with('<'))
+            let before = &line[..at];
+            !line[at + 2..].starts_with('<')
+                && !before.ends_with('<')
+                && before.matches("((").count() <= before.matches("))").count()
         })?;
         let rest = line[at + 2..].trim_start_matches('-').trim_start();
+        if !rest.starts_with(|c: char| c.is_ascii_alphabetic() || matches!(c, '_' | '\'' | '"')) {
+            return None;
+        }
         let rest = rest.trim_start_matches(['\'', '"']);
         let end = rest
             .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
@@ -151,7 +159,8 @@ impl Unlocked<'_> {
     }
 
     /// Where `command`'s command word is, if it is `cargo`: after any
-    /// `NAME=value` assignments, `env`, `exec`, `time` and `nice -n N`.
+    /// `NAME=value` assignments, `env`, `exec`, `time` and `nice -n N`, and
+    /// the shell keywords a command follows, such as `if`, `do` and `!`.
     fn cargo(command: &[(usize, usize, &str)]) -> Option<usize> {
         let word = |at: usize| command.get(at).map(|&(_, _, word)| word);
         let mut at = 0;
@@ -162,6 +171,7 @@ impl Unlocked<'_> {
             });
             match current {
                 _ if assignment => at += 1,
+                "if" | "then" | "elif" | "else" | "do" | "while" | "until" | "!" | "{" => at += 1,
                 "env" | "exec" | "time" => {
                     at += 1;
                     while word(at).is_some_and(|word| word.starts_with('-')) {
@@ -303,14 +313,14 @@ impl Repository {
                         }
                     }
                     Some(Style::Folded) => {
-                        for line in Self::block_lines(&workflow.text, run.line) {
-                            scans.insert(
-                                line,
-                                Scan {
-                                    from: 0,
-                                    folds: true,
-                                },
-                            );
+                        let lines = Self::block_lines(&workflow.text, run.line);
+                        let last = lines.last().copied();
+                        let text: Vec<&str> = workflow.text.lines().collect();
+                        for line in lines {
+                            let blank =
+                                text.get(line - 1).is_none_or(|text| text.trim().is_empty());
+                            let folds = Some(line) != last && !blank;
+                            scans.insert(line, Scan { from: 0, folds });
                         }
                     }
                     Some(Style::Plain) => {

@@ -38,7 +38,7 @@ A repository adopts the standard in six steps:
 <!-- rules:start: generated from the docs of `Rule` by `just readme` -->
 - `workspace-lints`: Every workspace crate's manifest has `[lints] workspace = true`; `[workspace.lints]` sets each lint the standard requires (the `rust` and `clippy` lints of its lint block) to `warn`, and every other lint to `warn` or `allow`.
 - `rust-syntax`: Every Rust file git tracks or would track parses as Rust.
-- `config-syntax`: The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`, `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`, `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse, and `just --dump` reads the justfile. When `cargo metadata` can't read the workspace, the file it names is the only violation.
+- `config-syntax`: The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`, `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`, `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse, and `just --dump` reads the justfile. When `cargo metadata` can't read the workspace, the file cargo names, or else the root manifest, is the only violation, with cargo's whole message.
 - `unsafe-modules`: `#[expect(unsafe_code, …)]` sits only inside the modules `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or `build_script_build` (a target's root module is its crate's name), and every listed module holds one.
 - `budget`: Each crate's `#[expect]` lints (each lint an `#[expect]` names, inner, outer, through `cfg_attr` or in a `macro_rules!` body) number exactly what `budget.toml`'s `[expect]` table gives it, and its lines starting `// INVARIANT:` exactly what `[invariant]` does, in the files its targets reach; each manifest's lints set to `allow` number what `[allow]` gives its path. Zero for one a table doesn't list. The crates of other workspaces in the repository count too, but not a Dylint library's UI cases, which are test fixtures.
 - `generated-lints`: Rust files `.gitattributes` marks `linguist-generated` contain no lint attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or outer): their exceptions sit on their `mod` declaration.
@@ -257,13 +257,14 @@ check: a deviation in `standard.toml`, or a change to the check here.
   advisory, an allowed license, a skipped duplicate, an allowed source),
   has a `## Dependencies` section in its description saying why.
 - `lint-exceptions`: a pull request that loosens a rule needs approval:
-  any change to `standard.toml`, `clippy.toml`, `deny.toml` or
-  `.cargo/config.toml`, under its name or the one it is renamed from, and
+  any change to `standard.toml`, `clippy.toml`, `deny.toml`, `dylint.toml`
+  or `.cargo/config.toml`, under its name or the one it is renamed from, and
   a budget of `budget.toml` that rises or appears. As each budget equals
   its count, every new `#[expect]`, `// INVARIANT:` or lint a manifest sets
   to `allow` shows as one. Approval is the `approved-exception` label,
-  added by one of the `approvers` after the latest push, a force-push
-  included: a later push needs it added again. The job's summary lists
+  added by one of the `approvers` after the latest push to the pull
+  request's branch, a force-push included: a later push needs it added
+  again. The job's summary lists
   every exception, approved or not.
 - `frozen-files`: a file matching a glob of `frozen-files` that exists on
   the base branch, such as an applied migration, is not modified, renamed

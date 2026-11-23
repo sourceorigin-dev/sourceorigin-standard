@@ -172,3 +172,60 @@ fn a_deviation_scoped_to_a_crate_excuses_its_budget() {
         );
     assert_eq!(fixture.violations(Rule::Budget), [] as [&str; 0]);
 }
+
+#[test]
+fn another_workspaces_virtual_root_has_an_allow_budget() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write(
+            "other/Cargo.toml",
+            "[workspace]\nmembers = [\"member\"]\nresolver = \"3\"\n\n\
+             [workspace.lints.clippy]\npedantic = \"allow\"\n",
+        )
+        .write(
+            "other/member/Cargo.toml",
+            "[package]\nname = \"member\"\nedition = \"2024\"\n",
+        )
+        .write("other/member/src/lib.rs", "");
+    std::process::Command::new("cargo")
+        .args([
+            "generate-lockfile",
+            "--offline",
+            "--manifest-path",
+            "other/Cargo.toml",
+        ])
+        .current_dir(fixture.0.root())
+        .status()
+        .expect("cargo locks the other workspace");
+    assert_eq!(
+        fixture.violations(Rule::Budget),
+        [
+            "other/Cargo.toml:1: `other/Cargo.toml` has 1 lints set to `allow`, over its budget of \
+          0: remove one, or raise `other/Cargo.toml` under `[allow]` in budget.toml, which the \
+          owner reviews (budget)"
+        ]
+    );
+}
+
+#[test]
+fn a_file_a_cfg_attr_path_or_a_macro_reaches_counts() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write(
+            "crates/core/src/lib.rs",
+            "#[cfg_attr(unix, path = \"unix.rs\")]\nmod sys;\nmacro_rules! m {\n    () => {\n        \
+             mod hidden;\n    };\n}\nm!();\n",
+        )
+        .write(
+            "crates/core/src/unix.rs",
+            "#[expect(dead_code, reason = \"r\")]\nfn f() {}\n",
+        )
+        .write(
+            "crates/core/src/hidden.rs",
+            "#[expect(dead_code, reason = \"r\")]\nfn g() {}\n",
+        )
+        .write("budget.toml", "[expect]\ncore = 2\n");
+    assert_eq!(fixture.violations(Rule::Budget), [] as [&str; 0]);
+}

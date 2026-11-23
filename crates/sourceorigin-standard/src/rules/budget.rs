@@ -59,6 +59,9 @@ struct File {
 /// toolchain: its crates have budgets too.
 #[derive(Debug)]
 pub(super) struct OtherWorkspace {
+    /// Its root manifest, from the repository's root, which may be
+    /// virtual, holding `[workspace.lints]` without a crate of its own.
+    manifest: PathBuf,
     metadata: Metadata,
     modules: Modules,
 }
@@ -141,6 +144,7 @@ impl OtherWorkspace {
             }
             match metadata.other(workspace, &path) {
                 Ok(other) => others.push(Self {
+                    manifest: PathBuf::from(&path),
                     modules: Modules::of(&other, sources),
                     metadata: other,
                 }),
@@ -204,7 +208,7 @@ fn allows(manifest: &toml::Table) -> usize {
 }
 
 /// Each manifest of the repository with the lints it allows: the root's,
-/// each crate's of `metadata`, and each of `others`.
+/// each crate's of `metadata`, and each of `others`, its root's included.
 pub(super) fn manifest_allows(
     root: &Path,
     metadata: &Metadata,
@@ -212,6 +216,7 @@ pub(super) fn manifest_allows(
     unreadable: &mut Unreadable,
 ) -> Result<BTreeMap<String, usize>, Error> {
     let mut paths = vec![PathBuf::from(super::manifest::ROOT)];
+    paths.extend(others.iter().map(|other| other.manifest.clone()));
     for metadata in std::iter::once(metadata).chain(others.iter().map(|other| &other.metadata)) {
         for package in &metadata.packages {
             let path = &package.manifest_path;
@@ -333,9 +338,21 @@ impl Ceilings {
 }
 
 impl Repository {
+    /// Whether a `mod` item's `#[path]`, in any workspace of the repository,
+    /// names `path`, from the repository's root.
+    pub(super) fn named_by_path(&self, path: &Path) -> bool {
+        self.modules.named_by_path(path)
+            || self
+                .other_workspaces
+                .iter()
+                .any(|other| other.modules.named_by_path(path))
+    }
+
     /// Each crate's count of `count` over the Rust files its targets reach,
-    /// every crate of the repository included, the other workspaces' too,
-    /// but for a Dylint library's UI cases, which are test fixtures.
+    /// and every one under its `src/`, which a macro's `mod` or an
+    /// `include!` may reach unseen; every crate of the repository included,
+    /// the other workspaces' too, but for a Dylint library's UI cases,
+    /// which are test fixtures.
     fn per_crate(&self, count: impl Fn(&Source) -> usize) -> BTreeMap<String, Count> {
         let workspaces = std::iter::once((&self.metadata, &self.modules)).chain(
             self.other_workspaces
@@ -355,10 +372,19 @@ impl Repository {
                 });
             }
             for source in &self.sources {
-                if modules.of_file(&source.path).is_empty() || metadata.is_ui_case(&source.path) {
+                if metadata.is_ui_case(&source.path) {
                     continue;
                 }
-                if let Some(package) = metadata.package_of(&source.path.to_string_lossy())
+                let Some(package) = metadata.package_of(&source.path.to_string_lossy()) else {
+                    continue;
+                };
+                let in_src = package.manifest_path.parent().is_some_and(|dir| {
+                    metadata
+                        .workspace_root
+                        .join(&source.path)
+                        .starts_with(dir.join("src"))
+                });
+                if (in_src || !modules.of_file(&source.path).is_empty())
                     && let Some(entry) = counts.get_mut(&package.name)
                 {
                     entry.count += count(source);

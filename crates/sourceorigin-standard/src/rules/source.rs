@@ -103,9 +103,17 @@ impl Source {
 
     /// Whether `text`, part of a Rust file, may name another file by a
     /// path relative to its own: an `include!`, `include_str!` or
-    /// `include_bytes!`, or a `#[path]` attribute, even in a comment.
+    /// `include_bytes!`, or a `#[path]` attribute or a `cfg_attr` holding
+    /// one, even in a comment.
     pub(super) fn names_files(text: &str) -> bool {
         Self::RELATIVE.iter().any(|name| text.contains(name))
+            || text.match_indices("cfg_attr(").any(|(at, _)| {
+                let attribute = &text[at..];
+                let attribute = &attribute[..attribute.find(']').unwrap_or(attribute.len())];
+                attribute
+                    .match_indices("path")
+                    .any(|(path, _)| attribute[path + 4..].trim_start().starts_with('='))
+            })
     }
 }
 

@@ -42,11 +42,12 @@ test("a manifest's allowed lints are budget.toml's to count, so only its raise n
   ]);
 });
 
-test("Cargo's configuration and a rule file renamed away need approval", async () => {
+test("Cargo's and Dylint's configuration and a rule file renamed away need approval", async () => {
   assert.deepEqual(
-    await findings([file('.cargo/config.toml', 'added'), file('docs/old-clippy.txt', 'renamed', 'clippy.toml')]),
+    await findings([file('.cargo/config.toml', 'added'), file('dylint.toml'), file('docs/old-clippy.txt', 'renamed', 'clippy.toml')]),
     [
       '.cargo/config.toml: this adds .cargo/config.toml, which sets how the rules apply.',
+      'dylint.toml: this changes dylint.toml, which sets how the rules apply.',
       'docs/old-clippy.txt: this renames clippy.toml, which sets how the rules apply.',
     ],
   );
@@ -76,7 +77,7 @@ test('each finding says who may approve it', async () => {
   assert.match(finding.message, /needs the `approved-exception` label, added after the latest push by an approver .*: PiquelChips\)/);
 });
 
-const pushed = [{ created_at: '2026-11-23T10:00:00Z' }, { created_at: '2026-11-23T10:00:05Z' }];
+const pushed = [{ created_at: '2026-11-23T10:00:00Z', head_branch: 'feature' }, { created_at: '2026-11-23T10:00:05Z', head_branch: 'feature' }];
 const labeled = (login, created_at) => ({ event: 'labeled', label: { name: 'approved-exception' }, actor: { login }, created_at });
 const waiver = async ({ labels = [{ name: 'approved-exception' }], events = [], suites = pushed, settings = 'approvers = ["PiquelChips"]' } = {}) =>
   lintExceptions.waiver(await Fake.pr({ labels }, { events, suites }), Fake.settings(settings));
@@ -94,6 +95,10 @@ test("someone else's label, one before the push or a later force-push, or none d
     { events: [labeled('PiquelChips', '2026-11-23T09:59:00Z')] },
     { events: [labeled('PiquelChips', '2026-11-23T09:00:00Z'), labeled('an-agent', '2026-11-23T10:01:00Z')] },
     { events: [labeled('PiquelChips', '2026-11-23T10:01:00Z')], suites: [] },
+    {
+      events: [labeled('PiquelChips', '2026-11-23T10:01:00Z')],
+      suites: [{ created_at: '2026-11-23T09:00:00Z', head_branch: 'elsewhere' }],
+    },
     { events: [labeled('PiquelChips', '2026-11-23T10:01:00Z')], labels: [] },
     {
       events: [

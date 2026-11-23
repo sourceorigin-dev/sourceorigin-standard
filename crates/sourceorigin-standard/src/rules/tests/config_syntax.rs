@@ -75,23 +75,82 @@ fn a_cargo_configuration_cargo_cant_read_is_the_one_violation() {
 }
 
 #[test]
-fn the_broken_manifest_is_found_whatever_cargo_says() {
+fn a_message_naming_no_file_lands_on_the_root_manifest_and_one_naming_a_member_on_its_manifest() {
     let fixture = Fixture::new();
-    fixture.add_crate("bare", "").write(
-        "crates/bare/Cargo.toml",
-        "[package]\nname = \"bare\"\nedition = [\n",
-    );
-    for stderr in [
-        "error: failed to load manifest for workspace member",
-        "\u{1b}[1m\u{1b}[91merror\u{1b}[0m: unclosed array\n \u{1b}[94m--> \u{1b}[0mcrates/bare/Cargo.toml:3:11",
-        "",
-    ] {
+    fixture
+        .add_crate("bare", "")
+        .write(
+            "crates/bare/Cargo.toml",
+            "[package]\nname = \"bare\"\nedition = [\n",
+        )
+        .write("fixtures/broken/Cargo.toml", "[package\n");
+    let place = |stderr: &str| {
         let unparsed = super::super::source::Unparsed::cargo(fixture.0.root(), stderr)
-            .expect("git lists the manifests");
-        assert_eq!(
-            (unparsed.path.to_string_lossy().into_owned(), unparsed.line),
-            ("crates/bare/Cargo.toml".to_owned(), 3),
-            "{stderr:?}"
-        );
+            .expect("the place is found");
+        (unparsed.path.to_string_lossy().into_owned(), unparsed.line)
+    };
+    for stderr in ["error: failed to load manifest for workspace member", ""] {
+        assert_eq!(place(stderr), ("Cargo.toml".to_owned(), 1), "{stderr:?}");
     }
+    assert_eq!(
+        place("error: failed to load manifest for workspace member `crates/bare`"),
+        ("crates/bare/Cargo.toml".to_owned(), 3)
+    );
+}
+
+#[test]
+fn a_manifest_cargo_refuses_though_it_parses_is_the_one_cargo_names_with_its_whole_message() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("bare", "")
+        .write(
+            "crates/bare/Cargo.toml",
+            "[package]\nname = \"bare\"\nedition = \"2077\"\n",
+        )
+        .write("fixtures/broken/Cargo.toml", "[package\n");
+    let violations = rules::check(fixture.0.root()).expect("the rules run");
+    let [violation] = violations.as_slice() else {
+        panic!("one violation: {violations:?}");
+    };
+    assert_eq!(
+        (
+            violation.rule,
+            violation.path.to_string_lossy(),
+            violation.line
+        ),
+        (Rule::ConfigSyntax, "crates/bare/Cargo.toml".into(), 1)
+    );
+    assert!(
+        violation.message.contains("Caused by:") && violation.message.contains("2077"),
+        "{}",
+        violation.message
+    );
+}
+
+#[test]
+fn the_innermost_file_cargo_names_is_the_one_and_a_warning_names_none() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("b", "\n[dependencies]\nz = { path = \"../z\" }\n")
+        .write(
+            "crates/z/Cargo.toml",
+            "[package]\nname = \"z\"\nedition = \"2077\"\n",
+        )
+        .write("crates/z/src/lib.rs", "")
+        .write(".cargo/config", "[build]\n");
+    let violations = rules::check(fixture.0.root()).expect("the rules run");
+    assert_eq!(
+        violations
+            .iter()
+            .map(|violation| violation.path.to_string_lossy().into_owned())
+            .collect::<Vec<_>>(),
+        ["crates/z/Cargo.toml"]
+    );
+    let unparsed = super::super::source::Unparsed::cargo(
+        fixture.0.root(),
+        "warning: `.cargo/config` is deprecated in favor of `config.toml`\n\
+         error: something cargo couldn't read",
+    )
+    .expect("the place is found");
+    assert_eq!(unparsed.path.to_string_lossy(), "Cargo.toml");
 }

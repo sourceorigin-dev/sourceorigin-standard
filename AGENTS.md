@@ -113,7 +113,8 @@ this list and say which entries applied:
 
 Issues live in GitHub Issues. Titles of issues and pull requests follow
 Conventional Commits and say what changes for whoever uses the crate; pull
-requests are squash-merged, so the title becomes the commit on `main`. No
+requests are squash-merged, so the title becomes the commit on `main`, and a
+stacked pull request is rebased onto `main` once the one below it merges. No
 `Co-authored-by` trailers.
 
 Keep pull requests small and focused: one change each, which a reviewer can
