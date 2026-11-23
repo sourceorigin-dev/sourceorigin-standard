@@ -35,15 +35,17 @@ class Fake {
    * commits, as `{ sha, commit: { message } }`, `changed` the files it
    * changes, as `{ filename, status, patch }`, `events` its issue events,
    * as `{ event, label: { name }, actor: { login }, created_at }`, and
-   * `suites` the check suites of its head, as `{ created_at, head_branch }`. */
-  static github(pr = {}, { files = {}, commits = [], changed = [], events = [], suites = [] } = {}) {
+   * `activity` the head repository's activity log, as `Fake.push` makes
+   * its entries, which it lists newest first, or an HTTP status its listing
+   * fails with. */
+  static github(pr = {}, { files = {}, commits = [], changed = [], events = [], activity = [] } = {}) {
     const data = {
       number: 1,
       title: 'feat: a change',
       body: '',
       labels: [],
       base: { sha: 'base' },
-      head: { sha: 'head', ref: 'feature' },
+      head: { sha: 'head', ref: 'feature', repo: { owner: { login: 'o' }, name: 'r' } },
       ...pr,
     };
     const getContent = async ({ ref, path }) => {
@@ -59,14 +61,29 @@ class Fake {
             listCommits: async () => ({ data: commits }),
             listFiles: async () => ({ data: changed }),
           },
-          repos: { getContent },
           issues: { listEvents: async () => ({ data: events }) },
-          checks: { listSuitesForRef: async () => ({ data: suites }) },
+          repos: {
+            getContent,
+            listActivities: async ({ owner, repo, ref, per_page }) => {
+              if (typeof activity === 'number') throw Object.assign(new Error('Forbidden'), { status: activity });
+              const entries = activity
+                .filter((entry) => entry.repo === `${owner}/${repo}` && entry.ref === ref)
+                .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+              return { data: entries.slice(0, per_page) };
+            },
+          },
         },
         paginate: async (method, parameters) => (await method(parameters)).data,
       },
       context: { repo: { owner: 'o', repo: 'r' }, payload: { pull_request: { number: 1 } } },
     };
+  }
+
+  /** An entry of the head repository's activity log moving the head
+   * branch to the head commit at `timestamp`, with the fields of
+   * `overrides` over it. */
+  static push(timestamp, overrides = {}) {
+    return { activity_type: 'push', repo: 'o/r', ref: 'refs/heads/feature', after: 'head', timestamp, ...overrides };
   }
 
   /** The pull request `Fake.github` describes, as a check receives it. */
