@@ -396,8 +396,12 @@ impl Repository {
 
     /// Each crate whose `#[expect]` lints or `// INVARIANT:` lines, and each
     /// manifest whose `allow`ed lints, don't number their budget, and each
-    /// budgeted name that is none of them.
+    /// budgeted name that is none of them; nothing while `budget.toml`
+    /// doesn't parse, which is `config-syntax`'s.
     pub(super) fn budget(&self) -> Checked {
+        if self.unreadable.contains(PATH) {
+            return Checked::default();
+        }
         let expects = self.per_crate(|source| {
             source
                 .lints

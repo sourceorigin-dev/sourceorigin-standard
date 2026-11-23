@@ -119,7 +119,7 @@ impl Repository {
     pub(super) fn agent_files(&self) -> Checked {
         let agents = &self.agent_files;
         let mut findings = Vec::new();
-        if agents.agents_md.is_none() {
+        if agents.agents_md.is_none() && !self.unreadable.contains(AGENTS_MD) {
             findings.push(Finding {
                 path: AGENTS_MD.into(),
                 line: 1,

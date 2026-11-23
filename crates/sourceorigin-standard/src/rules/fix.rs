@@ -142,16 +142,17 @@ impl Fix {
     }
 
     /// Makes `edits`, which don't conflict, to `path`: its content, then its
-    /// deletion or move.
+    /// deletion or move. A file a fix writes whole needn't be UTF-8 text
+    /// before; one it edits must be.
     fn apply(root: &Path, path: &Path, edits: &[&Self]) -> Result<(), Error> {
         let file = root.join(path);
         let writes_content = edits
             .iter()
             .any(|fix| matches!(fix.edit, Edit::Toml(_) | Edit::Lines(..) | Edit::Write(_)));
         if writes_content {
-            let text = match std::fs::read_to_string(&file) {
-                Ok(text) => text,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+            let bytes = match std::fs::read(&file) {
+                Ok(bytes) => bytes,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
                 Err(source) => {
                     return Err(Error::Read {
                         path: file.clone(),
@@ -159,8 +160,18 @@ impl Fix {
                     });
                 }
             };
+            let crlf = bytes.windows(2).any(|pair| pair == b"\r\n");
+            let whole = edits.iter().any(|fix| matches!(fix.edit, Edit::Write(_)));
+            let text = if whole {
+                String::new()
+            } else {
+                String::from_utf8(bytes).map_err(|error| Error::Read {
+                    path: file.clone(),
+                    source: std::io::Error::new(std::io::ErrorKind::InvalidData, error),
+                })?
+            };
             let mut written = Self::content(path, &text, edits)?;
-            if text.contains("\r\n") {
+            if crlf {
                 written = written.replace("\r\n", "\n").replace('\n', "\r\n");
             }
             Self::create_parent(&file)?;

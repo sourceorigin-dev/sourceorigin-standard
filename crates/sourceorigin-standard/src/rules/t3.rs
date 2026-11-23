@@ -37,15 +37,8 @@ impl T3 {
     /// `t3.json` under `root`, or `None` when there is none or it doesn't
     /// parse, which `unreadable` records.
     pub(super) fn load(root: &Path, unreadable: &mut Unreadable) -> Result<Option<Self>, Error> {
-        let text = match std::fs::read_to_string(root.join(PATH)) {
-            Ok(text) => text,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(source) => {
-                return Err(Error::Read {
-                    path: PATH.into(),
-                    source,
-                });
-            }
+        let Some(text) = unreadable.text(root, Path::new(PATH))? else {
+            return Ok(None);
         };
         match serde_json::from_str::<File>(&text) {
             Ok(file) => Ok(Some(Self {

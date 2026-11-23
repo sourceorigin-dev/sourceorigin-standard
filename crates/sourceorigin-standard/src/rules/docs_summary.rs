@@ -83,13 +83,21 @@ impl TextFile {
 
 impl Repository {
     /// Each page under the book's `src` that its `SUMMARY.md` doesn't link
-    /// and no page includes.
+    /// and no page includes; none while a file under `src` isn't UTF-8
+    /// text and `config-syntax`'s deviation doesn't excuse it, as its links
+    /// and includes are unknown.
     pub(super) fn docs_summary(&self) -> Vec<Finding> {
         let Some(book) = &self.book else {
             return Vec::new();
         };
         let src = book.value.src();
         let summary = src.join("SUMMARY.md");
+        if self
+            .unreadable_unexcused()
+            .any(|path| path.starts_with(&src))
+        {
+            return Vec::new();
+        }
         let pages: Vec<&TextFile> = self
             .markdown
             .iter()

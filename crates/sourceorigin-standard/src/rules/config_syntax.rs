@@ -48,9 +48,27 @@ impl Unreadable {
         });
     }
 
+    /// The text of `path`, from `root`: `None` when there is none, or when
+    /// it isn't UTF-8 text, which it records, so the other rules go on.
+    pub(super) fn text(&mut self, root: &Path, path: &Path) -> Result<Option<String>, Error> {
+        Ok(match Unparsed::read(root, path)? {
+            Some(Ok(text)) => Some(text),
+            Some(Err(unparsed)) => {
+                self.record(unparsed.path, unparsed.line, unparsed.message);
+                None
+            }
+            None => None,
+        })
+    }
+
     /// Whether `path`, from the root, doesn't parse.
     pub(super) fn contains(&self, path: &str) -> bool {
         self.0.contains_key(Path::new(path))
+    }
+
+    /// Each file that doesn't parse, from the root.
+    pub(super) fn paths(&self) -> impl Iterator<Item = &Path> {
+        self.0.keys().map(PathBuf::as_path)
     }
 
     /// Whether a file under `dir`, from the repository's root, doesn't
@@ -64,7 +82,7 @@ impl Unreadable {
     /// and the justfile, as `just --dump` reads it.
     pub(super) fn check_others(&mut self, root: &Path) -> Result<(), Error> {
         for path in TOML {
-            if let Some(text) = Self::read(root, path)?
+            if let Some(text) = self.text(root, Path::new(path))?
                 && let Err(error) = toml::from_str::<toml::Table>(&text)
             {
                 let line = error.span().map_or(1, |span| line_of(&text, span.start));
@@ -72,13 +90,13 @@ impl Unreadable {
             }
         }
         for path in Workspace::new(root).files(&YAML)? {
-            if let Some(text) = Self::read(root, &path)?
+            if let Some(text) = self.text(root, Path::new(&path))?
                 && let Err(error) = YamlLoader::load_from_str(&text)
             {
                 self.record(path.into(), error.marker().line(), error.to_string());
             }
         }
-        if let Some(text) = Self::read(root, JSON)?
+        if let Some(text) = self.text(root, Path::new(JSON))?
             && let Err(error) = serde_json::from_str::<serde_json::Value>(&text)
         {
             self.record(JSON.into(), error.line(), error.to_string());
@@ -91,7 +109,8 @@ impl Unreadable {
 
     /// Records the justfile, or the module of it that fails, when
     /// `just --dump` can't read it, and the justfile when `just` itself is
-    /// missing.
+    /// missing. A failure naming a file already recorded, such as a module
+    /// that isn't UTF-8 text, is that file's violation already.
     fn check_justfile(&mut self, root: &Path) {
         let output = Workspace::new(root)
             .command("just")
@@ -112,6 +131,16 @@ impl Unreadable {
             }
         };
         let stderr = String::from_utf8_lossy(&output.stderr);
+        let canonical = root.canonicalize().ok();
+        let named = self.0.keys().any(|path| {
+            [Some(root), canonical.as_deref()]
+                .into_iter()
+                .flatten()
+                .any(|root| stderr.contains(&*root.join(path).to_string_lossy()))
+        });
+        if named {
+            return;
+        }
         let message = stderr
             .lines()
             .next()
@@ -128,21 +157,32 @@ impl Unreadable {
             .unwrap_or_else(|| (JUSTFILE.to_owned(), 1));
         self.record(path.into(), line, message);
     }
-
-    /// The text of `path`, from `root`, or `None` when there is none.
-    fn read(root: &Path, path: &str) -> Result<Option<String>, Error> {
-        match std::fs::read_to_string(root.join(path)) {
-            Ok(text) => Ok(Some(text)),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(source) => Err(Error::Read {
-                path: path.into(),
-                source,
-            }),
-        }
-    }
 }
 
 impl Unparsed {
+    /// The text of `path`, from `root`: `None` when there is none, else the
+    /// text, or where it stops being UTF-8, the line a violation names.
+    pub(super) fn read(root: &Path, path: &Path) -> Result<Option<Result<String, Self>>, Error> {
+        let bytes = match std::fs::read(root.join(path)) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(source) => {
+                return Err(Error::Read {
+                    path: path.to_owned(),
+                    source,
+                });
+            }
+        };
+        Ok(Some(String::from_utf8(bytes).map_err(|error| {
+            let valid = &error.as_bytes()[..error.utf8_error().valid_up_to()];
+            Self {
+                path: path.to_owned(),
+                line: std::str::from_utf8(valid).map_or(1, |valid| valid.split('\n').count()),
+                message: "it isn't UTF-8 text".to_owned(),
+            }
+        })))
+    }
+
     /// The file a failed `cargo metadata` couldn't read, as cargo names it
     /// from its first `error` line on, so an earlier warning names none:
     /// the place of its `--> path:line:column`, else the last file of the
@@ -215,7 +255,7 @@ impl Unparsed {
     /// The line, from 1, where `path`, from `root`, fails to parse as TOML,
     /// if it does.
     fn toml_line(root: &Path, path: &Path) -> Result<Option<usize>, Error> {
-        let Some(text) = Unreadable::read(root, &path.to_string_lossy())? else {
+        let Some(Ok(text)) = Self::read(root, path)? else {
             return Ok(None);
         };
         Ok(text

@@ -154,14 +154,17 @@ rules! {
     /// and `clippy` lints of its lint block) to `warn`, and every other lint
     /// to `warn` or `allow`.
     WorkspaceLints = "workspace-lints" => workspace_lints,
-    /// Every Rust file git tracks or would track parses as Rust.
+    /// Every Rust file git tracks or would track is UTF-8 text and parses
+    /// as Rust.
     RustSyntax = "rust-syntax" => rust_syntax,
     /// The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`,
     /// `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`,
     /// `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse,
-    /// and `just --dump` reads the justfile. When `cargo metadata` can't
-    /// read the workspace, the file cargo names, or else the root manifest,
-    /// is the only violation, with cargo's whole message.
+    /// and `just --dump` reads the justfile. Each file a rule reads is UTF-8
+    /// text; one that isn't is one violation, and the rules go on. When
+    /// `cargo metadata` can't read the workspace, the file cargo names, or
+    /// else the root manifest, is the only violation, with cargo's whole
+    /// message.
     ConfigSyntax = "config-syntax" => config_syntax,
     /// `#[expect(unsafe_code, …)]` sits only inside the modules
     /// `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or
@@ -591,6 +594,7 @@ impl Repository {
             OtherWorkspace::load_all(root, &metadata, &sources, &mut unreadable)?;
         let manifest_allows =
             budget::manifest_allows(root, &metadata, &other_workspaces, &mut unreadable)?;
+        let justfiles = TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?;
         unreadable.check_others(root)?;
         Ok(Loaded::Repository(Box::new(Self {
             config: Config::load(root)?,
@@ -614,8 +618,8 @@ impl Repository {
             pr_template: TextFile::load_all(root, &[pr_template::PATH], &mut unreadable)?.pop(),
             book: TomlFile::load(root, docs_summary::BOOK, &mut unreadable)?,
             markdown: TextFile::load_all(root, &["*.md"], &mut unreadable)?,
-            commented: Commented::load_all(root)?,
-            justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
+            commented: Commented::load_all(root, &mut unreadable)?,
+            justfiles,
             synced: Synced::load(root)?,
             metadata,
             files: Workspace::new(root)
@@ -676,7 +680,11 @@ impl Repository {
     }
 
     /// The findings of `rule` its deviation doesn't excuse, and the entries
-    /// of the deviation that excuse none of them.
+    /// of the deviation that excuse none of them: none while a file that
+    /// doesn't parse is unexcused, as a rule leaves it to `config-syntax`
+    /// and may withhold findings it can't make, and the run fails on it
+    /// anyway. One that `config-syntax`'s deviation excuses, such as a
+    /// fixture, counts for nothing.
     fn deviate(&self, rule: Rule, findings: Vec<Finding>) -> (Vec<Finding>, Vec<Stale>) {
         let Some(deviation) = self.config.deviation(rule) else {
             return (findings, Vec::new());
@@ -688,7 +696,19 @@ impl Repository {
             .iter()
             .map(|finding| (finding.path.as_path(), self.crate_of_finding(finding)))
             .collect();
+        if self.unreadable_unexcused().next().is_some() {
+            return (kept, Vec::new());
+        }
         (kept, deviation.stale(&excused))
+    }
+
+    /// Each file that doesn't parse and that `config-syntax`'s deviation
+    /// doesn't excuse, from the repository's root.
+    fn unreadable_unexcused(&self) -> impl Iterator<Item = &Path> {
+        let deviation = self.config.deviation(Rule::ConfigSyntax);
+        self.unreadable.paths().filter(move |path| {
+            deviation.is_none_or(|deviation| !deviation.excuses(path, self.crate_of(path)))
+        })
     }
 
     /// The crate `finding` is about: the one owning its file, or for one

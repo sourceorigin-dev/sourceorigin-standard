@@ -49,15 +49,13 @@ impl Source {
         let mut sources = Vec::new();
         let mut unparsed = Vec::new();
         for path in &paths {
-            let text = match std::fs::read_to_string(root.join(path)) {
-                Ok(text) => text,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-                Err(source) => {
-                    return Err(Error::Read {
-                        path: PathBuf::from(path),
-                        source,
-                    });
+            let text = match Unparsed::read(root, Path::new(path))? {
+                Some(Ok(text)) => text,
+                Some(Err(not_utf8)) => {
+                    unparsed.push(not_utf8);
+                    continue;
                 }
+                None => continue,
             };
             match Self::parse(PathBuf::from(path), &text) {
                 Ok(mut source) => {
