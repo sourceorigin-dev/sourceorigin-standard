@@ -27,7 +27,8 @@ pub(super) struct Source {
     pub(super) doc_blocks: Vec<DocBlock>,
 }
 
-/// A Rust file that doesn't parse, which the rules can't read.
+/// A file that doesn't parse as its format, which the rules can't read.
+#[derive(Debug)]
 pub(super) struct Unparsed {
     /// From the repository's root.
     pub(super) path: PathBuf,

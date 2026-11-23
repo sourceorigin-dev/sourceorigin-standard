@@ -46,6 +46,34 @@ impl Report {
     }
 }
 
+impl Report {
+    /// The report of a repository whose workspace `cargo metadata` can't
+    /// read: no rule but `config-syntax` ran, and it found `violation`.
+    pub(super) fn unreadable(violation: Violation) -> Self {
+        let mut rules: BTreeMap<&'static str, RuleReport> = Rule::ALL
+            .iter()
+            .map(|rule| {
+                (
+                    rule.name(),
+                    RuleReport {
+                        violations: Vec::new(),
+                        deviation: None,
+                    },
+                )
+            })
+            .collect();
+        if let Some(report) = rules.get_mut(violation.rule.name()) {
+            report.violations.push(violation);
+        }
+        Self {
+            rules,
+            expects: BTreeMap::new(),
+            invariants: 0,
+            workspace_allows: Vec::new(),
+        }
+    }
+}
+
 impl Repository {
     /// The report of every rule and exception.
     pub(super) fn report(&self) -> Report {
