@@ -11,7 +11,7 @@ a rule gets in the way, stop and ask the user why, and with their approval
 add a deviation, with its reason, to the repository's `standard.toml`, or
 change the rule here, in the same pull request.
 
-A repository adopts the standard in four steps:
+A repository adopts the standard in five steps:
 
 1. Its `tools/xtask` depends on this crate from crates.io and runs
    [`rules::check`] as `cargo xtask standard`, as
@@ -25,6 +25,11 @@ A repository adopts the standard in four steps:
 4. It commits `standard.toml` when it needs settings or deviations, and
    `budget.toml`, under `CODEOWNERS`, when it has `#[expect]` attributes or
    `// INVARIANT:` comments.
+5. A workflow of its own calls this repository's pull request checks, as
+   [below](#pull-request-checks) shows, on `main` (where GitHub reads it
+   from), and its ruleset requires two
+   checks: `ci`, for the code, and `standard / pr-checks`, for the pull
+   request.
 
 ## The rules
 
@@ -112,6 +117,11 @@ file-lines = 40
 # Crates that build another without depending on it, such as a build
 # script compiling a crate it embeds: a change to `built` reaches `builder`.
 builds = [{ builder = "daemon", built = "dashboard" }]
+
+[pr-checks]
+# The pull request checks' settings, which they read and validate
+# themselves (see below).
+scopes = ["daemon", "cli"]
 ```
 
 `budget.toml`, beside it, holds each crate's number of `#[expect]` lints
@@ -167,6 +177,81 @@ piqueld = 2
 [`rules::fix`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.fix.html
 [`rules::report`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.report.html
 [`rules::describe`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.describe.html
+
+## Pull request checks
+
+Some rules are about a pull request itself rather than the code, so
+`.github/workflows/pr-checks.yml` in this repository checks them, reading
+the pull request through the GitHub API, without a checkout or a toolchain.
+Each check is a job, and a finding says what to fix and how to challenge the
+check: a deviation in `standard.toml`, or a change to the check here.
+
+- `pr-title`: the title is a Conventional Commit, `type(scope)!: subject`,
+  of type `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`, `perf`,
+  `build` or `revert`, and of a scope the repository allows, if any.
+
+A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
+this repository's `main`, with the crate's version in the comment. It runs
+on `pull_request_target`, so GitHub takes the workflow and its scripts from
+the default branch, the checks read their settings at the pull request's
+base, and a pull request can't loosen the checks it is checked by. That is
+safe: no step checks out or runs the pull request's code, and the token
+only reads. From December 2, 2026, a public repository runs it only once
+an Actions event policy allows `pull_request_target` for `pr.yml`. Labels
+re-run it, as some checks accept one:
+
+```yaml
+name: PR
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+  merge_group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  standard:
+    uses: sourceorigin-dev/sourceorigin-standard/.github/workflows/pr-checks.yml@<sha> # v0.1.0
+    permissions:
+      contents: read
+      pull-requests: read
+```
+
+Its settings are the `[pr-checks]` table of `standard.toml`, read at the
+pull request's base; an unknown key or a value of the wrong kind fails
+every check, naming its line:
+
+```toml
+[pr-checks]
+# The scopes a title may take. Without them, a title takes none.
+scopes = ["daemon", "cli", "web"]
+
+# The checks the repository departs from, each with its reason: their
+# findings pass as notices.
+[pr-checks.deviations]
+pr-title = "why the repository departs from it"
+```
+
+The repository's ruleset requires two checks: `ci`, the summary of
+`ci.yml`, for the code, and `standard / pr-checks`, the summary of these
+checks, for the pull request. They can't share one: editing a description
+or labelling re-runs these checks, and `ci.yml` re-running on each would
+either rebuild everything or replace a failed `ci` with one that skipped
+the code. A merge group passes them, its pull requests having passed.
+`CODEOWNERS` gives the owner the files that loosen a rule:
+
+```text
+/standard.toml @PiquelChips
+/budget.toml   @PiquelChips
+/clippy.toml   @PiquelChips
+/deny.toml     @PiquelChips
+```
 
 ## `check-changed`
 

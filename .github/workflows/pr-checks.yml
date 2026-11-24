@@ -1,0 +1,56 @@
+# The standard's checks of a pull request itself, which each repository calls
+# on `pull_request_target` (see the crate's README). They read the pull
+# request through the API and their settings from standard.toml at its
+# base, and run .github/pr-checks at this workflow's own commit: the pull
+# request's own code never runs. A merge group passes: its pull requests
+# passed before joining the queue.
+
+name: PR checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ matrix.check }}
+    if: github.event_name != 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [pr-title]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .standard
+          persist-credentials: false
+          sparse-checkout: .github/pr-checks
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          CHECK: ${{ matrix.check }}
+        with:
+          script: |
+            const { Runner } = require('./.standard/.github/pr-checks/run.js');
+            await Runner.run({ github, context, core });
+
+  # The one check a ruleset requires of this workflow.
+  pr-checks:
+    name: pr-checks
+    if: always()
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          allowed-skips: check
+          jobs: ${{ toJSON(needs) }}

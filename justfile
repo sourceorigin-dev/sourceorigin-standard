@@ -5,7 +5,7 @@
 default: validate
 
 # Formats the sources, then runs every check CI runs.
-validate: fmt lint standard test doc doc-test audit unused package
+validate: fmt lint standard test test-pr-checks doc doc-test audit unused package
 
 build:
     @cargo build --locked --workspace --all-targets
@@ -39,6 +39,10 @@ standard:
 [positional-arguments]
 test *ARGS='--workspace':
     @cargo nextest run --locked "$@"
+
+# The scripts of .github/workflows/pr-checks.yml, under Node's test runner.
+test-pr-checks:
+    @node --test .github/pr-checks/*.test.js
 
 # Rustdoc warnings, such as broken intra-doc links, fail the build.
 doc:
