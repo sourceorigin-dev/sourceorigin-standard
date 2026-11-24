@@ -16,11 +16,13 @@ mod config_syntax;
 mod deny_config;
 mod fix;
 mod generated_lints;
+mod justfile;
 mod layout;
 mod level;
 mod manifest;
 mod modules;
 mod nextest_config;
+mod recipes;
 mod report;
 mod rustfmt_config;
 mod settings;
@@ -52,6 +54,7 @@ use config_syntax::Unreadable;
 use deny_config::DenyConfig;
 use fix::Checked;
 pub use fix::Fix;
+use justfile::Justfile;
 use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
@@ -208,6 +211,13 @@ rules! {
     /// as a crate holding a CLI's commands. Each listed name is a workspace
     /// crate.
     AnyhowEdges = "anyhow-edges" => anyhow_edges,
+    /// The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`,
+    /// `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and
+    /// `check-changed`. `just` alone runs `validate` or `check-changed`;
+    /// `validate` runs `fmt` first, then at least `lint`, `standard`, `test`,
+    /// `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test`
+    /// takes `*ARGS`, defaulting to `--workspace`.
+    Recipes = "recipes" => recipes,
 }
 
 /// Why the rules couldn't be checked.
@@ -407,6 +417,8 @@ struct Repository {
     nextest: Option<TomlFile<NextestConfig>>,
     /// `deny.toml`.
     deny: Option<TomlFile<DenyConfig>>,
+    /// The justfile, as `just` describes it.
+    justfile: Option<Justfile>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -456,6 +468,7 @@ impl Repository {
             clippy: TomlFile::load_or_empty(root, clippy_config::PATH, &mut unreadable)?,
             nextest: TomlFile::load_or_empty(root, nextest_config::PATH, &mut unreadable)?,
             deny: TomlFile::load(root, deny_config::PATH, &mut unreadable)?,
+            justfile: Justfile::load(root),
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,

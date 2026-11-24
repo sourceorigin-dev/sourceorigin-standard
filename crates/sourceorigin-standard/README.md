@@ -50,6 +50,7 @@ A repository adopts the standard in four steps:
 - `workspace-dependencies`: Every dependency of a workspace crate, of every kind and target, is inherited with `workspace = true` from the root's `[workspace.dependencies]`, where each `path` dependency also has a `version`.
 - `deny-config`: `deny.toml` sets `unknown-registry` and `unknown-git` under `[sources]`, and `wildcards` under `[bans]`, to `"deny"`, allows at least one license, and gives every ignored advisory a `reason`: `{ id = "…", reason = "…" }`.
 - `anyhow-edges`: No library depends on `anyhow` (dev-dependencies aside), unless `standard.toml`'s `anyhow-crates` lists it as a binary's edge, such as a crate holding a CLI's commands. Each listed name is a workspace crate.
+- `recipes`: The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`, `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and `check-changed`. `just` alone runs `validate` or `check-changed`; `validate` runs `fmt` first, then at least `lint`, `standard`, `test`, `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test` takes `*ARGS`, defaulting to `--workspace`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
