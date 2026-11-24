@@ -195,6 +195,10 @@ check: a deviation in `standard.toml`, or a change to the check here.
   reads `Fixes #123`, or `Fixes PQD-123` where issues live in Linear.
 - `no-co-authors`: neither the description nor a commit message has a
   `Co-authored-by` trailer.
+- `fix-has-test`: a pull request whose title has the type `fix` changes a
+  test (a `tests.rs`, a `tests/` directory, an added `#[test]`, or another
+  language's test file), or carries the `visual` label and images in its
+  description.
 
 A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
 this repository's `main`, with the crate's version in the comment. It runs
