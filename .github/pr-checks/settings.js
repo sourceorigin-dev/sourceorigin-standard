@@ -17,6 +17,7 @@ class Settings {
    * Its property is its name in camel case: `issue-prefix`, `issuePrefix`. */
   static KEYS = {
     scopes: { read: 'strings', default: [] },
+    'issue-prefix': { read: 'string', default: '#' },
   };
 
   /** Reads `text`, a standard.toml or `null` for none; `known` are the

@@ -189,6 +189,10 @@ check: a deviation in `standard.toml`, or a change to the check here.
 - `pr-title`: the title is a Conventional Commit, `type(scope)!: subject`,
   of type `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`, `perf`,
   `build` or `revert`, and of a scope the repository allows, if any.
+- `pr-body`: the description has every heading of the repository's
+  `.github/pull_request_template.md`, each with more than the template's
+  comments under it. An issue link is optional; one that closes an issue
+  reads `Fixes #123`, or `Fixes PQD-123` where issues live in Linear.
 
 A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
 this repository's `main`, with the crate's version in the comment. It runs
@@ -231,6 +235,9 @@ every check, naming its line:
 [pr-checks]
 # The scopes a title may take. Without them, a title takes none.
 scopes = ["daemon", "cli", "web"]
+# What precedes an issue's number where the repository's issues live: `#`
+# by default, or a Linear team's key and a dash.
+issue-prefix = "PQD-"
 
 # The checks the repository departs from, each with its reason: their
 # findings pass as notices.
