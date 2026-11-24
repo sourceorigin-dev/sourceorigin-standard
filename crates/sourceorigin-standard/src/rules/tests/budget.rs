@@ -17,7 +17,10 @@ fn every_crate_stays_within_its_ceiling() {
         )
         .write(
             "crates/under/src/lib.rs",
-            "#[expect(dead_code, reason = \"r\")]\nfn f() {}\n",
+            "#[expect(dead_code, reason = \"r\")]\nfn f() {\n    // INVARIANT: one.\n    \
+             let a = 0;\n    // INVARIANT: two,\n    // on two lines.\n    let b = 0;\n    \
+             // SAFETY: a marked comment,\n    // INVARIANT: and a third invariant.\n    \
+             let c = 0;\n}\n",
         )
         .write(
             "crates/over/src/lib.rs",
@@ -30,7 +33,7 @@ fn every_crate_stays_within_its_ceiling() {
         )
         .write(
             "budget.toml",
-            "[expect]\nexact = 3\nunder = 4\nover = 1\nremoved = 2\n",
+            "[expect]\nexact = 3\nunder = 4\nover = 1\nremoved = 2\n\n[invariant]\nunder = 1\n",
         );
     assert_eq!(
         fixture.violations(Rule::Budget),
@@ -42,6 +45,9 @@ fn every_crate_stays_within_its_ceiling() {
              one, or raise `over` under `[expect]` in budget.toml, which the owner reviews \
              (budget)",
             "budget.toml:5: `removed` is no workspace crate: remove it from `[expect]` (budget)",
+            "budget.toml:8: `under` has 3 `// INVARIANT:` comments, over its ceiling of 1: \
+             remove one, or raise `under` under `[invariant]` in budget.toml, which the owner \
+             reviews (budget)",
         ]
     );
 }

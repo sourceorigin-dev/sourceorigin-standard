@@ -86,16 +86,17 @@ rules! {
     UnsafeModules = "unsafe-modules" => unsafe_modules,
     /// Each crate holds at most as many `#[expect]` attributes (inner,
     /// outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table
-    /// gives it, none when it lists no ceiling; each name there is a
-    /// workspace crate.
+    /// gives it, and at most as many `// INVARIANT:` comments as its
+    /// `[invariant]` table does; none for a crate a table doesn't list. Each
+    /// name there is a workspace crate.
     Budget = "budget" => budget,
     /// Rust files `.gitattributes` marks `linguist-generated` contain no lint
     /// attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or
     /// outer): their exceptions sit on their `mod` declaration.
     GeneratedLints = "generated-lints" => generated_lints,
     /// Rust files that aren't generated hold only doc comments (`///`,
-    /// `//!`) and `// SAFETY:` comments; any other `//` or `/* */` comment
-    /// fails.
+    /// `//!`), `// SAFETY:` comments and `// INVARIANT:` comments; any other
+    /// `//` or `/* */` comment fails.
     RustComments = "rust-comments" => rust_comments,
     /// The prose of each item's or module's docs, in a file that isn't
     /// generated, spans at most `standard.toml`'s `[comments] doc-lines`
