@@ -43,6 +43,8 @@ libraries = [{ path = "lints" }]
 # Every lint warns, and `just lint` passes `-D warnings`: a module that needs
 # `unsafe` expects `unsafe_code`, which `forbid` wouldn't allow.
 [workspace.lints.rust]
+# The `dylint_lib` cfg the lints' exceptions use.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(dylint_lib, values(any()))"] }
 unsafe_code = "warn"
 missing_docs = "warn"
 

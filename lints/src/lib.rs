@@ -11,7 +11,9 @@ extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
+mod code;
 mod report;
+mod string_literal_logic;
 mod wildcard_enum_local;
 
 /// Registers each lint with its pass: `lint => pass`.
@@ -36,5 +38,6 @@ pub fn register_lints(sess: &rustc_session::Session, store: &mut rustc_lint::Lin
     dylint_linting::init_config(sess);
     register!(store:
         wildcard_enum_local::WILDCARD_ENUM_LOCAL => wildcard_enum_local::WildcardEnumLocal,
+        string_literal_logic::STRING_LITERAL_LOGIC => string_literal_logic::StringLiteralLogic,
     );
 }

@@ -15,7 +15,7 @@ use super::modules::Modules;
 use super::source::{Source, Unparsed};
 use super::toml_file::TomlFile;
 use super::{Error, Finding, Repository};
-use crate::metadata::{Metadata, MetadataError};
+use crate::metadata::{Metadata, MetadataError, TargetKind};
 use crate::workspace::{CommandError, Workspace};
 
 /// Where the budget lives, from the repository's root.
@@ -152,6 +152,29 @@ impl OtherWorkspace {
             }
         }
         Ok(others)
+    }
+}
+
+/// A UI case is told apart by the crate it depends on, which Cargo names
+/// by a string, as the rules module's names are.
+impl Metadata {
+    /// Whether `path`, from the workspace's root, is a Dylint library's UI
+    /// case: the root of an example of a crate depending on
+    /// `dylint_testing`. Such a case is a test fixture, whose `#[expect]`s are
+    /// what it tests.
+    fn is_ui_case(&self, path: &Path) -> bool {
+        let file = self.workspace_root.join(path);
+        self.packages
+            .iter()
+            .filter(|package| {
+                package
+                    .dependencies
+                    .iter()
+                    .any(|dependency| dependency.name == "dylint_testing")
+            })
+            .flat_map(|package| &package.targets)
+            .filter(|target| target.kind.contains(&TargetKind::Example))
+            .any(|target| target.src_path == file)
     }
 }
 

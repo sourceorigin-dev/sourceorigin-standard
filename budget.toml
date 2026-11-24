@@ -1,3 +1,8 @@
+# Each crate's number of `#[expect]` lints (the standard's `budget` rule):
+# sourceorigin-standard's and xtask's are `string_literal_logic` exceptions,
+# one on the rules module and the rest on the strings Cargo, git, ci.yml and
+# the README hold; standard_lints's are on `register_lints`.
 [expect]
-sourceorigin-standard = 0
+sourceorigin-standard = 6
+xtask = 1
 standard_lints = 2

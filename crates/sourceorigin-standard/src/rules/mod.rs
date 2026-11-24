@@ -5,6 +5,14 @@
 //! their docs, and [`sync_skills`] writes the crate's agent skills into a
 //! repository.
 
+#![cfg_attr(
+    dylint_lib = "standard_lints",
+    expect(
+        string_literal_logic,
+        reason = "a linter compares source text with names"
+    )
+)]
+
 mod actions_pinned;
 mod agent_files;
 mod agents_md;
