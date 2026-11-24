@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
+use syn::visit::Visit;
 use syn::{Attribute, Meta, Token};
 
 use super::Error;
@@ -15,6 +16,8 @@ pub(super) struct Source {
     /// From the repository's root.
     pub(super) path: PathBuf,
     pub(super) syntax: syn::File,
+    /// Every lint attribute in it, inner and outer, at any depth.
+    pub(super) lints: Vec<LintAttribute>,
 }
 
 /// A Rust file that doesn't parse, which the rules can't read.
@@ -69,13 +72,30 @@ impl Source {
     /// Parses `text`, the file at `path`.
     pub(super) fn parse(path: PathBuf, text: &str) -> Result<Self, Unparsed> {
         match syn::parse_file(text) {
-            Ok(syntax) => Ok(Self { path, syntax }),
+            Ok(syntax) => {
+                let mut lints = LintAttributes(Vec::new());
+                lints.visit_file(&syntax);
+                Ok(Self {
+                    path,
+                    syntax,
+                    lints: lints.0,
+                })
+            }
             Err(error) => Err(Unparsed {
                 path,
                 line: error.span().start().line,
                 message: error.to_string(),
             }),
         }
+    }
+}
+
+/// Collects a file's lint attributes.
+struct LintAttributes(Vec<LintAttribute>);
+
+impl<'ast> Visit<'ast> for LintAttributes {
+    fn visit_attribute(&mut self, attribute: &'ast Attribute) {
+        self.0.extend(LintAttribute::parse(attribute));
     }
 }
 
