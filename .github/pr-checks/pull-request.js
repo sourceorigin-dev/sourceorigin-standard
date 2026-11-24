@@ -16,6 +16,8 @@ class PullRequest {
     this.labels = (pr.labels ?? []).map((label) => label.name);
     this.base = pr.base?.sha;
     this.head = pr.head?.sha;
+    /** The branch it merges from. */
+    this.headRef = pr.head?.ref;
     /** How many files GitHub says it changes. */
     this.changedFiles = pr.changed_files;
     this.github = github;
@@ -72,7 +74,10 @@ class PullRequest {
    * was pushed, so a later push needs it added again. `undefined` without
    * one: the push time is the first check suite GitHub made for the head,
    * which a commit's own dates can't fake, or its latest force-push, which
-   * may bring back a commit pushed before the label. */
+   * may bring back a commit pushed before the label. Only the suites of its
+   * own branch count, so a commit pushed elsewhere before the label and
+   * moved here later doesn't keep an old approval; with none, it has no
+   * approval. */
   async approval(approvers) {
     if (!this.labels.includes(APPROVED)) return undefined;
     const events = await this.github.paginate(this.github.rest.issues.listEvents, {
@@ -83,11 +88,14 @@ class PullRequest {
     const labeled = events.filter(({ event, label }) => event === 'labeled' && label?.name === APPROVED).at(-1);
     const login = labeled?.actor?.login ?? '';
     if (!approvers.some((approver) => approver.toLowerCase() === login.toLowerCase())) return undefined;
-    const suites = await this.github.paginate(this.github.rest.checks.listSuitesForRef, {
-      ...this.repo,
-      ref: this.head,
-      per_page: 100,
-    });
+    const suites = (
+      await this.github.paginate(this.github.rest.checks.listSuitesForRef, {
+        ...this.repo,
+        ref: this.head,
+        per_page: 100,
+      })
+    ).filter(({ head_branch }) => head_branch === this.headRef);
+    if (suites.length === 0) return undefined;
     const forced = events.filter(({ event }) => event === 'head_ref_force_pushed').at(-1);
     const pushed = Math.max(
       Math.min(...suites.map(({ created_at }) => Date.parse(created_at))),

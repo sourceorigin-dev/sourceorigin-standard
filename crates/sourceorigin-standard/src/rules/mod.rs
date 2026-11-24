@@ -160,7 +160,8 @@ rules! {
     /// `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`,
     /// `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse,
     /// and `just --dump` reads the justfile. When `cargo metadata` can't
-    /// read the workspace, the file it names is the only violation.
+    /// read the workspace, the file cargo names, or else the root manifest,
+    /// is the only violation, with cargo's whole message.
     ConfigSyntax = "config-syntax" => config_syntax,
     /// `#[expect(unsafe_code, …)]` sits only inside the modules
     /// `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or

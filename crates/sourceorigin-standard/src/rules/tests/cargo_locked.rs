@@ -151,3 +151,71 @@ fn only_a_command_word_is_cargo_and_folded_blocks_are_one_command() {
             .replace("cargo check", "cargo check --locked")
     );
 }
+
+/// The violation of `cargo {subcommand}` at `line` of the CI workflow.
+fn unlocked_in_ci(line: usize, subcommand: &str) -> String {
+    format!(
+        ".github/workflows/ci.yml:{line}: `cargo {subcommand}` without `--locked`: add it, so the \
+         command never updates Cargo.lock (cargo-locked)"
+    )
+}
+
+#[test]
+fn a_command_after_a_shell_keyword_is_one() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        ".github/workflows/ci.yml",
+        "jobs:\n  rust:\n    steps:\n      - run: |\n          if cargo build; then\n            \
+         echo built\n          fi\n          for x in 1; do cargo test; done\n          ! cargo check\n",
+    );
+    assert_eq!(
+        fixture.violations(Rule::CargoLocked),
+        [
+            unlocked_in_ci(5, "build"),
+            unlocked_in_ci(8, "test"),
+            unlocked_in_ci(9, "check")
+        ]
+    );
+}
+
+#[test]
+fn a_shift_opens_no_heredoc() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        ".github/workflows/ci.yml",
+        "jobs:\n  rust:\n    steps:\n      - run: |\n          echo $((1 << 2))\n          cargo run\n          \
+         x=$((1 << n))\n          cargo test\n",
+    );
+    assert_eq!(
+        fixture.violations(Rule::CargoLocked),
+        [unlocked_in_ci(6, "run"), unlocked_in_ci(8, "test")]
+    );
+}
+
+#[test]
+fn a_folded_block_ends_its_command_at_its_last_line() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        ".github/workflows/ci.yml",
+        "jobs:\n  rust:\n    steps:\n      - run: >\n          cargo build\n          --locked\n      \
+         - run: cargo check\n",
+    );
+    assert_eq!(
+        fixture.violations(Rule::CargoLocked),
+        [unlocked_in_ci(7, "check")]
+    );
+}
+
+#[test]
+fn a_blank_line_ends_a_folded_blocks_command() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        ".github/workflows/ci.yml",
+        "jobs:\n  rust:\n    steps:\n      - run: >\n          cargo test\n\n          \
+         cargo doc --locked\n",
+    );
+    assert_eq!(
+        fixture.violations(Rule::CargoLocked),
+        [unlocked_in_ci(5, "test")]
+    );
+}

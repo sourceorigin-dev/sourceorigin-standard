@@ -159,7 +159,7 @@ fn a_directory_of_the_repositorys_own_named_for_a_skill_is_reported_and_left_alo
 }
 
 #[test]
-fn an_old_synced_copy_under_claude_skills_is_deleted_rather_than_moved() {
+fn an_old_synced_copy_under_claude_skills_is_deleted_rather_than_moved_but_untracked_files_stay() {
     let fixture = Fixture::new();
     fixture.add_crate("core", INHERITS);
     std::fs::remove_dir_all(fixture.0.root().join(DIR)).expect("the skills are removed");
@@ -173,6 +173,13 @@ fn an_old_synced_copy_under_claude_skills_is_deleted_rather_than_moved() {
             ".claude/skills/mine/SKILL.md",
             "---\nname: mine\n---\nMine.\n",
         );
+    let added = std::process::Command::new("git")
+        .args(["add", ".claude/skills/standard/SKILL.md"])
+        .current_dir(fixture.0.root())
+        .status()
+        .expect("git runs");
+    assert!(added.success(), "git tracks the old copy");
+    fixture.write(".claude/skills/standard/my-notes.md", "Mine.\n");
     let fixes: Vec<String> = fix(fixture.0.root())
         .expect("the fixes are made")
         .iter()
@@ -188,4 +195,53 @@ fn an_old_synced_copy_under_claude_skills_is_deleted_rather_than_moved() {
     );
     let skills = fixture.0.root().join(DIR);
     assert!(skills.join("standard/SKILL.md").exists() && skills.join("mine/SKILL.md").exists());
+    assert!(
+        fixture
+            .0
+            .root()
+            .join(".claude/skills/standard/my-notes.md")
+            .exists(),
+        "an untracked file is left"
+    );
+}
+
+#[test]
+fn an_old_synced_copy_with_uncommitted_changes_is_reported_and_kept() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS);
+    std::fs::remove_dir_all(fixture.0.root().join(DIR)).expect("the skills are removed");
+    std::fs::remove_file(fixture.0.root().join(".claude/skills")).ok();
+    let old = ".claude/skills/standard/SKILL.md";
+    fixture.write(
+        old,
+        &format!("---\nname: standard\n---\n\n{MARKER}\nOld.\n"),
+    );
+    let added = std::process::Command::new("git")
+        .args(["add", old])
+        .current_dir(fixture.0.root())
+        .status()
+        .expect("git runs");
+    assert!(added.success(), "git tracks the old copy");
+    fixture.write(
+        old,
+        &format!("---\nname: standard\n---\n\n{MARKER}\nEdited.\n"),
+    );
+    let fixes: Vec<String> = fix(fixture.0.root())
+        .expect("the fixes are made")
+        .iter()
+        .map(ToString::to_string)
+        .filter(|fix| fix.contains(".claude/skills"))
+        .collect();
+    assert_eq!(fixes, Vec::<String>::new());
+    assert!(
+        fixture.0.root().join(old).exists(),
+        "the edited copy is kept"
+    );
+    assert!(
+        fixture
+            .violations(Rule::AgentFiles)
+            .iter()
+            .any(|violation| violation.contains("changes git hasn't committed")),
+        "it is reported"
+    );
 }

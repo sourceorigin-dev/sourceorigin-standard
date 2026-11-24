@@ -36,6 +36,11 @@ pub(super) struct AgentFiles {
     /// The skills under `.claude/skills` whose `SKILL.md` says it is synced
     /// from the crate.
     claude_synced: BTreeSet<String>,
+    /// The files under `.claude/skills` git tracks, which `--fix` may
+    /// delete, as it can get them back, unless they have changes git
+    /// hasn't committed.
+    claude_tracked: BTreeSet<String>,
+    claude_modified: BTreeSet<String>,
 }
 
 impl AgentFiles {
@@ -65,6 +70,8 @@ impl AgentFiles {
                 })
                 .filter_map(|path| Self::skill_of(&path).map(str::to_owned))
                 .collect(),
+            claude_tracked: workspace.tracked(&[":(glob).claude/skills/**"])?,
+            claude_modified: workspace.modified(&[":(glob).claude/skills/**"])?,
         })
     }
 }
@@ -155,24 +162,54 @@ impl Repository {
                 });
             }
         }
-        for (path, free) in &agents.claude_skill_files {
+        let claude = agents.claude_skills_checked();
+        findings.extend(claude.findings);
+        fixes.extend(claude.fixes);
+        let linked = agents.claude_skills.as_deref() == Some(Path::new("../.agents/skills"));
+        if !agents.skills.is_empty() && !linked {
+            findings.push(Finding {
+                path: CLAUDE_SKILLS.into(),
+                line: 1,
+                message: format!(
+                    "{CLAUDE_SKILLS} isn't a symlink to `../{SKILLS}`: make it one, with \
+                     `ln -s ../{SKILLS} {CLAUDE_SKILLS}`"
+                ),
+            });
+        }
+        Checked { findings, fixes }
+    }
+}
+
+impl AgentFiles {
+    /// Each file under `.claude/skills`, when it is a directory: moved to
+    /// `.agents/skills`, or for a copy of a skill the crate ships, deleted
+    /// when it is synced, tracked and unchanged, as the sync writes it.
+    fn claude_skills_checked(&self) -> Checked {
+        let (mut findings, mut fixes) = (Vec::new(), Vec::new());
+        for (path, free) in &self.claude_skill_files {
             let skill = AgentFiles::skill_of(path).filter(|name| Skill::ships(name));
             if let Some(skill) = skill {
-                let synced = agents.claude_synced.contains(skill);
+                let synced = self.claude_synced.contains(skill);
+                let tracked = self.claude_tracked.contains(path);
+                let modified = self.claude_modified.contains(path);
                 findings.push(Finding {
                     path: path.into(),
                     line: 1,
                     message: format!(
                         "a copy of sourceorigin-standard's `{skill}` skill under {CLAUDE_SKILLS}, \
-                         which `cargo xtask standard skills` writes under {SKILLS}: delete it{}",
-                        if synced {
-                            ""
-                        } else {
+                     which `cargo xtask standard skills` writes under {SKILLS}: delete it{}",
+                        if !synced {
                             ", or rename it if it is the repository's own"
+                        } else if !tracked {
+                            " (git doesn't track it, so `--fix` leaves it)"
+                        } else if modified {
+                            " (it has changes git hasn't committed, so `--fix` leaves it)"
+                        } else {
+                            ""
                         }
                     ),
                 });
-                if synced {
+                if synced && tracked && !modified {
                     fixes.push(Fix::delete(
                         path,
                         format!("delete the old copy of the `{skill}` skill"),
@@ -193,17 +230,6 @@ impl Repository {
                     to,
                 ));
             }
-        }
-        let linked = agents.claude_skills.as_deref() == Some(Path::new("../.agents/skills"));
-        if !agents.skills.is_empty() && !linked {
-            findings.push(Finding {
-                path: CLAUDE_SKILLS.into(),
-                line: 1,
-                message: format!(
-                    "{CLAUDE_SKILLS} isn't a symlink to `../{SKILLS}`: make it one, with \
-                     `ln -s ../{SKILLS} {CLAUDE_SKILLS}`"
-                ),
-            });
         }
         Checked { findings, fixes }
     }

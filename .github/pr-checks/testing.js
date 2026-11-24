@@ -35,7 +35,7 @@ class Fake {
    * commits, as `{ sha, commit: { message } }`, `changed` the files it
    * changes, as `{ filename, status, patch }`, `events` its issue events,
    * as `{ event, label: { name }, actor: { login }, created_at }`, and
-   * `suites` the check suites of its head, as `{ created_at }`. */
+   * `suites` the check suites of its head, as `{ created_at, head_branch }`. */
   static github(pr = {}, { files = {}, commits = [], changed = [], events = [], suites = [] } = {}) {
     const data = {
       number: 1,
@@ -43,7 +43,7 @@ class Fake {
       body: '',
       labels: [],
       base: { sha: 'base' },
-      head: { sha: 'head' },
+      head: { sha: 'head', ref: 'feature' },
       ...pr,
     };
     const getContent = async ({ ref, path }) => {

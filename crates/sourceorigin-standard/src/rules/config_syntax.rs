@@ -143,73 +143,85 @@ impl Unreadable {
 }
 
 impl Unparsed {
-    /// The file a failed `cargo metadata` couldn't read, without trusting
-    /// one cargo version's wording: a file its message names (at a
-    /// `--> path:line:column`, or in backticks) that doesn't parse, else any
-    /// manifest or Cargo configuration git tracks that doesn't, else the
-    /// line cargo points at, else the root manifest.
+    /// The file a failed `cargo metadata` couldn't read, as cargo names it
+    /// from its first `error` line on, so an earlier warning names none:
+    /// the place of its `--> path:line:column`, else the last file of the
+    /// repository it names in backticks, its innermost `Caused by:` (a
+    /// member's directory meaning its manifest), at the line where it fails
+    /// to parse as TOML, if it does. When cargo names no file, the root
+    /// manifest. The message is cargo's whole one, its `Caused by:` chain
+    /// included.
     pub(super) fn cargo(root: &Path, stderr: &str) -> Result<Self, Error> {
-        let message = stderr
+        let error = stderr
             .lines()
-            .find_map(|line| line.strip_prefix("error: "))
-            .unwrap_or("`cargo metadata` failed")
-            .to_owned();
-        let arrow = stderr.lines().find_map(|line| {
-            let place = line.trim_start().strip_prefix("--> ")?;
-            let mut parts = place.rsplitn(3, ':');
-            let (_, line, path) = (parts.next()?, parts.next()?, parts.next()?);
-            Some((PathBuf::from(path), line.parse::<usize>().ok()?))
-        });
-        let quoted = stderr.split('`').skip(1).step_by(2).filter_map(|quoted| {
-            let path = Path::new(quoted);
-            let path = path.strip_prefix(root).unwrap_or(path);
-            let manifest = path.join("Cargo.toml");
-            if root.join(&manifest).is_file() {
-                Some(manifest)
-            } else {
-                root.join(path).is_file().then(|| path.to_owned())
+            .position(|line| line.starts_with("error"))
+            .map_or("", |first| {
+                let offset: usize = stderr.lines().take(first).map(|line| line.len() + 1).sum();
+                stderr.get(offset..).unwrap_or("")
+            });
+        let canonical = root.canonicalize().ok();
+        let relative = |path: &str| {
+            let path = Path::new(path);
+            canonical
+                .as_deref()
+                .and_then(|canonical| path.strip_prefix(canonical).ok())
+                .or_else(|| path.strip_prefix(root).ok())
+                .unwrap_or(path)
+                .to_owned()
+        };
+        let arrow = error
+            .lines()
+            .find_map(|line| {
+                let place = line.trim_start().strip_prefix("--> ")?;
+                let mut parts = place.rsplitn(3, ':');
+                let (_, line, path) = (parts.next()?, parts.next()?, parts.next()?);
+                Some((relative(path), line.parse::<usize>().ok()?))
+            })
+            .filter(|(path, _)| root.join(path).is_file());
+        let quoted = error
+            .split('`')
+            .skip(1)
+            .step_by(2)
+            .filter_map(|quoted| {
+                let path = relative(quoted);
+                let manifest = path.join("Cargo.toml");
+                if root.join(&manifest).is_file() {
+                    Some(manifest)
+                } else {
+                    root.join(&path).is_file().then_some(path)
+                }
+            })
+            .last();
+        let (path, line) = match (arrow, quoted) {
+            (Some(place), _) => place,
+            (None, Some(path)) => {
+                let line = Self::toml_line(root, &path)?.unwrap_or(1);
+                (path, line)
             }
-        });
-        let named: Vec<PathBuf> = arrow
-            .iter()
-            .map(|(path, _)| path.clone())
-            .chain(quoted)
-            .collect();
-        let tracked = Workspace::new(root).files(&[
-            ":(glob)**/Cargo.toml",
-            ".cargo/config.toml",
-            ".cargo/config",
-        ])?;
-        for path in named
-            .iter()
-            .cloned()
-            .chain(tracked.into_iter().map(PathBuf::from))
-        {
-            if let Some(unparsed) = Self::toml(root, &path)? {
-                return Ok(unparsed);
-            }
-        }
-        let (path, line) = arrow.unwrap_or_else(|| (PathBuf::from("Cargo.toml"), 1));
+            (None, None) => (PathBuf::from("Cargo.toml"), 1),
+        };
+        let message = stderr.trim();
         Ok(Self {
             path,
             line,
-            message,
+            message: if message.is_empty() {
+                "`cargo metadata` failed".to_owned()
+            } else {
+                message.to_owned()
+            },
         })
     }
 
-    /// Where `path`, from `root`, fails to parse as TOML, if it does.
-    fn toml(root: &Path, path: &Path) -> Result<Option<Self>, Error> {
+    /// The line, from 1, where `path`, from `root`, fails to parse as TOML,
+    /// if it does.
+    fn toml_line(root: &Path, path: &Path) -> Result<Option<usize>, Error> {
         let Some(text) = Unreadable::read(root, &path.to_string_lossy())? else {
             return Ok(None);
         };
         Ok(text
             .parse::<toml_edit::DocumentMut>()
             .err()
-            .map(|error| Self {
-                path: path.to_owned(),
-                line: error.span().map_or(1, |span| line_of(&text, span.start)),
-                message: error.message().trim().to_owned(),
-            }))
+            .map(|error| error.span().map_or(1, |span| line_of(&text, span.start))))
     }
 
     /// The `config-syntax` finding it is.

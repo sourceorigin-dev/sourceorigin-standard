@@ -95,6 +95,13 @@ impl<'a> Workspace<'a> {
         self.listed(&["--cached"], pathspecs)
     }
 
+    /// The files git tracks whose working copy differs from what it holds,
+    /// from the root, matching any of `pathspecs`: deleting one would lose
+    /// the change.
+    pub(crate) fn modified(self, pathspecs: &[&str]) -> Result<BTreeSet<String>, CommandError> {
+        self.listed(&["--modified"], pathspecs)
+    }
+
     /// The files `git ls-files` lists with `which`, such as `--cached`,
     /// matching any of `pathspecs`.
     fn listed(self, which: &[&str], pathspecs: &[&str]) -> Result<BTreeSet<String>, CommandError> {

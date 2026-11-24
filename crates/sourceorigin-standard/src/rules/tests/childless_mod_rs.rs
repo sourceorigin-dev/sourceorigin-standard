@@ -113,3 +113,75 @@ fn a_mod_rs_a_path_or_manifest_names_is_moved_by_hand() {
             .is_empty()
     );
 }
+
+#[test]
+fn a_mod_rs_a_cfg_attr_path_names_is_moved_by_hand() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write(
+            "crates/core/src/lib.rs",
+            "#[cfg_attr(unix, path = \"unix/mod.rs\")]\nmod sys;\n",
+        )
+        .write("crates/core/src/unix/mod.rs", "pub fn f() {}\n");
+    assert!(
+        fix(fixture.0.root())
+            .expect("the fixes are made")
+            .is_empty()
+    );
+    assert!(
+        fixture
+            .0
+            .root()
+            .join("crates/core/src/unix/mod.rs")
+            .exists()
+    );
+}
+
+#[test]
+fn a_mod_rs_whose_cfg_attr_path_names_a_file_is_moved_by_hand() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write("crates/core/src/lib.rs", "mod os;\n")
+        .write(
+            "crates/core/src/os/mod.rs",
+            "#[cfg_attr(unix, path = \"../unix.rs\")]\nmod sys;\n",
+        )
+        .write("crates/core/src/unix.rs", "pub fn f() {}\n");
+    assert!(
+        fix(fixture.0.root())
+            .expect("the fixes are made")
+            .is_empty()
+    );
+    assert!(fixture.0.root().join("crates/core/src/os/mod.rs").exists());
+}
+
+#[test]
+fn a_mod_rs_another_workspaces_path_names_is_moved_by_hand() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write(
+            "lints/Cargo.toml",
+            "[package]\nname = \"lints\"\nedition = \"2024\"\n\n[workspace]\n",
+        )
+        .write("lints/src/lib.rs", "#[path = \"imp/mod.rs\"]\nmod sys;\n")
+        .write("lints/src/imp/mod.rs", "pub fn f() {}\n");
+    std::process::Command::new("cargo")
+        .args([
+            "generate-lockfile",
+            "--offline",
+            "--manifest-path",
+            "lints/Cargo.toml",
+        ])
+        .current_dir(fixture.0.root())
+        .status()
+        .expect("cargo locks the other workspace");
+    assert!(
+        fix(fixture.0.root())
+            .expect("the fixes are made")
+            .is_empty()
+    );
+    assert!(fixture.0.root().join("lints/src/imp/mod.rs").exists());
+}

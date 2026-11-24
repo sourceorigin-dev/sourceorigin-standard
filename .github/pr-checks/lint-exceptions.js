@@ -7,8 +7,8 @@ const { Toml } = require('./toml.js');
 /** Files that set how the standard's rules apply, by path from any
  * directory, any change to which needs approval: they aren't parsed, so no
  * form of loosening slips by. Cargo's configuration can turn a lint off
- * through `rustflags`. */
-const RULE_FILES = [PATH, 'clippy.toml', '.clippy.toml', 'deny.toml', '.cargo/config.toml', '.cargo/config'];
+ * through `rustflags`, and `dylint.toml` configures the Dylint lints. */
+const RULE_FILES = [PATH, 'clippy.toml', '.clippy.toml', 'deny.toml', 'dylint.toml', '.cargo/config.toml', '.cargo/config'];
 
 /** The repository's budgets, each equal to what it counts: each crate's
  * `#[expect]` lints and `// INVARIANT:` lines, and each manifest's lints set

@@ -74,7 +74,7 @@ impl Repository {
         let source = self.sources.iter().find(|source| source.path == path);
         if self.metadata.is_crate_root(path) {
             Some("it is a target's root, which its manifest names")
-        } else if self.modules.named_by_path(path) {
+        } else if self.named_by_path(path) {
             Some("a `#[path]` attribute names it")
         } else if self
             .files

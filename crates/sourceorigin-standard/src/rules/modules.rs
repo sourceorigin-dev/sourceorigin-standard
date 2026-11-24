@@ -185,54 +185,69 @@ impl Modules {
                 self.items(sources, items, &child, &inner);
                 continue;
             }
-            let attribute = Self::path_attribute(&item.attrs).map(|path| {
-                let base = if place.inline {
-                    dir.to_owned()
-                } else {
-                    place
-                        .file
-                        .parent()
-                        .map_or_else(PathBuf::new, Path::to_owned)
-                };
-                Self::normalize(&base.join(path))
-            });
-            let found = attribute
-                .clone()
-                .into_iter()
-                .chain([
-                    dir.join(format!("{name}.rs")),
-                    dir.join(&name).join("mod.rs"),
-                ])
-                .find(|candidate| sources.contains_key(candidate.as_path()));
-            if let Some(found) = found {
-                if attribute.as_ref() == Some(&found) {
+            let base = if place.inline {
+                dir.to_owned()
+            } else {
+                place
+                    .file
+                    .parent()
+                    .map_or_else(PathBuf::new, Path::to_owned)
+            };
+            let attributes = Self::path_attributes(&item.attrs);
+            let named: Vec<PathBuf> = attributes
+                .iter()
+                .map(|(path, _)| Self::normalize(&base.join(path)))
+                .filter(|path| sources.contains_key(path.as_path()))
+                .collect();
+            let unconditional = attributes.iter().any(|&(_, conditional)| !conditional);
+            let default = [
+                dir.join(format!("{name}.rs")),
+                dir.join(&name).join("mod.rs"),
+            ]
+            .into_iter()
+            .find(|candidate| sources.contains_key(candidate.as_path()))
+            .filter(|_| !unconditional);
+            for found in named.iter().chain(&default) {
+                if named.contains(found) {
                     self.named.insert(found.clone());
                 }
-                self.walk(
-                    sources,
-                    &found,
-                    &child,
-                    &Self::child_dir(&found, false),
-                    code,
-                );
+                self.walk(sources, found, &child, &Self::child_dir(found, false), code);
             }
         }
     }
 
-    /// The file a `#[path = "…"]` attribute names, if one does.
-    fn path_attribute(attributes: &[syn::Attribute]) -> Option<String> {
-        attributes
-            .iter()
-            .find_map(|attribute| match &attribute.meta {
-                Meta::NameValue(pair) if pair.path.is_ident("path") => match &pair.value {
-                    Expr::Lit(literal) => match &literal.lit {
-                        Lit::Str(path) => Some(path.value()),
-                        _ => None,
-                    },
-                    _ => None,
-                },
-                _ => None,
-            })
+    /// Each file a `#[path = "…"]` attribute names, or a
+    /// `#[cfg_attr(…, path = "…")]` names under its condition, with whether
+    /// it holds only under one: the module is then each of them, or its
+    /// file by default.
+    fn path_attributes(attributes: &[syn::Attribute]) -> Vec<(String, bool)> {
+        let mut paths = Vec::new();
+        for attribute in attributes {
+            Self::path_meta(&attribute.meta, false, &mut paths);
+        }
+        paths
+    }
+
+    /// Adds the path `meta` names, `conditional` inside a `cfg_attr`.
+    fn path_meta(meta: &Meta, conditional: bool, paths: &mut Vec<(String, bool)>) {
+        match meta {
+            Meta::NameValue(pair) if pair.path.is_ident("path") => {
+                if let Expr::Lit(literal) = &pair.value
+                    && let Lit::Str(path) = &literal.lit
+                {
+                    paths.push((path.value(), conditional));
+                }
+            }
+            Meta::List(list) if list.path.is_ident("cfg_attr") => {
+                let parsed = list.parse_args_with(
+                    syn::punctuated::Punctuated::<Meta, syn::Token![,]>::parse_terminated,
+                );
+                for inner in parsed.iter().flatten().skip(1) {
+                    Self::path_meta(inner, true, paths);
+                }
+            }
+            Meta::NameValue(_) | Meta::List(_) | Meta::Path(_) => {}
+        }
     }
 
     /// `path` with its `.` and `..` resolved.

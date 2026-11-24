@@ -143,7 +143,7 @@ impl Repository {
         let Some((dir, moved)) = self.child_dir(&source.path) else {
             return Err("its file is a binary's root, beside which a file is a target".to_owned());
         };
-        if moved.is_some() && self.modules.named_by_path(&source.path) {
+        if moved.is_some() && self.named_by_path(&source.path) {
             return Err("a `#[path]` attribute names its file, which would move".to_owned());
         }
         let child = dir.join(format!("{ident}.rs"));
