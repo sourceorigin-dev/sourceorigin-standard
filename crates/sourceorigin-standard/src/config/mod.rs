@@ -88,6 +88,8 @@ pub(crate) struct Config {
     pub(crate) check_changed: CheckChanged,
     /// The modules that may expect `unsafe_code`, such as `my_crate::ffi`.
     pub(crate) unsafe_modules: Vec<Listed>,
+    /// The crates whose code outside tests uses no `json!`.
+    pub(crate) no_json_macro: Vec<Listed>,
     /// The `[comments]` table.
     pub(crate) comments: Comments,
     /// The libraries that may depend on `anyhow`, as the edge of a binary.
@@ -245,6 +247,7 @@ struct File {
     deviations: BTreeMap<Spanned<Rule>, Written>,
     check_changed: CheckChanged,
     unsafe_modules: Vec<Spanned<String>>,
+    no_json_macro: Vec<Spanned<String>>,
     comments: Comments,
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
@@ -380,6 +383,7 @@ impl Config {
             deviations,
             check_changed: file.check_changed,
             unsafe_modules: listed(file.unsafe_modules),
+            no_json_macro: listed(file.no_json_macro),
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),

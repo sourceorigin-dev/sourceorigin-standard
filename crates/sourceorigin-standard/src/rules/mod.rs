@@ -32,6 +32,7 @@ mod manifest;
 mod markdown;
 mod modules;
 mod nextest_config;
+mod no_json_macro;
 mod pr_template;
 mod recipes;
 mod recipes_only;
@@ -306,6 +307,10 @@ rules! {
     /// feature named for tests (`test-util`), marks, the files such a
     /// module declares, and integration tests and benchmarks.
     InlineLimits = "inline-limits" => inline_limits,
+    /// Code outside tests, in the crates `standard.toml`'s `no-json-macro`
+    /// lists, invokes no `json!`: it serializes structs. Each name there is
+    /// a workspace crate.
+    NoJsonMacro = "no-json-macro" => no_json_macro,
 }
 
 /// Why the rules couldn't be checked.
