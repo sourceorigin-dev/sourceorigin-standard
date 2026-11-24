@@ -17,6 +17,7 @@ mod comments;
 mod config_comments;
 mod config_syntax;
 mod deny_config;
+mod docs_images;
 mod docs_summary;
 mod fix;
 mod generated_lints;
@@ -25,6 +26,7 @@ mod justfile;
 mod layout;
 mod level;
 mod manifest;
+mod markdown;
 mod modules;
 mod nextest_config;
 mod pr_template;
@@ -269,6 +271,10 @@ rules! {
     /// With a `book.toml`, every Markdown page under its `src` is linked
     /// from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
     DocsSummary = "docs-summary" => docs_summary,
+    /// Every image in a Markdown file, outside code and the skills synced
+    /// from this crate, has alt text: `![what it shows](…)`, or an `<img>`
+    /// with a non-empty `alt`.
+    DocsImages = "docs-images" => docs_images,
 }
 
 /// Why the rules couldn't be checked.
