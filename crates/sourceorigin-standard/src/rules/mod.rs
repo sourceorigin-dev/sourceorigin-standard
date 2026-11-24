@@ -7,6 +7,7 @@
 mod budget;
 mod comments;
 mod config_comments;
+mod fix;
 mod generated_lints;
 mod level;
 mod modules;
@@ -24,6 +25,8 @@ use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
 use budget::Budget;
 use config_comments::Commented;
+use fix::Checked;
+pub use fix::Fix;
 use modules::Modules;
 use source::{Source, Unparsed};
 use workspace_lints::{LintLevel, Manifest};
@@ -61,9 +64,9 @@ macro_rules! rules {
             }
 
             /// Where `repository` breaks it.
-            fn findings(self, repository: &Repository) -> Vec<Finding> {
+            fn check(self, repository: &Repository) -> Checked {
                 match self {
-                    $(Self::$rule => repository.$check(),)*
+                    $(Self::$rule => repository.$check().into(),)*
                 }
             }
         }
@@ -131,6 +134,15 @@ pub enum Error {
     /// git couldn't list the repository's files.
     #[error(transparent)]
     Command(#[from] crate::CommandError),
+    /// `--fix` couldn't write a file.
+    #[error("write {}", path.display())]
+    Write {
+        /// The file.
+        path: PathBuf,
+        /// Why it couldn't be written.
+        #[source]
+        source: std::io::Error,
+    },
     /// A manifest isn't valid TOML.
     #[error("{}: {message}", path.display())]
     Toml {
@@ -283,33 +295,52 @@ impl Repository {
     fn violations(&self) -> Vec<Violation> {
         let mut violations = Vec::new();
         for &rule in Rule::ALL {
-            let findings = rule.findings(self);
-            let Some(deviation) = self.config.deviation(rule) else {
-                violations.extend(findings.into_iter().map(|finding| finding.of(rule)));
-                continue;
-            };
-            let mut excused = Vec::new();
-            for finding in findings {
-                let krate = self.crate_of(&finding.path);
-                if deviation.excuses(&finding.path, krate) {
-                    excused.push((finding.path, krate));
-                } else {
-                    violations.push(finding.of(rule));
-                }
+            let (kept, stale) = self.deviate(rule, rule.check(self).findings);
+            violations.extend(kept.into_iter().map(|finding| finding.of(rule)));
+            if let Some(deviation) = self.config.deviation(rule) {
+                violations.extend(
+                    stale
+                        .into_iter()
+                        .map(|stale| stale.violation(rule, &deviation.reason)),
+                );
             }
-            let excused: Vec<(&Path, Option<&str>)> = excused
-                .iter()
-                .map(|(path, krate)| (path.as_path(), *krate))
-                .collect();
-            violations.extend(
-                deviation
-                    .stale(&excused)
-                    .into_iter()
-                    .map(|stale| stale.violation(rule, &deviation.reason)),
-            );
         }
         violations.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
         violations
+    }
+
+    /// The fixes of every rule the repository doesn't deviate from, and the
+    /// removal of each deviation, or entry of one, that excuses nothing.
+    fn fixes(&self) -> Vec<Fix> {
+        let mut fixes = Vec::new();
+        for &rule in Rule::ALL {
+            let checked = rule.check(self);
+            let Some(deviation) = self.config.deviation(rule) else {
+                fixes.extend(checked.fixes);
+                continue;
+            };
+            let (_, stale) = self.deviate(rule, checked.findings);
+            if !stale.is_empty() {
+                fixes.push(Fix::stale(rule, deviation, &stale));
+            }
+        }
+        fixes
+    }
+
+    /// The findings of `rule` its deviation doesn't excuse, and the entries
+    /// of the deviation that excuse none of them.
+    fn deviate(&self, rule: Rule, findings: Vec<Finding>) -> (Vec<Finding>, Vec<Stale>) {
+        let Some(deviation) = self.config.deviation(rule) else {
+            return (findings, Vec::new());
+        };
+        let (excused, kept): (Vec<Finding>, Vec<Finding>) = findings
+            .into_iter()
+            .partition(|finding| deviation.excuses(&finding.path, self.crate_of(&finding.path)));
+        let excused: Vec<(&Path, Option<&str>)> = excused
+            .iter()
+            .map(|finding| (finding.path.as_path(), self.crate_of(&finding.path)))
+            .collect();
+        (kept, deviation.stale(&excused))
     }
 
     /// The name of the crate owning `path`, from the repository's root.
@@ -330,6 +361,21 @@ impl Repository {
 /// When `standard.toml` or a file a rule reads can't be loaded.
 pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
     Ok(Repository::load(root)?.violations())
+}
+
+/// Makes every mechanical fix the rules know in the repository at `root`,
+/// such as adding `[lints] workspace = true` or lowering a ceiling of
+/// `budget.toml` to what the crate holds, and returns them. Each is an edit
+/// to a TOML document, which keeps the file's layout and comments. What
+/// needs judgement stays a violation for [`check`] to report.
+///
+/// # Errors
+///
+/// When a file a rule reads can't be loaded, or a fixed file written.
+pub fn fix(root: &Path) -> Result<Vec<Fix>, Error> {
+    let mut fixes = Repository::load(root)?.fixes();
+    Fix::apply_all(root, &mut fixes)?;
+    Ok(fixes)
 }
 
 /// Every rule with its doc, as a Markdown list: what

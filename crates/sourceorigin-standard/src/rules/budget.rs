@@ -7,6 +7,7 @@ use serde::Deserialize;
 use toml::Spanned;
 
 use super::comments::Comment;
+use super::fix::{Checked, Fix};
 use super::level::Level;
 use super::{Error, Finding, Repository};
 use crate::config::line_of;
@@ -24,6 +25,11 @@ pub(super) struct Ceilings(BTreeMap<String, Ceiling>);
 struct Ceiling {
     count: usize,
     line: usize,
+}
+
+impl Ceiling {
+    /// None, for a crate a table doesn't list.
+    const NONE: Self = Self { count: 0, line: 1 };
 }
 
 /// `budget.toml`: per crate, the most exceptions of each kind it may hold.
@@ -83,11 +89,7 @@ impl Ceilings {
     /// `what`, and each name the table lists that is no crate.
     fn findings(&self, table: &str, what: &str, counts: &BTreeMap<&str, usize>) -> Vec<Finding> {
         let over = counts.iter().filter_map(|(&name, &count)| {
-            let ceiling = self
-                .0
-                .get(name)
-                .copied()
-                .unwrap_or(Ceiling { count: 0, line: 1 });
+            let ceiling = self.0.get(name).copied().unwrap_or(Ceiling::NONE);
             (count > ceiling.count).then(|| Finding {
                 path: PATH.into(),
                 line: ceiling.line,
@@ -108,6 +110,40 @@ impl Ceilings {
                 message: format!("`{name}` is no workspace crate: remove it from `[{table}]`"),
             });
         over.chain(unknown).collect()
+    }
+
+    /// The fixes of the `[table]`: lower each ceiling to its crate's count
+    /// in `counts`, and remove each name that is no crate.
+    fn fixes(&self, table: &'static str, counts: &BTreeMap<&str, usize>) -> Vec<Fix> {
+        self.0
+            .iter()
+            .filter_map(|(name, ceiling)| {
+                let key = name.clone();
+                match counts.get(name.as_str()) {
+                    Some(&count) if count < ceiling.count => Some(Fix::new(
+                        PATH,
+                        format!(
+                            "lower `{name}` under `[{table}]` from {} to {count}",
+                            ceiling.count
+                        ),
+                        move |document| {
+                            if let Some(item) = document[table]
+                                .as_table_like_mut()
+                                .and_then(|entries| entries.get_mut(&key))
+                            {
+                                Fix::set(item, i64::try_from(count).unwrap_or(i64::MAX));
+                            }
+                        },
+                    )),
+                    Some(_) => None,
+                    None => Some(Fix::new(
+                        PATH,
+                        format!("remove `{name}`, no workspace crate, from `[{table}]`"),
+                        move |document| Fix::remove(&mut document[table], &key),
+                    )),
+                }
+            })
+            .collect()
     }
 }
 
@@ -131,7 +167,7 @@ impl Repository {
 
     /// Each crate over its ceiling of `#[expect]` attributes or of
     /// `// INVARIANT:` comments, and each budgeted name that is no crate.
-    pub(super) fn budget(&self) -> Vec<Finding> {
+    pub(super) fn budget(&self) -> Checked {
         let expects = self.per_crate(|source| {
             source
                 .lints
@@ -150,6 +186,8 @@ impl Repository {
             "`// INVARIANT:` comments",
             &invariants,
         ));
-        findings
+        let mut fixes = self.budget.expect.fixes("expect", &expects);
+        fixes.extend(self.budget.invariant.fixes("invariant", &invariants));
+        Checked { findings, fixes }
     }
 }
