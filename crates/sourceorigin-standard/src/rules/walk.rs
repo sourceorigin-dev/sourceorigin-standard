@@ -30,6 +30,9 @@ pub(super) trait Inspect {
 
     /// A macro invocation, such as `json!({})`.
     fn macro_call(&mut self, _call: &syn::Macro, _scope: Scope) {}
+
+    /// A function or method with a body, before the nodes inside it.
+    fn function(&mut self, _signature: &syn::Signature, _body: &syn::Block, _scope: Scope) {}
 }
 
 /// A walk over one file, passing its nodes to an [`Inspect`].
@@ -53,15 +56,21 @@ impl<'a, I: Inspect> Walk<'a, I> {
     }
 }
 
-/// Visits each item kind in the scope its attributes set, and in a
-/// constant scope where `constant` holds of it.
+/// Visits each item kind in the scope its attributes set, in a constant
+/// scope where `const` holds of it, and passes the function `fn` finds in
+/// it to [`Inspect::function`].
 macro_rules! scoped {
-    ($($visit:ident($node:ty) $(=> $constant:expr)?;)*) => {
+    ($($visit:ident($node:ty) $(const $constant:expr)? $(, fn $function:expr)?;)*) => {
         $(
             fn $visit(&mut self, node: &'ast $node) {
                 let outer = self.scope;
                 self.scope.test |= node.attrs.test();
                 $(self.scope.constant |= $constant(node);)?
+                $(
+                    if let Some((signature, body)) = $function(node) {
+                        self.inspect.function(signature, body, self.scope);
+                    }
+                )?
                 visit::$visit(self, node);
                 self.scope = outer;
             }
@@ -74,13 +83,19 @@ impl<'ast, I: Inspect> Visit<'ast> for Walk<'_, I> {
         visit_item_mod(syn::ItemMod);
         visit_item_impl(syn::ItemImpl);
         visit_item_trait(syn::ItemTrait);
-        visit_item_fn(syn::ItemFn) => |node: &syn::ItemFn| node.sig.constness.is_some();
-        visit_impl_item_fn(syn::ImplItemFn) => |node: &syn::ImplItemFn| node.sig.constness.is_some();
-        visit_trait_item_fn(syn::TraitItemFn) => |node: &syn::TraitItemFn| node.sig.constness.is_some();
-        visit_item_const(syn::ItemConst) => |_| true;
-        visit_item_static(syn::ItemStatic) => |_| true;
-        visit_impl_item_const(syn::ImplItemConst) => |_| true;
-        visit_trait_item_const(syn::TraitItemConst) => |_| true;
+        visit_item_fn(syn::ItemFn)
+            const |node: &syn::ItemFn| node.sig.constness.is_some(),
+            fn |node: &'ast syn::ItemFn| Some((&node.sig, &*node.block));
+        visit_impl_item_fn(syn::ImplItemFn)
+            const |node: &syn::ImplItemFn| node.sig.constness.is_some(),
+            fn |node: &'ast syn::ImplItemFn| Some((&node.sig, &node.block));
+        visit_trait_item_fn(syn::TraitItemFn)
+            const |node: &syn::TraitItemFn| node.sig.constness.is_some(),
+            fn |node: &'ast syn::TraitItemFn| node.default.as_ref().map(|body| (&node.sig, body));
+        visit_item_const(syn::ItemConst) const |_| true;
+        visit_item_static(syn::ItemStatic) const |_| true;
+        visit_impl_item_const(syn::ImplItemConst) const |_| true;
+        visit_trait_item_const(syn::TraitItemConst) const |_| true;
     }
 
     fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {

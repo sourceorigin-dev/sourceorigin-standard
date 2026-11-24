@@ -16,6 +16,7 @@ mod config_syntax;
 mod deny_config;
 mod docs_images;
 mod docs_summary;
+mod duplicate_items;
 mod fix;
 mod framework;
 mod generated_lints;
