@@ -68,6 +68,7 @@ A repository adopts the standard in five steps:
 - `docs-summary`: With a `book.toml`, every Markdown page under its `src` is linked from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
 - `docs-images`: Every image in a Markdown file, outside code and the skills synced from this crate, has alt text: `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
 - `wording`: No Markdown file but a synced skill's holds, as a word of its prose (not code, a link's destination, an HTML tag or a URL, nor part of a name such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling `standard.toml`'s `[wording]` rejects, such as `"Source Origin" = "SourceOrigin"`.
+- `childless-mod-rs`: A module is `foo/mod.rs` only when its directory holds another Rust file, parsed or not; otherwise it is `foo.rs`. A `mod.rs` beside an integration test's, benchmark's or example's root, such as `tests/common/mod.rs`, passes, and so does one under `src/bin`, where binaries share modules.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -159,8 +160,9 @@ piqueld = 2
   `[lints] workspace = true`, making a workspace lint at `deny` or `forbid`
   `warn` (never an `allow`), adding a required lint the workspace lacks,
   making a crate inherit the workspace's edition,
-  setting a budget of `budget.toml` to what the crate holds, or removing a
-  stale deviation or entry of one. It edits each
+  setting a budget of `budget.toml` to what the crate holds, moving a
+  childless `foo/mod.rs` to `foo.rs` when that can't change what it reads,
+  or removing a stale deviation or entry of one. It edits each
   TOML file as a document, so its layout and comments stay. A deviation
   keeps it from fixing what its scope excuses, and two fixes that conflict
   on one file stop it before it changes anything.

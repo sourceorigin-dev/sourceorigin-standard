@@ -195,6 +195,17 @@ impl Metadata {
             .flat_map(|package| &package.targets)
             .any(|target| target.src_path == file)
     }
+
+    /// Whether `dir`, from the workspace's root, holds the root file of a
+    /// target of any of `kinds`.
+    pub(crate) fn holds_roots(&self, dir: &Path, kinds: &[TargetKind]) -> bool {
+        let dir = self.workspace_root.join(dir);
+        self.packages
+            .iter()
+            .flat_map(|package| &package.targets)
+            .filter(|target| target.kind.iter().any(|kind| kinds.contains(kind)))
+            .any(|target| target.src_path.parent() == Some(dir.as_path()))
+    }
 }
 
 impl Target {

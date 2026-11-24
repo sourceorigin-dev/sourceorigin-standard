@@ -7,6 +7,7 @@ mod anyhow_edges;
 mod budget;
 mod cache_saves;
 mod cargo_locked;
+mod childless_mod_rs;
 mod ci_shape;
 mod clippy_config;
 mod comments;
