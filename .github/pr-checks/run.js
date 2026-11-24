@@ -17,6 +17,7 @@ class Runner {
     require('./no-co-authors.js'),
     require('./fix-has-test.js'),
     require('./new-dependency.js'),
+    require('./lint-exceptions.js'),
   ];
 
   /** Runs the check named in `CHECK`, with the settings of the pull

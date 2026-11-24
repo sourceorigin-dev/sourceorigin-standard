@@ -1,5 +1,8 @@
 'use strict';
 
+/** The label that approves the exceptions a pull request makes. */
+const APPROVED = 'approved-exception';
+
 /**
  * The pull request a check runs on, read through the GitHub API rather than
  * a checkout. Tests build one from plain values with `new PullRequest(...)`.
@@ -64,6 +67,36 @@ class PullRequest {
     }));
   }
 
+  /** Why the exceptions it makes may stand: the `approved-exception`
+   * label, added by one of `approvers` (in any case) after its head commit
+   * was pushed, so a later push needs it added again. `undefined` without
+   * one: the push time is the first check suite GitHub made for the head,
+   * which a commit's own dates can't fake, or its latest force-push, which
+   * may bring back a commit pushed before the label. */
+  async approval(approvers) {
+    if (!this.labels.includes(APPROVED)) return undefined;
+    const events = await this.github.paginate(this.github.rest.issues.listEvents, {
+      ...this.repo,
+      issue_number: this.number,
+      per_page: 100,
+    });
+    const labeled = events.filter(({ event, label }) => event === 'labeled' && label?.name === APPROVED).at(-1);
+    const login = labeled?.actor?.login ?? '';
+    if (!approvers.some((approver) => approver.toLowerCase() === login.toLowerCase())) return undefined;
+    const suites = await this.github.paginate(this.github.rest.checks.listSuitesForRef, {
+      ...this.repo,
+      ref: this.head,
+      per_page: 100,
+    });
+    const forced = events.filter(({ event }) => event === 'head_ref_force_pushed').at(-1);
+    const pushed = Math.max(
+      Math.min(...suites.map(({ created_at }) => Date.parse(created_at))),
+      forced ? Date.parse(forced.created_at) : -Infinity,
+    );
+    if (!(Date.parse(labeled.created_at) > pushed)) return undefined;
+    return `${login} added the \`${APPROVED}\` label after the latest push`;
+  }
+
   /** The text of the file at `path` in commit `sha`, or `null` if it has
    * none. */
   async fileAt(sha, path) {
@@ -82,4 +115,4 @@ class PullRequest {
   }
 }
 
-module.exports = { PullRequest };
+module.exports = { PullRequest, APPROVED };

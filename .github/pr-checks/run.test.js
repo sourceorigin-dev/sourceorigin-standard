@@ -53,6 +53,7 @@ test('a finding with a place starts with it', () => {
 
 test("pr-checks.yml's matrix runs every check", () => {
   const workflow = fs.readFileSync(path.join(__dirname, '../workflows/pr-checks.yml'), 'utf8');
-  const matrix = workflow.match(/^\s+check: \[(.*)\]$/m)[1].split(',').map((name) => name.trim());
+  const block = workflow.match(/^ {8}check:\n((?: {10}- .*\n)+)/m)[1];
+  const matrix = block.split('\n').filter(Boolean).map((line) => line.replace(/^\s*- /, ''));
   assert.deepEqual(matrix, Runner.CHECKS.map(({ name }) => name));
 });

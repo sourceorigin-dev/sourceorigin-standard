@@ -18,6 +18,8 @@ class Settings {
   static KEYS = {
     scopes: { read: 'strings', default: [] },
     'issue-prefix': { read: 'string', default: '#' },
+    approvers: { read: 'strings', default: [] },
+    'enforce-lint-exceptions': { read: 'boolean', default: true },
   };
 
   /** Reads `text`, a standard.toml or `null` for none; `known` are the
@@ -27,6 +29,8 @@ class Settings {
     for (const [key, { default: value }] of Object.entries(Settings.KEYS)) {
       this[Settings.property(key)] = value;
     }
+    /** The check names a deviation may name. */
+    this.known = known;
     /** Each check the repository departs from, with its reason. */
     this.deviations = new Map();
     for (const { table, key, value, line } of new Toml(text ?? '').entries) {

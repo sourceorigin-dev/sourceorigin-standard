@@ -32,9 +32,11 @@ class Fake {
   /** A `github` and `context` for pull request number 1, from base commit
    * `base` to head commit `head`, with the fields of `pr` over a passing
    * default, `files[sha][path]` the text of each file, `commits` its
-   * commits, as `{ sha, commit: { message } }`, and `changed` the files it
-   * changes, as `{ filename, status, patch }`. */
-  static github(pr = {}, { files = {}, commits = [], changed = [] } = {}) {
+   * commits, as `{ sha, commit: { message } }`, `changed` the files it
+   * changes, as `{ filename, status, patch }`, `events` its issue events,
+   * as `{ event, label: { name }, actor: { login }, created_at }`, and
+   * `suites` the check suites of its head, as `{ created_at }`. */
+  static github(pr = {}, { files = {}, commits = [], changed = [], events = [], suites = [] } = {}) {
     const data = {
       number: 1,
       title: 'feat: a change',
@@ -58,6 +60,8 @@ class Fake {
             listFiles: async () => ({ data: changed }),
           },
           repos: { getContent },
+          issues: { listEvents: async () => ({ data: events }) },
+          checks: { listSuitesForRef: async () => ({ data: suites }) },
         },
         paginate: async (method, parameters) => (await method(parameters)).data,
       },
