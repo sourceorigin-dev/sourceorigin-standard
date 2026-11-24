@@ -77,10 +77,11 @@ test('each finding says who may approve it', async () => {
   assert.match(finding.message, /needs the `approved-exception` label, added after the latest push by an approver .*: PiquelChips\)/);
 });
 
-const pushed = [{ created_at: '2026-11-23T10:00:00Z', head_branch: 'feature' }, { created_at: '2026-11-23T10:00:05Z', head_branch: 'feature' }];
+const pushed = [Fake.push('2026-11-23T10:00:00Z')];
 const labeled = (login, created_at) => ({ event: 'labeled', label: { name: 'approved-exception' }, actor: { login }, created_at });
-const waiver = async ({ labels = [{ name: 'approved-exception' }], events = [], suites = pushed, settings = 'approvers = ["PiquelChips"]' } = {}) =>
-  lintExceptions.waiver(await Fake.pr({ labels }, { events, suites }), Fake.settings(settings));
+const waiver = async ({ labels = [{ name: 'approved-exception' }], events = [], activity = pushed, settings = 'approvers = ["PiquelChips"]' } = {}) =>
+  lintExceptions.waiver(await Fake.pr({ labels }, { events, activity }), Fake.settings(settings));
+const approved = [labeled('PiquelChips', '2026-11-23T10:01:00Z')];
 
 test("an approver's label after the latest push allows the exceptions, in any case", async () => {
   assert.equal(
@@ -89,26 +90,47 @@ test("an approver's label after the latest push allows the exceptions, in any ca
   );
 });
 
-test("someone else's label, one before the push or a later force-push, or none does not", async () => {
+test("someone else's label, one before the latest push, or none does not", async () => {
   for (const options of [
     { events: [labeled('an-agent', '2026-11-23T10:01:00Z')] },
     { events: [labeled('PiquelChips', '2026-11-23T09:59:00Z')] },
     { events: [labeled('PiquelChips', '2026-11-23T09:00:00Z'), labeled('an-agent', '2026-11-23T10:01:00Z')] },
-    { events: [labeled('PiquelChips', '2026-11-23T10:01:00Z')], suites: [] },
-    {
-      events: [labeled('PiquelChips', '2026-11-23T10:01:00Z')],
-      suites: [{ created_at: '2026-11-23T09:00:00Z', head_branch: 'elsewhere' }],
-    },
-    { events: [labeled('PiquelChips', '2026-11-23T10:01:00Z')], labels: [] },
-    {
-      events: [
-        labeled('PiquelChips', '2026-11-23T10:01:00Z'),
-        { event: 'head_ref_force_pushed', actor: { login: 'an-agent' }, created_at: '2026-11-23T10:02:00Z' },
-      ],
-    },
+    { events: approved, labels: [] },
+    { events: approved, activity: [...pushed, Fake.push('2026-11-23T10:02:00Z', { activity_type: 'force_push' })] },
   ]) {
     assert.equal(await waiver(options), undefined, JSON.stringify(options));
   }
+});
+
+test('only an entry moving the head branch of the head repository to the head commit dates the push', async () => {
+  for (const other of [{ after: 'other' }, { ref: 'refs/heads/elsewhere' }, { repo: 'fork/r' }]) {
+    const activity = [Fake.push('2026-11-23T09:00:00Z', other)];
+    assert.equal(await waiver({ events: approved, activity }), undefined, JSON.stringify(other));
+  }
+  assert.equal(await waiver({ events: approved, activity: [] }), undefined);
+  assert.equal(await waiver({ events: approved, activity: 403 }), undefined);
+});
+
+test('a commit pushed again after the label needs the label again (#69)', async () => {
+  // C pushed at 10:00, a force-push back to A at 10:01, the label at 10:02,
+  // then a fast-forward to C again at 10:03, which no workflow need run on,
+  // as while the pull request conflicts.
+  const activity = [
+    Fake.push('2026-11-23T10:00:00Z'),
+    Fake.push('2026-11-23T10:01:00Z', { activity_type: 'force_push', after: 'a' }),
+    Fake.push('2026-11-23T10:03:00Z'),
+  ];
+  assert.equal(await waiver({ events: [labeled('PiquelChips', '2026-11-23T10:02:00Z')], activity }), undefined);
+});
+
+test("a log that doesn't hold the latest push yet approves nothing", async () => {
+  // As #69's replay, but the fast-forward to C at 10:03 isn't logged yet:
+  // the newest entry moved the branch to A.
+  const activity = [
+    Fake.push('2026-11-23T10:00:00Z'),
+    Fake.push('2026-11-23T10:01:00Z', { activity_type: 'force_push', after: 'a' }),
+  ];
+  assert.equal(await waiver({ events: [labeled('PiquelChips', '2026-11-23T10:02:00Z')], activity }), undefined);
 });
 
 test('report-only mode allows the exceptions', async () => {

@@ -262,10 +262,13 @@ check: a deviation in `standard.toml`, or a change to the check here.
   a budget of `budget.toml` that rises or appears. As each budget equals
   its count, every new `#[expect]`, `// INVARIANT:` or lint a manifest sets
   to `allow` shows as one. Approval is the `approved-exception` label,
-  added by one of the `approvers` after the latest push to the pull
-  request's branch, a force-push included: a later push needs it added
-  again. The job's summary lists
-  every exception, approved or not.
+  added by one of the `approvers` after the latest push: the newest entry
+  of the head repository's activity log for the pull request's branch,
+  which must have moved it to its head commit. Any later push, a force-push
+  or a fast-forward back to an earlier commit included, needs it added
+  again. With no such entry, as for a fork the job's token can't read, there
+  is no approval. The job's
+  summary lists every exception, approved or not.
 - `frozen-files`: a file matching a glob of `frozen-files` that exists on
   the base branch, such as an applied migration, is not modified, renamed
   or deleted, and a new one starts with a comment saying what it changes. A
@@ -305,7 +308,6 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
-      checks: read
 ```
 
 Its settings are the `[pr-checks]` table of `standard.toml`, read at the

@@ -76,8 +76,8 @@ test('globs read as picomatch reads them', () => {
 test('a deliberate change stands with the approval lint exceptions take', async () => {
   const settings = Fake.settings('approvers = ["owner"]');
   const events = [{ event: 'labeled', label: { name: 'approved-exception' }, actor: { login: 'Owner' }, created_at: '2026-11-23T10:01:00Z' }];
-  const suites = [{ created_at: '2026-11-23T10:00:00Z', head_branch: 'feature' }];
+  const activity = [Fake.push('2026-11-23T10:00:00Z')];
   const labels = [{ name: 'approved-exception' }];
-  assert.match(await frozenFiles.waiver(await Fake.pr({ labels }, { events, suites }), settings), /^Owner added the/);
+  assert.match(await frozenFiles.waiver(await Fake.pr({ labels }, { events, activity }), settings), /^Owner added the/);
   assert.equal(await frozenFiles.waiver(await Fake.pr(), settings), undefined);
 });
