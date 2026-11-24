@@ -27,6 +27,9 @@ pub(super) struct RootManifest {
 #[derive(Default, Deserialize)]
 pub(super) struct Workspace {
     pub(super) resolver: Option<Spanned<String>>,
+    /// The dependencies crates inherit, each with its requirement.
+    #[serde(default)]
+    pub(super) dependencies: DependencyTable,
     pub(super) package: Option<Spanned<WorkspacePackage>>,
     /// Each tool's lints, such as `clippy`'s, each with its setting.
     #[serde(default)]
@@ -48,11 +51,56 @@ pub(super) struct WorkspacePackage {
     pub(super) edition: Option<Spanned<String>>,
 }
 
+/// A table of dependencies, each a version or a table.
+pub(super) type DependencyTable = BTreeMap<Spanned<String>, toml::Value>;
+
 /// A workspace crate's manifest.
 #[derive(Deserialize)]
 pub(super) struct Manifest {
     pub(super) package: Option<Spanned<Package>>,
     pub(super) lints: Option<Spanned<toml::Table>>,
+    #[serde(default)]
+    dependencies: DependencyTable,
+    #[serde(default, rename = "dev-dependencies")]
+    dev_dependencies: DependencyTable,
+    #[serde(default, rename = "build-dependencies")]
+    build_dependencies: DependencyTable,
+    /// Each target's own dependencies, such as `cfg(unix)`'s.
+    #[serde(default)]
+    target: BTreeMap<String, DependencyTables>,
+}
+
+/// A target's tables of dependencies, of every kind.
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(super) struct DependencyTables {
+    #[serde(default)]
+    dependencies: DependencyTable,
+    #[serde(default)]
+    dev_dependencies: DependencyTable,
+    #[serde(default)]
+    build_dependencies: DependencyTable,
+}
+
+impl Manifest {
+    /// Every dependency it declares, of every kind and target.
+    pub(super) fn all_dependencies(
+        &self,
+    ) -> impl Iterator<Item = (&Spanned<String>, &toml::Value)> {
+        let own = [
+            &self.dependencies,
+            &self.dev_dependencies,
+            &self.build_dependencies,
+        ];
+        let targets = self.target.values().flat_map(|target| {
+            [
+                &target.dependencies,
+                &target.dev_dependencies,
+                &target.build_dependencies,
+            ]
+        });
+        own.into_iter().chain(targets).flatten()
+    }
 }
 
 /// A crate's `[package]`.
