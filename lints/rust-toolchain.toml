@@ -1,0 +1,5 @@
+# The nightly dylint 6.3.2 and clippy_utils 0.1.100 build against; they move
+# together.
+[toolchain]
+channel = "nightly-2026-08-20"
+components = ["rustc-dev", "llvm-tools-preview", "rustfmt", "clippy"]

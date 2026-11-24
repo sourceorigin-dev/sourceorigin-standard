@@ -36,6 +36,10 @@ toml_edit = { version = "0.25.20", default-features = false, features = ["parse"
 # Its only default feature decodes non-UTF-8 input, which a string never is.
 yaml-rust2 = { version = "0.13.2", default-features = false }
 
+# The standard's Dylint lints, which `just lints` runs on this repository.
+[workspace.metadata.dylint]
+libraries = [{ path = "lints" }]
+
 # Every lint warns, and `just lint` passes `-D warnings`: a module that needs
 # `unsafe` expects `unsafe_code`, which `forbid` wouldn't allow.
 [workspace.lints.rust]
