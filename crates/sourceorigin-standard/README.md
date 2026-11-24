@@ -212,6 +212,12 @@ check: a deviation in `standard.toml`, or a change to the check here.
   added by one of the `approvers` after the latest push, a force-push
   included: a later push needs it added again. The job's summary lists
   every exception, approved or not.
+- `frozen-files`: a file matching a glob of `frozen-files` that exists on
+  the base branch, such as an applied migration, is not modified, renamed
+  or deleted, and a new one starts with a comment saying what it changes. A
+  deliberate change to an existing one needs the same approval as a lint
+  exception. Only a pull request can check this: on `main` there is
+  nothing to compare with.
 
 A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
 this repository's `main`, with the crate's version in the comment. It runs
@@ -264,6 +270,8 @@ approvers = ["PiquelChips"]
 # `false` only reports exceptions, as a repository adopting the check
 # starts; `true` by default.
 enforce-lint-exceptions = true
+# The files that never change once on the base branch.
+frozen-files = ["crates/*/migrations/*.sql"]
 
 # The checks the repository departs from, each with its reason: their
 # findings pass as notices.

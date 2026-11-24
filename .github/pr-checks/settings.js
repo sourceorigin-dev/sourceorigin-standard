@@ -20,6 +20,7 @@ class Settings {
     'issue-prefix': { read: 'string', default: '#' },
     approvers: { read: 'strings', default: [] },
     'enforce-lint-exceptions': { read: 'boolean', default: true },
+    'frozen-files': { read: 'strings', default: [] },
   };
 
   /** Reads `text`, a standard.toml or `null` for none; `known` are the

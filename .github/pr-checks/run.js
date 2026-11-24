@@ -18,6 +18,7 @@ class Runner {
     require('./fix-has-test.js'),
     require('./new-dependency.js'),
     require('./lint-exceptions.js'),
+    require('./frozen-files.js'),
   ];
 
   /** Runs the check named in `CHECK`, with the settings of the pull
