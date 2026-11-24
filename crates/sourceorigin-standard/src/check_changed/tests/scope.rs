@@ -21,6 +21,7 @@ fn package(dir: &str, dependencies: &[&str], library: bool) -> Package {
             .iter()
             .map(|name| Dependency {
                 name: (*name).to_owned(),
+                kind: None,
             })
             .collect(),
         targets: vec![Target {
