@@ -18,6 +18,7 @@ mod config_syntax;
 mod deny_config;
 mod fix;
 mod generated_lints;
+mod job_timeouts;
 mod justfile;
 mod layout;
 mod level;
@@ -245,6 +246,9 @@ rules! {
     /// Every workflow's top-level `permissions` is exactly
     /// `contents: read`, or `{}`; a job that needs more sets its own.
     WorkflowPermissions = "workflow-permissions" => workflow_permissions,
+    /// Every job of a workflow sets `timeout-minutes`, except one calling a
+    /// reusable workflow.
+    JobTimeouts = "job-timeouts" => job_timeouts,
 }
 
 /// Why the rules couldn't be checked.
