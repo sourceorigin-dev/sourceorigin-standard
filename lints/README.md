@@ -11,6 +11,7 @@ and how to challenge the lint when it is wrong.
 | [`string_literal_logic`](src/string_literal_logic.rs) | comparing or matching a value against a string literal or constant outside parsing, display and tests |
 | [`error_source_not_marked`](src/error_source_not_marked.rs) | an error field of a `thiserror` type that isn't `#[source]` or `#[from]` |
 | [`error_logged_with_debug`](src/error_logged_with_debug.rs) | an error a `tracing` event formats through `Debug` (`?error`, `{error:?}`) |
+| [`free_fn_with_owner`](src/free_fn_with_owner.rs) | a free function whose first parameter is a type of the crate, which should be its method |
 
 ## In a repository
 

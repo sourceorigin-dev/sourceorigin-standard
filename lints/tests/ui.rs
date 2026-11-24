@@ -9,6 +9,7 @@ const LINTS: &[&str] = &[
     "string_literal_logic",
     "error_source_not_marked",
     "error_logged_with_debug",
+    "free_fn_with_owner",
 ];
 
 /// The test of `lint` on the example `example`.
@@ -40,6 +41,7 @@ lints!(
     string_literal_logic,
     error_source_not_marked,
     error_logged_with_debug,
+    free_fn_with_owner,
 );
 
 #[test]

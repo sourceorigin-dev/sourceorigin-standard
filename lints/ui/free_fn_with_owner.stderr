@@ -1,0 +1,39 @@
+warning: `by_value` takes `Account` first but isn't its method
+  --> $DIR/free_fn_with_owner.rs:17:4
+   |
+LL | fn by_value(account: Account) -> u64 {
+   |    ^^^^^^^^
+   |
+   = help: make it a method in `impl Account`, taking `self` in the first parameter's place
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(free_fn_with_owner, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(free_fn_with_owner)]` on by default
+
+warning: `by_ref` takes `Account` first but isn't its method
+  --> $DIR/free_fn_with_owner.rs:21:4
+   |
+LL | fn by_ref(account: &Account, extra: u64) -> u64 {
+   |    ^^^^^^
+   |
+   = help: make it a method in `impl Account`, taking `self` in the first parameter's place
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(free_fn_with_owner, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `by_mut` takes `Account` first but isn't its method
+  --> $DIR/free_fn_with_owner.rs:25:4
+   |
+LL | fn by_mut(account: &mut Account) {
+   |    ^^^^^^
+   |
+   = help: make it a method in `impl Account`, taking `self` in the first parameter's place
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(free_fn_with_owner, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: `boxed` takes `Plan` first but isn't its method
+  --> $DIR/free_fn_with_owner.rs:29:4
+   |
+LL | fn boxed(plan: Box<Plan>) -> bool {
+   |    ^^^^^
+   |
+   = help: make it a method in `impl Plan`, taking `self` in the first parameter's place
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(free_fn_with_owner, reason = "..."))]`, or change the lint in sourceorigin-standard
+
+warning: 4 warnings emitted
+
