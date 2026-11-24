@@ -10,9 +10,11 @@ use crate::metadata::TargetKind;
 impl Repository {
     /// Each `mod.rs` whose directory holds no other Rust file, and the fix
     /// moving it to `foo.rs` when the move can't change what the module
-    /// reads. A `mod.rs` beside an integration test's, benchmark's or
-    /// example's root passes, since cargo would take `foo.rs` there for a
-    /// target of its own, and so does one under `src/bin`.
+    /// reads. A `mod.rs` whose inline tests `inline-tests` moves out keeps
+    /// them as its child. A `mod.rs` beside an integration test's,
+    /// benchmark's or example's root passes, since cargo would take
+    /// `foo.rs` there for a target of its own, and so does one under
+    /// `src/bin`.
     pub(super) fn childless_mod_rs(&self) -> Checked {
         let mut checked = Checked::default();
         for path in self.rust_files() {
@@ -25,7 +27,10 @@ impl Repository {
             };
             let has_child = self
                 .rust_files()
-                .any(|other| other != path && other.starts_with(dir));
+                .any(|other| other != path && other.starts_with(dir))
+                || self
+                    .oversized_tests()
+                    .any(|tests| tests.source.path == path);
             let shared = dir.ancestors().any(|dir| dir.ends_with("src/bin"))
                 || dir.parent().is_some_and(|up| {
                     self.metadata.holds_roots(

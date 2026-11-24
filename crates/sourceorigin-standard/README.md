@@ -69,6 +69,7 @@ A repository adopts the standard in five steps:
 - `docs-images`: Every image in a Markdown file, outside code and the skills synced from this crate, has alt text: `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
 - `wording`: No Markdown file but a synced skill's holds, as a word of its prose (not code, a link's destination, an HTML tag or a URL, nor part of a name such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling `standard.toml`'s `[wording]` rejects, such as `"Source Origin" = "SourceOrigin"`.
 - `childless-mod-rs`: A module is `foo/mod.rs` only when its directory holds another Rust file, parsed or not; otherwise it is `foo.rs`. A `mod.rs` beside an integration test's, benchmark's or example's root, such as `tests/common/mod.rs`, passes, and so does one under `src/bin`, where binaries share modules.
+- `inline-tests`: An inline `#[cfg(test)] mod … { }` at the top level of a file a target reaches outside test code spans fewer than 50 lines or at most 30% of the file's; a larger one is a file of its own, `mod tests;`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -162,7 +163,9 @@ piqueld = 2
   making a crate inherit the workspace's edition,
   setting a budget of `budget.toml` to what the crate holds, moving a
   childless `foo/mod.rs` to `foo.rs` when that can't change what it reads,
-  or removing a stale deviation or entry of one. It edits each
+  moving inline tests over their share of a file to a file of their own
+  (`cargo fmt` then reflows the lines a move made shorter), or removing a
+  stale deviation or entry of one. It edits each
   TOML file as a document, so its layout and comments stay. A deviation
   keeps it from fixing what its scope excuses, and two fixes that conflict
   on one file stop it before it changes anything.
