@@ -22,7 +22,7 @@ moves `rev`. It also declares the `dylint_lib` cfg its exceptions use:
 
 ```toml
 [workspace.metadata.dylint]
-libraries = [{ git = "https://github.com/sourceorigin-dev/sourceorigin-standard", rev = "<commit>", pattern = "lints" }]
+libraries = [{ git = "https://github.com/sourceorigin-dev/standard", rev = "<commit>", pattern = "lints" }]
 
 [workspace.lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(dylint_lib, values(any()))"] }

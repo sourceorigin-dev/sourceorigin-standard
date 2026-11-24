@@ -6,7 +6,7 @@ members = ["crates/*", "tools/*"]
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
-repository = "https://github.com/sourceorigin-dev/sourceorigin-standard"
+repository = "https://github.com/sourceorigin-dev/standard"
 
 [workspace.dependencies]
 sourceorigin-standard = { path = "crates/sourceorigin-standard", version = "0.1.0" }
