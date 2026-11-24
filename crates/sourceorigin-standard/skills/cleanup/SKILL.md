@@ -61,7 +61,7 @@ finish.
    Its message stands alone: the goal, the numbers, the scope and what to
    report. A thread that checks many sites reports a table of each site, its
    verdict and why. A rule the owner wants changed or deleted gets an issue
-   in sourceorigin-dev/sourceorigin-standard instead, since the rule lives
+   in sourceorigin-dev/standard instead, since the rule lives
    there.
 
 Changes that move code in many areas, such as file splits, merge before the
