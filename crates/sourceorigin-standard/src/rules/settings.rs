@@ -46,7 +46,7 @@ impl Value {
 
 impl TomlFile<Settings> {
     /// The setting `key`, with its line.
-    fn setting(&self, key: &str) -> Option<(usize, &toml::Value)> {
+    pub(super) fn setting(&self, key: &str) -> Option<(usize, &toml::Value)> {
         self.value
             .iter()
             .find(|(name, _)| name.get_ref() == key)

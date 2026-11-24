@@ -4,6 +4,7 @@ mod agent_files;
 mod agents_md;
 mod budget;
 mod cargo_locked;
+mod clippy_config;
 mod comments;
 mod config_comments;
 mod config_syntax;
@@ -111,7 +112,7 @@ self_named_module_files = \"warn\"
 
 /// The configuration files every fixture holds, as the standard has them,
 /// so a rule's fixes touch only what a test writes.
-const CONFIG: [(&str, &str); 3] = [
+const CONFIG: [(&str, &str); 4] = [
     (
         ".cargo/config.toml",
         "[alias]\nxtask = \"run --locked --package xtask --\"\n",
@@ -123,6 +124,10 @@ const CONFIG: [(&str, &str); 3] = [
     (
         "rustfmt.toml",
         "edition = \"2024\"\nnewline_style = \"Unix\"\nuse_field_init_shorthand = true\n",
+    ),
+    (
+        "clippy.toml",
+        "allow-expect-in-tests = true\nallow-panic-in-tests = true\nallow-dbg-in-tests = true\n",
     ),
 ];
 
