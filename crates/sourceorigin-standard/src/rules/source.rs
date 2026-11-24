@@ -42,7 +42,7 @@ impl Source {
     /// parse, and those that don't.
     pub(super) fn load_all(root: &Path) -> Result<(Vec<Self>, Vec<Unparsed>), Error> {
         let workspace = Workspace::new(root);
-        let paths = workspace.files("*.rs")?;
+        let paths = workspace.files(&["*.rs"])?;
         let generated = workspace.with_attribute("linguist-generated", &paths)?;
         let mut sources = Vec::new();
         let mut unparsed = Vec::new();
