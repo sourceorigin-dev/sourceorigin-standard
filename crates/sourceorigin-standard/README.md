@@ -4,6 +4,40 @@ The engineering standard of piqueld, sourceorigin and DirkEngine, as code.
 Each repository's `cargo xtask` depends on this crate and runs its checks, so
 a rule fails a check instead of living in prose that drifts.
 
+## The rules
+
+Each rule is a variant of [`Rule`], with a stable name and a doc saying what
+it enforces. [`rules::check`] runs every rule over the repository and returns
+its violations, each printed with its location, rule and fix, then how to
+challenge the rule: a deviation in the repository's `standard.toml`, or a
+change to the rule here, after asking the user. The
+repository's `cargo xtask standard` prints them and fails; `just standard`
+runs it, and so does a CI job on every change, since the rules read more
+than the Rust sources. [`rules::describe`] lists the rules with their docs as Markdown,
+which `cargo xtask standard rules` prints.
+
+A repository applies the standard in `standard.toml` at its root. Every key
+is optional, and a missing file means the defaults. An unknown key, or a
+rule name that doesn't exist, fails with the parser's message naming it.
+
+```toml
+# Rules the repository departs from, each with its reason: everywhere, or
+# only in the files `paths` matches and the crates `crates` names. A
+# deviation, or an entry of its scope, that excuses no violation is one.
+[deviations]
+rule-name = "why the repository departs from it everywhere"
+other-rule = { reason = "why", paths = ["crates/generated/**"], crates = ["vendored"] }
+
+[check-changed]
+# Crates that build another without depending on it, such as a build
+# script compiling a crate it embeds: a change to `built` reaches `builder`.
+builds = [{ builder = "daemon", built = "dashboard" }]
+```
+
+[`Rule`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/enum.Rule.html
+[`rules::check`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.check.html
+[`rules::describe`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/rules/fn.describe.html
+
 ## `check-changed`
 
 Runs CI's quick checks for only what changed since the merge base with
@@ -17,8 +51,8 @@ agent can hand work back without running the whole suite or guessing.
   `some-with-excludes`) of the workflow's paths-filter step.
 - It runs the recipes of each job the matched filters start. Recipes that
   take crates run on the crates the change touches and every crate depending
-  on them, from `cargo metadata`, plus any build edges the repository
-  declares. A path the filters cover but no crate owns, such as `Cargo.lock`,
+  on them, from `cargo metadata`, plus the `builds` edges of
+  `standard.toml`. A path the filters cover but no crate owns, such as `Cargo.lock`,
   widens them to the whole workspace.
 - It leaves slow jobs to CI and prints their commands, prints a summary of
   every check (passed, FAILED, skipped or left to CI, with the reason), and
@@ -43,15 +77,16 @@ included, call other `just` recipes than the table's. [`Ci::run`] checks the sam
 
 ## Wiring it into a repository's xtask
 
-The repository's `tools/xtask` depends on the crate from crates.io and
-describes its CI. Its jobs carry the keys `ci.yml` gives them, and each
+The repository's `tools/xtask` depends on the crate from crates.io, runs the
+rules, and describes its CI for `check-changed`. Its jobs carry the keys `ci.yml` gives them, and each
 filter its name in `.github/filters.yml`:
 
 ```rust,no_run
 use std::path::Path;
 use std::process::ExitCode;
 
-use sourceorigin_standard::check_changed::{self, Builds, Ci, DEFAULT_BASE, Job, Recipe, Run, Trigger};
+use sourceorigin_standard::check_changed::{self, Ci, DEFAULT_BASE, Job, Recipe, Run, Trigger};
+use sourceorigin_standard::rules;
 
 /// A filter of .github/filters.yml.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -113,19 +148,34 @@ const CI: Ci<Filter> = Ci {
     ],
     // The summary job, which runs no check.
     ignored: &["ci"],
-    // The daemon's build script compiles the dashboard it embeds.
-    builds: &[Builds { builder: "daemon", built: "dashboard" }],
 };
 
 fn root() -> &'static Path {
     Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
 }
 
+/// `cargo xtask standard`, `cargo xtask standard rules` and
 /// `cargo xtask check-changed [base]`. A real xtask parses its tasks with
-/// clap or by hand, and wraps the error with anyhow's context.
-fn main() -> Result<ExitCode, check_changed::Error> {
-    let base = std::env::args().nth(2);
-    CI.run(root(), base.as_deref().unwrap_or(DEFAULT_BASE))
+/// clap or by hand, and wraps errors with anyhow's context.
+fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
+        ["standard"] => {
+            let violations = rules::check(root())?;
+            for violation in &violations {
+                eprintln!("{violation}");
+            }
+            Ok(if violations.is_empty() { ExitCode::SUCCESS } else { ExitCode::FAILURE })
+        }
+        ["standard", "rules"] => {
+            print!("{}", rules::describe());
+            Ok(ExitCode::SUCCESS)
+        }
+        ["check-changed", base @ ..] => {
+            Ok(CI.run(root(), base.first().copied().unwrap_or(DEFAULT_BASE))?)
+        }
+        _ => Err("usage: cargo xtask (standard [rules] | check-changed [base])".into()),
+    }
 }
 
 /// Fails until the table and ci.yml change together.
@@ -135,9 +185,14 @@ fn ci_matches_the_workflow() {
 }
 ```
 
-Its justfile runs it as `just check-changed`:
+Its justfile runs the rules as `just standard`, which CI runs in a job of
+its own on every change, and `check-changed` as `just check-changed`:
 
 ```just
+# The standard's rules; `cargo xtask standard rules` lists them.
+standard:
+    @cargo xtask standard
+
 # CI's quick checks, for only what changed since the merge base with a branch.
 [positional-arguments]
 check-changed *ARGS:

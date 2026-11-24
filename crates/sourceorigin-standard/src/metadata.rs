@@ -5,45 +5,56 @@ use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
-use super::Error;
+use crate::CommandError;
 use crate::workspace::Workspace;
+
+/// Why `cargo metadata` couldn't describe the workspace.
+#[derive(Debug, thiserror::Error)]
+pub enum MetadataError {
+    /// It failed to run.
+    #[error(transparent)]
+    Command(#[from] CommandError),
+    /// Its output couldn't be parsed.
+    #[error("parse `cargo metadata`")]
+    Parse(#[source] serde_json::Error),
+}
 
 /// The workspace's crates, as `cargo metadata --no-deps` lists them.
 #[derive(Debug, Deserialize)]
-pub(super) struct Metadata {
-    pub(super) packages: Vec<Package>,
+pub(crate) struct Metadata {
+    pub(crate) packages: Vec<Package>,
     /// The workspace's root, which changed paths are relative to.
-    pub(super) workspace_root: PathBuf,
+    pub(crate) workspace_root: PathBuf,
 }
 
 /// A workspace crate.
 #[derive(Debug, Deserialize)]
-pub(super) struct Package {
-    pub(super) name: String,
-    pub(super) manifest_path: PathBuf,
+pub(crate) struct Package {
+    pub(crate) name: String,
+    pub(crate) manifest_path: PathBuf,
     /// Of every kind: normal, development and build.
-    pub(super) dependencies: Vec<Dependency>,
-    pub(super) targets: Vec<Target>,
+    pub(crate) dependencies: Vec<Dependency>,
+    pub(crate) targets: Vec<Target>,
 }
 
 /// A crate a package depends on, named as its package is.
 #[derive(Debug, Deserialize)]
-pub(super) struct Dependency {
-    pub(super) name: String,
+pub(crate) struct Dependency {
+    pub(crate) name: String,
 }
 
 /// A package's library, binary, test, example, benchmark or build script.
 #[derive(Debug, Deserialize)]
-pub(super) struct Target {
-    pub(super) kind: Vec<TargetKind>,
+pub(crate) struct Target {
+    pub(crate) kind: Vec<TargetKind>,
     /// Its root source file.
-    pub(super) src_path: PathBuf,
+    pub(crate) src_path: PathBuf,
 }
 
 /// What a target builds, as `cargo metadata` names it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub(super) enum TargetKind {
+pub(crate) enum TargetKind {
     Lib,
     Rlib,
     Dylib,
@@ -62,7 +73,7 @@ pub(super) enum TargetKind {
 
 impl TargetKind {
     /// Whether it is a library of any kind.
-    pub(super) fn is_library(self) -> bool {
+    pub(crate) fn is_library(self) -> bool {
         matches!(
             self,
             Self::Lib | Self::Rlib | Self::Dylib | Self::Cdylib | Self::Staticlib | Self::ProcMacro
@@ -72,16 +83,16 @@ impl TargetKind {
 
 impl Metadata {
     /// The workspace's metadata, from cargo.
-    pub(super) fn load(workspace: Workspace<'_>) -> Result<Self, Error> {
+    pub(crate) fn load(workspace: Workspace<'_>) -> Result<Self, MetadataError> {
         let json = workspace.output(
             "cargo",
             &["metadata", "--locked", "--no-deps", "--format-version", "1"],
         )?;
-        serde_json::from_str(&json).map_err(Error::Metadata)
+        serde_json::from_str(&json).map_err(MetadataError::Parse)
     }
 
     /// Whether the workspace has a crate named `name`.
-    pub(super) fn has(&self, name: &str) -> bool {
+    pub(crate) fn has(&self, name: &str) -> bool {
         self.packages.iter().any(|package| package.name == name)
     }
 
@@ -90,7 +101,7 @@ impl Metadata {
     /// contain another's. A crate at the root owns only the entries its
     /// targets live in, such as `src/` and `build.rs`: the rest of the root,
     /// such as `Cargo.lock`, is the whole workspace's.
-    pub(super) fn package_of(&self, path: &str) -> Option<&Package> {
+    pub(crate) fn package_of(&self, path: &str) -> Option<&Package> {
         let file = self.workspace_root.join(path);
         self.packages
             .iter()
@@ -122,7 +133,7 @@ impl Package {
     }
 
     /// Whether the crate has a library, which doc tests need.
-    pub(super) fn has_library(&self) -> bool {
+    pub(crate) fn has_library(&self) -> bool {
         self.targets
             .iter()
             .flat_map(|target| &target.kind)

@@ -13,7 +13,6 @@
 
 mod change;
 mod filters;
-mod metadata;
 #[cfg(test)]
 mod tests;
 mod workflow;
@@ -24,10 +23,11 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use crate::CommandError;
+use crate::config::{Builds, Config, ConfigError};
+use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
 use change::{Outcome, Scope, Step};
 use filters::Filters;
-use metadata::Metadata;
 use workflow::Workflow;
 
 /// The branch a change merges into, unless the developer names another.
@@ -56,10 +56,6 @@ pub struct Ci<F: 'static> {
     /// the `ci` summary job. Every job of `ci.yml` but `changes` is in
     /// `jobs` or here.
     pub ignored: &'static [&'static str],
-    /// Crates that build another without depending on it, which
-    /// `cargo metadata` doesn't show, such as a build script compiling a
-    /// crate it embeds.
-    pub builds: &'static [Builds],
 }
 
 /// A job of `.github/workflows/ci.yml`.
@@ -110,16 +106,6 @@ pub enum Run {
     /// Only in CI, for this reason, such as a slow job or a tool a developer
     /// may lack. `check-changed` prints the command.
     InCi(&'static str),
-}
-
-/// A crate that builds another without depending on it.
-#[derive(Clone, Copy, Debug)]
-pub struct Builds {
-    /// The crate that builds `built`, so a change reaching `built` reaches
-    /// it too.
-    pub builder: &'static str,
-    /// The crate it builds.
-    pub built: &'static str,
 }
 
 /// Why `check-changed` couldn't decide or run the checks.
@@ -211,12 +197,17 @@ pub enum Error {
         Drifts(.0)
     )]
     Drift(Vec<Drift>),
-    /// The table names a crate that isn't in the workspace.
-    #[error("the xtask's CI table names `{name}`, which is no workspace crate")]
+    /// The table or `standard.toml` names a crate that isn't in the
+    /// workspace.
+    #[error("the xtask's CI table or standard.toml names `{name}`, which is no workspace crate")]
     UnknownCrate {
         /// The crate's name.
-        name: &'static str,
+        name: String,
     },
+    /// `standard.toml`, which says which crates build others, couldn't be
+    /// loaded.
+    #[error(transparent)]
+    Config(#[from] ConfigError),
     /// The merge base with the branch couldn't be found, as when it hasn't
     /// been fetched.
     #[error("find the merge base of HEAD and {base}: fetch it, or name another branch")]
@@ -227,9 +218,9 @@ pub enum Error {
         #[source]
         source: CommandError,
     },
-    /// `cargo metadata`'s output couldn't be parsed.
-    #[error("parse `cargo metadata`")]
-    Metadata(#[source] serde_json::Error),
+    /// `cargo metadata` couldn't describe the workspace.
+    #[error(transparent)]
+    Metadata(#[from] MetadataError),
     /// A command failed.
     #[error(transparent)]
     Command(#[from] CommandError),
@@ -361,7 +352,8 @@ impl<F: Filter> Ci<F> {
             return Ok(ExitCode::SUCCESS);
         }
         let metadata = Metadata::load(workspace)?;
-        self.check_crates(&metadata)?;
+        let builds = Config::load(root)?.check_changed.builds;
+        self.check_crates(&metadata, &builds)?;
 
         let matched = filters.matching(&paths);
         let names: Vec<_> = matched.iter().map(|filter| filter.name()).collect();
@@ -380,7 +372,7 @@ impl<F: Filter> Ci<F> {
                 let covered = paths
                     .iter()
                     .filter(|path| job.trigger.covers(&filters, path));
-                Scope::new(&metadata, self.builds, covered)
+                Scope::new(&metadata, &builds, covered)
             });
             if let Some(scope) = &scope
                 && job.recipes.iter().any(|recipe| recipe.run.scoped())
@@ -507,8 +499,9 @@ impl<F: Filter> Ci<F> {
         drifts
     }
 
-    /// Checks that every crate the table names is in the workspace.
-    fn check_crates(&self, metadata: &Metadata) -> Result<(), Error> {
+    /// Checks that every crate the table and `builds` name is in the
+    /// workspace.
+    fn check_crates(&self, metadata: &Metadata, builds: &[Builds]) -> Result<(), Error> {
         let only = self
             .jobs
             .iter()
@@ -516,17 +509,15 @@ impl<F: Filter> Ci<F> {
             .flat_map(|recipe| match recipe.run {
                 Run::Only(names) => names,
                 Run::Workspace | Run::Crates { .. } | Run::InCi(_) => &[],
-            });
-        let builds = self
-            .builds
+            })
+            .copied();
+        let builds = builds
             .iter()
-            .flat_map(|builds| [builds.builder, builds.built]);
-        match only
-            .copied()
-            .chain(builds)
-            .find(|&name| !metadata.has(name))
-        {
-            Some(name) => Err(Error::UnknownCrate { name }),
+            .flat_map(|builds| [builds.builder.as_str(), builds.built.as_str()]);
+        match only.chain(builds).find(|&name| !metadata.has(name)) {
+            Some(name) => Err(Error::UnknownCrate {
+                name: name.to_owned(),
+            }),
             None => Ok(()),
         }
     }
