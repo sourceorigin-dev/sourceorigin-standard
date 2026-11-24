@@ -3,6 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
+use super::config_syntax::Unreadable;
 use super::{Error, Finding, Repository};
 use crate::config;
 use crate::workspace::Workspace;
@@ -26,20 +27,17 @@ pub(super) struct Commented {
 }
 
 impl Commented {
-    /// Every manifest, justfile and `.github` workflow under `root`.
-    pub(super) fn load_all(root: &Path) -> Result<Vec<Self>, Error> {
-        Workspace::new(root)
-            .files(&FILES)?
-            .into_iter()
-            .filter_map(|path| match std::fs::read_to_string(root.join(&path)) {
-                Ok(text) => Some(Ok(Self::of(PathBuf::from(path), &text))),
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-                Err(source) => Some(Err(Error::Read {
-                    path: PathBuf::from(path),
-                    source,
-                })),
-            })
-            .collect()
+    /// Every manifest, justfile and `.github` workflow under `root` that is
+    /// UTF-8 text; `unreadable` records the others.
+    pub(super) fn load_all(root: &Path, unreadable: &mut Unreadable) -> Result<Vec<Self>, Error> {
+        let mut commented = Vec::new();
+        for path in Workspace::new(root).files(&FILES)? {
+            let path = PathBuf::from(path);
+            if let Some(text) = unreadable.text(root, &path)? {
+                commented.push(Self::of(path, &text));
+            }
+        }
+        Ok(commented)
     }
 
     /// The comment blocks of `text`: lines starting with `#`, except a

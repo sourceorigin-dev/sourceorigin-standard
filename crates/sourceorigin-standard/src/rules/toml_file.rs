@@ -28,10 +28,8 @@ impl<T: DeserializeOwned> TomlFile<T> {
         unreadable: &mut Unreadable,
     ) -> Result<Option<Self>, Error> {
         let path = path.into();
-        let text = match std::fs::read_to_string(root.join(&path)) {
-            Ok(text) => text,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(source) => return Err(Error::Read { path, source }),
+        let Some(text) = unreadable.text(root, &path)? else {
+            return Ok(None);
         };
         match toml::from_str(&text) {
             Ok(value) => Ok(Some(Self { path, text, value })),

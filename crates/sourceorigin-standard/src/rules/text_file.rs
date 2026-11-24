@@ -25,19 +25,8 @@ impl TextFile {
         let mut files = Vec::new();
         for path in Workspace::new(root).files(pathspecs)? {
             let path = PathBuf::from(path);
-            let bytes = match std::fs::read(root.join(&path)) {
-                Ok(bytes) => bytes,
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-                Err(source) => return Err(Error::Read { path, source }),
-            };
-            match String::from_utf8(bytes) {
-                Ok(text) => files.push(Self { path, text }),
-                Err(error) => {
-                    let valid = &error.as_bytes()[..error.utf8_error().valid_up_to()];
-                    let line =
-                        std::str::from_utf8(valid).map_or(1, |valid| valid.split('\n').count());
-                    unreadable.record(path, line, "it isn't UTF-8 text".to_owned());
-                }
+            if let Some(text) = unreadable.text(root, &path)? {
+                files.push(Self { path, text });
             }
         }
         Ok(files)

@@ -12,8 +12,12 @@ const HEADINGS: [&str; 2] = ["## What and why", "## Testing"];
 
 impl Repository {
     /// Each required heading the template lacks, fixed by adding them at
-    /// the end, which writes a missing template.
+    /// the end, which writes a missing template; nothing for one that isn't
+    /// UTF-8 text, which is `config-syntax`'s.
     pub(super) fn pr_template(&self) -> Checked {
+        if self.unreadable.contains(PATH) {
+            return Checked::default();
+        }
         let text = self
             .pr_template
             .as_ref()

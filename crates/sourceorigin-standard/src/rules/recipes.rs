@@ -98,10 +98,11 @@ impl Repository {
     /// Each way the justfile breaks the standard, or a missing justfile;
     /// one `just` can't read is `config-syntax`'s.
     pub(super) fn recipes(&self) -> Vec<Finding> {
-        let exists = self
-            .justfiles
-            .iter()
-            .any(|file| file.path == Path::new(justfile::PATH));
+        let exists = self.unreadable.contains(justfile::PATH)
+            || self
+                .justfiles
+                .iter()
+                .any(|file| file.path == Path::new(justfile::PATH));
         let violations = match &self.justfile {
             Some(justfile) => justfile.violations(),
             None if exists => Vec::new(),

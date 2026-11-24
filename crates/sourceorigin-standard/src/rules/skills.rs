@@ -234,8 +234,13 @@ impl Synced {
 impl Repository {
     /// Each synced skill's file that differs from the crate's copy, is
     /// missing, or isn't the crate's, with its fix, and each directory of
-    /// the repository's own named for a skill the crate ships.
+    /// the repository's own named for a skill the crate ships. A file that
+    /// isn't UTF-8 text is `config-syntax`'s to report; its fix stays.
     pub(super) fn skills_synced(&self) -> Checked {
-        self.synced.checked()
+        let mut checked = self.synced.checked();
+        checked
+            .findings
+            .retain(|finding| !self.unreadable.contains(&finding.path.to_string_lossy()));
+        checked
     }
 }
