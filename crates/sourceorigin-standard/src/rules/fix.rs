@@ -318,13 +318,6 @@ impl Fix {
     }
 }
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "The rules stacked on this one make the first line, write, delete and move fixes."
-    )
-)]
 impl Fix {
     /// A fix replacing `lines` of `path`, from 1 and the end excluded, with
     /// `text`.

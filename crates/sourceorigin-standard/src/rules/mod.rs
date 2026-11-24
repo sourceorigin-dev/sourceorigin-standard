@@ -26,6 +26,7 @@ mod level;
 mod manifest;
 mod modules;
 mod nextest_config;
+mod pr_template;
 mod recipes;
 mod recipes_only;
 mod report;
@@ -260,6 +261,9 @@ rules! {
     /// A workflow runs `just audit` (or `cargo deny`) on a `schedule` at
     /// least weekly: a cron whose day of the month and month are `*`.
     ScheduledAudit = "scheduled-audit" => scheduled_audit,
+    /// `.github/pull_request_template.md` has the headings `## What and
+    /// why` and `## Testing`.
+    PrTemplate = "pr-template" => pr_template,
 }
 
 /// Why the rules couldn't be checked.
@@ -461,6 +465,8 @@ struct Repository {
     deny: Option<TomlFile<DenyConfig>>,
     /// The justfile, as `just` describes it.
     justfile: Option<Justfile>,
+    /// The pull request template.
+    pr_template: Option<TextFile>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -511,6 +517,7 @@ impl Repository {
             nextest: TomlFile::load_or_empty(root, nextest_config::PATH, &mut unreadable)?,
             deny: TomlFile::load(root, deny_config::PATH, &mut unreadable)?,
             justfile: Justfile::load(root),
+            pr_template: TextFile::load_all(root, &[pr_template::PATH], &mut unreadable)?.pop(),
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
