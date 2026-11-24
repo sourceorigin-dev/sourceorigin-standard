@@ -5,6 +5,7 @@ mod agents_md;
 mod anyhow_edges;
 mod budget;
 mod cargo_locked;
+mod ci_shape;
 mod clippy_config;
 mod comments;
 mod config_comments;
