@@ -29,6 +29,7 @@ mod pr_template;
 mod recipes;
 mod recipes_only;
 mod report;
+mod route_literals;
 mod rustfmt_config;
 mod scheduled_audit;
 mod t3_setup;

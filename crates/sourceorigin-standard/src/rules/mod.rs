@@ -37,6 +37,7 @@ mod pr_template;
 mod recipes;
 mod recipes_only;
 mod report;
+mod route_literals;
 mod rustfmt_config;
 mod scheduled_audit;
 mod settings;
@@ -311,6 +312,13 @@ rules! {
     /// lists, invokes no `json!`: it serializes structs. Each name there is
     /// a workspace crate.
     NoJsonMacro = "no-json-macro" => no_json_macro,
+    /// When `standard.toml`'s `route-modules` lists modules, such as
+    /// `my_app::routes`, code outside them, tests and examples passes no
+    /// string literal starting with `/` to `Router::route`, `route_service`,
+    /// `nest` or `nest_service`, or to a `Redirect` constructor: it uses the
+    /// paths those modules name. Each listed module is a file of a library
+    /// or binary.
+    RouteLiterals = "route-literals" => route_literals,
 }
 
 /// Why the rules couldn't be checked.

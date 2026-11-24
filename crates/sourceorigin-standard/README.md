@@ -72,6 +72,7 @@ A repository adopts the standard in five steps:
 - `inline-tests`: An inline `#[cfg(test)] mod … { }` (or one whose `cfg` requires a feature named for tests) at the top level of a file a target reaches outside test code spans fewer than 50 lines or at most 30% of the file's; a larger one is a file of its own, `mod tests;`.
 - `inline-limits`: `Duration::from_*` with a number, or arithmetic on numbers, sits only in a `const` or `static` item, a `const fn` or test code: a limit, timeout or size is a named constant. Test code is what a test attribute such as `#[tokio::test]`, or a `cfg` requiring `test` or a feature named for tests (`test-util`), marks, the files such a module declares, and integration tests and benchmarks.
 - `no-json-macro`: Code outside tests, in the crates `standard.toml`'s `no-json-macro` lists, invokes no `json!`: it serializes structs. Each name there is a workspace crate.
+- `route-literals`: When `standard.toml`'s `route-modules` lists modules, such as `my_app::routes`, code outside them, tests and examples passes no string literal starting with `/` to `Router::route`, `route_service`, `nest` or `nest_service`, or to a `Redirect` constructor: it uses the paths those modules name. Each listed module is a file of a library or binary.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -100,6 +101,10 @@ cargo-in-ci = ["cargo +1.85 check --locked --workspace"]
 # The crates whose code outside tests serializes structs instead of invoking
 # `json!`.
 no-json-macro = ["my_protocol"]
+
+# The modules that name the HTTP paths routers and redirects use; code
+# elsewhere passes them no `/…` literal. Unset, paths aren't checked.
+route-modules = ["my_app::routes"]
 
 # Rules the repository departs from, each with its reason: everywhere, or
 # only in the files `paths` matches and the crates `crates` names. A

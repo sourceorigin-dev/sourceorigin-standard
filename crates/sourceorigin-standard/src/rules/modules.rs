@@ -19,12 +19,22 @@ use crate::metadata::{Metadata, TargetKind};
 #[derive(Debug, Default)]
 pub(super) struct Modules {
     paths: BTreeMap<PathBuf, Vec<Vec<String>>>,
-    /// The files some target reaches other than as test code: outside an
-    /// integration test or benchmark, and not through a `#[cfg(test)]`
-    /// module.
-    not_test: BTreeSet<PathBuf>,
+    /// What each file is to the targets reaching it.
+    codes: BTreeMap<PathBuf, BTreeSet<Code>>,
     /// The files a `mod` item's `#[path]` names, which moving would break.
     named: BTreeSet<PathBuf>,
+}
+
+/// What a file is to a target reaching it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Code {
+    /// Part of a library, binary or build script.
+    Production,
+    /// Part of an integration test or benchmark, or behind a module whose
+    /// `cfg` holds only in tests.
+    Test,
+    /// Part of an example.
+    Example,
 }
 
 /// Where a walk over `mod` items is.
@@ -36,8 +46,8 @@ struct Place<'a> {
     dir: &'a Path,
     /// Whether they are inside a `mod { … }`.
     inline: bool,
-    /// Whether they are test code.
-    test: bool,
+    /// What they are to the target.
+    code: Code,
 }
 
 impl Modules {
@@ -57,12 +67,19 @@ impl Modules {
             let Ok(root) = target.src_path.strip_prefix(&metadata.workspace_root) else {
                 continue;
             };
-            let test = target
+            let code = if target
                 .kind
                 .iter()
-                .all(|kind| matches!(kind, TargetKind::Test | TargetKind::Bench));
+                .all(|kind| matches!(kind, TargetKind::Test | TargetKind::Bench))
+            {
+                Code::Test
+            } else if target.kind.contains(&TargetKind::Example) {
+                Code::Example
+            } else {
+                Code::Production
+            };
             let module = [target.name.replace('-', "_")];
-            modules.walk(&sources, root, &module, &Self::child_dir(root, true), test);
+            modules.walk(&sources, root, &module, &Self::child_dir(root, true), code);
         }
         modules
     }
@@ -84,7 +101,19 @@ impl Modules {
     /// holds only in tests, such as `#[cfg(test)]`, declares it or a module
     /// above it.
     pub(super) fn is_test(&self, path: &Path) -> bool {
-        self.paths.contains_key(path) && !self.not_test.contains(path)
+        self.only(path, Code::Test)
+    }
+
+    /// Whether only examples reach `path`.
+    pub(super) fn is_example(&self, path: &Path) -> bool {
+        self.only(path, Code::Example)
+    }
+
+    /// Whether some target reaches `path`, and every one as `code`.
+    fn only(&self, path: &Path, code: Code) -> bool {
+        self.codes
+            .get(path)
+            .is_some_and(|codes| codes.iter().all(|&reached| reached == code))
     }
 
     /// The directory the child modules of `file` live in: a target's
@@ -98,21 +127,19 @@ impl Modules {
     }
 
     /// Records `file` as `module`, whose child modules' files live in
-    /// `dir`, test code when `test`, and walks its `mod` items.
+    /// `dir`, which is `code` to its target, and walks its `mod` items.
     fn walk(
         &mut self,
         sources: &BTreeMap<&Path, &Source>,
         file: &Path,
         module: &[String],
         dir: &Path,
-        test: bool,
+        code: Code,
     ) {
         let Some(source) = sources.get(file) else {
             return;
         };
-        if !test {
-            self.not_test.insert(file.to_owned());
-        }
+        self.codes.entry(file.to_owned()).or_default().insert(code);
         let paths = self.paths.entry(file.to_owned()).or_default();
         if paths.iter().any(|path| path == module) {
             return;
@@ -122,7 +149,7 @@ impl Modules {
             file,
             dir,
             inline: false,
-            test,
+            code,
         };
         self.items(sources, &source.syntax.items, module, &place);
     }
@@ -142,13 +169,17 @@ impl Modules {
             let name = item.ident.to_string();
             let mut child = module.to_vec();
             child.push(name.clone());
-            let test = place.test || item.attrs.cfg_test();
+            let code = if item.attrs.cfg_test() {
+                Code::Test
+            } else {
+                place.code
+            };
             let dir = place.dir;
             if let Some((_, items)) = &item.content {
                 let inner = Place {
                     dir: &dir.join(&name),
                     inline: true,
-                    test,
+                    code,
                     ..*place
                 };
                 self.items(sources, items, &child, &inner);
@@ -182,7 +213,7 @@ impl Modules {
                     &found,
                     &child,
                     &Self::child_dir(&found, false),
-                    test,
+                    code,
                 );
             }
         }
