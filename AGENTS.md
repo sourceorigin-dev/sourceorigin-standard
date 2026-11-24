@@ -63,7 +63,9 @@ against the standard's rules (`cargo xtask standard rules` lists them), with
 `standard.toml` holding how a repository applies them; CI runs it on every
 change. A new rule is a
 variant of `Rule` in `crates/sourceorigin-standard/src/rules/mod.rs`, whose
-doc comment is the rule's text, and a method on its `Repository`.
+doc comment is the rule's text, and a method on its `Repository`; `just
+readme` then writes the rules into the crate's README, which is the written
+standard, and a test fails until it does.
 
 `tools/xtask/src/ci.rs` describes `.github/workflows/ci.yml` for
 `check-changed`: change the two together, as its `ci_matches_the_workflow`
