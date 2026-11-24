@@ -1,14 +1,10 @@
-//! `check-changed`: the checks CI's quick jobs run, for only what changed
-//! since the merge base with a branch, counting uncommitted and untracked
-//! files.
+//! `check-changed`: CI's quick checks, for only what changed since the
+//! merge base with a branch, counting uncommitted and untracked files.
 //!
 //! A repository describes its CI as a [`Ci`] table: each job of
 //! `.github/workflows/ci.yml`, the [`Filter`]s of `.github/filters.yml` that
-//! start it, and the [`Recipe`]s it runs. [`Ci::run`] matches the changed
-//! paths against the filters as CI's `changes` job does with
-//! dorny/paths-filter, runs the recipes of each job they start, narrowing
-//! those that take crates to the changed crates and the crates depending on
-//! them, names the ones it leaves to CI, and prints a summary.
+//! start it, and the [`Recipe`]s it runs. [`Ci::run`] runs the recipes of the
+//! jobs the changed paths start, narrowed to the crates they reach, and
 //! [`Ci::check_workflow`] fails when the table and `ci.yml` disagree.
 
 mod change;
@@ -333,16 +329,13 @@ impl<T: fmt::Display> fmt::Display for Names<'_, T> {
 
 impl<F: Filter> Ci<F> {
     /// Runs the checks the change since the merge base of HEAD and `base`
-    /// needs, from `root`, the repository's root, and prints each step and
-    /// a summary. It fails with [`ExitCode::FAILURE`] when a check failed,
-    /// and with an [`Error`] when it couldn't decide which to run, as when
-    /// the table and the workflow disagree.
+    /// needs, from `root`, the repository's root, printing each step and a
+    /// summary, and returns [`ExitCode::FAILURE`] when a check failed.
     ///
     /// # Errors
     ///
     /// When a file it reads is missing or malformed, the table and the
-    /// workflow disagree ([`Error::Drift`]), git can't find the merge base,
-    /// or a command can't start.
+    /// workflow disagree ([`Error::Drift`]), or a command can't run.
     pub fn run(&self, root: &Path, base: &str) -> Result<ExitCode, Error> {
         let filters = self.load(root)?;
         let workspace = Workspace::new(root);
@@ -408,18 +401,15 @@ impl<F: Filter> Ci<F> {
         )
     }
 
-    /// Checks the table against `.github/workflows/ci.yml` and
-    /// `.github/filters.yml` under `root`: every job of the table is in the
-    /// workflow, whose `if:` reads the `changes` outputs of exactly the
-    /// filters its trigger names; every job reading those outputs is in the
-    /// table; and the filters file names exactly the [`Filter`]s. A
-    /// repository calls it from a unit test, so CI fails until the two
-    /// change together. [`Ci::run`] checks it too.
+    /// Checks the table against `ci.yml` and `filters.yml` under `root`:
+    /// each job of either is in the other, its `if:` reads the `changes`
+    /// outputs of exactly the filters its trigger names, and the filters
+    /// file names exactly the [`Filter`]s. A repository calls it from a unit
+    /// test; [`Ci::run`] checks it too.
     ///
     /// # Errors
     ///
-    /// [`Error::Drift`] listing every disagreement, or the error that kept
-    /// either file from loading.
+    /// [`Error::Drift`] listing every disagreement, or a file's load error.
     pub fn check_workflow(&self, root: &Path) -> Result<(), Error> {
         self.load(root).map(drop)
     }

@@ -110,9 +110,9 @@ fn a_path_in_no_crate_reaches_the_workspace() {
     );
 }
 
+/// As DirkEngine's binary, whose directory is the workspace's.
 #[test]
 fn a_crate_at_the_root_owns_only_its_targets_entries() {
-    // As DirkEngine's binary, whose directory is the workspace's.
     let workspace = metadata(vec![
         package("", &["engine"], false),
         package("crates/engine", &[], true),

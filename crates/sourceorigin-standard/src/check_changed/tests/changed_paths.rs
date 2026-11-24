@@ -2,6 +2,8 @@ use super::paths;
 use crate::testing::Repository;
 use crate::workspace::Workspace;
 
+/// Committed, renamed, staged, unstaged and untracked files count; ignored
+/// files and a later commit on main don't.
 #[test]
 fn changed_paths_count_every_change_since_the_merge_base() {
     let repository = Repository::new();
@@ -11,7 +13,6 @@ fn changed_paths_count_every_change_since_the_merge_base() {
     repository.write(".gitignore", "ignored\n");
     repository.git(&["add", "."]);
     repository.git(&["commit", "--quiet", "--message=base"]);
-    // A later commit on main isn't part of the change.
     repository.write("on-main", "on-main");
     repository.git(&["add", "on-main"]);
     repository.git(&["commit", "--quiet", "--message=main"]);

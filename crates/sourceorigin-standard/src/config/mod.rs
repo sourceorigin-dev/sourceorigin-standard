@@ -74,6 +74,23 @@ pub(crate) struct Config {
     pub(crate) check_changed: CheckChanged,
     /// The modules that may expect `unsafe_code`, such as `my_crate::ffi`.
     pub(crate) unsafe_modules: Vec<Listed>,
+    /// The `[comments]` table.
+    pub(crate) comments: Comments,
+}
+
+/// The `[comments]` table: what comments the rules allow.
+#[derive(Debug, Deserialize)]
+#[serde(default, deny_unknown_fields, rename_all = "kebab-case")]
+pub(crate) struct Comments {
+    /// The most lines an item's docs may span.
+    pub(crate) doc_lines: usize,
+}
+
+impl Default for Comments {
+    /// Docs of 10 lines: piqueld's and sourceorigin's 99th percentile.
+    fn default() -> Self {
+        Self { doc_lines: 10 }
+    }
 }
 
 /// A rule the repository departs from on purpose, everywhere or only in
@@ -190,6 +207,7 @@ struct File {
     deviations: BTreeMap<Spanned<Rule>, Written>,
     check_changed: CheckChanged,
     unsafe_modules: Vec<Spanned<String>>,
+    comments: Comments,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -317,6 +335,7 @@ impl Config {
             deviations,
             check_changed: file.check_changed,
             unsafe_modules: listed(file.unsafe_modules),
+            comments: file.comments,
         })
     }
 

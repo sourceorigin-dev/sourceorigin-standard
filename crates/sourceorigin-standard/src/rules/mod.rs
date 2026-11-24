@@ -5,6 +5,7 @@
 //! their docs.
 
 mod budget;
+mod comments;
 mod generated_lints;
 mod level;
 mod modules;
@@ -90,6 +91,15 @@ rules! {
     /// attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or
     /// outer): their exceptions sit on their `mod` declaration.
     GeneratedLints = "generated-lints" => generated_lints,
+    /// Rust files that aren't generated hold only doc comments (`///`,
+    /// `//!`) and `// SAFETY:` comments; any other `//` or `/* */` comment
+    /// fails.
+    RustComments = "rust-comments" => rust_comments,
+    /// The prose of each item's or module's docs, in a file that isn't
+    /// generated, spans at most `standard.toml`'s `[comments] doc-lines`
+    /// lines (10 by default). Code blocks and a crate root's `//!` docs
+    /// don't count.
+    DocLength = "doc-length" => doc_length,
 }
 
 /// Why the rules couldn't be checked.
