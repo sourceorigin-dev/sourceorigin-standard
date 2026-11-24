@@ -24,6 +24,7 @@ fn package(dir: &str, dependencies: &[&str], library: bool) -> Package {
             })
             .collect(),
         targets: vec![Target {
+            name: name.to_owned(),
             kind: vec![if library {
                 TargetKind::Lib
             } else {
