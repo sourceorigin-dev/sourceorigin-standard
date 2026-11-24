@@ -8,6 +8,7 @@ const LINTS: &[&str] = &[
     "wildcard_enum_local",
     "string_literal_logic",
     "error_source_not_marked",
+    "error_logged_with_debug",
 ];
 
 /// The test of `lint` on the example `example`.
@@ -38,4 +39,15 @@ lints!(
     wildcard_enum_local,
     string_literal_logic,
     error_source_not_marked,
+    error_logged_with_debug,
 );
+
+#[test]
+fn error_logged_with_debug_configured() {
+    ui(
+        "error_logged_with_debug",
+        "error_logged_with_debug_configured",
+    )
+    .dylint_toml("[error_logged_with_debug]\nchain_helper = \"ErrorChain\"")
+    .run();
+}

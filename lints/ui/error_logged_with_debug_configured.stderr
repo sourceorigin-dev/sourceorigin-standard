@@ -1,0 +1,12 @@
+warning: this error is logged through `Debug`
+  --> $DIR/error_logged_with_debug_configured.rs:4:5
+   |
+LL |     tracing::error!(?error, "read failed");
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: log it through `Display` with `%ErrorChain(&error)`, which prints its source chain
+   = note: if the lint is wrong here, say why with `#[cfg_attr(dylint_lib = "standard_lints", expect(error_logged_with_debug, reason = "..."))]`, or change the lint in sourceorigin-standard
+   = note: `#[warn(error_logged_with_debug)]` on by default
+
+warning: 1 warning emitted
+
