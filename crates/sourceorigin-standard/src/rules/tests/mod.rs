@@ -24,6 +24,7 @@ mod rustfmt_config;
 mod t3_setup;
 mod toolchain;
 mod unsafe_modules;
+mod workflow_permissions;
 mod workspace_dependencies;
 mod workspace_lints;
 mod workspace_manifest;
