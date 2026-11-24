@@ -29,6 +29,7 @@ mod rustfmt_config;
 mod settings;
 mod source;
 mod t3;
+mod t3_setup;
 #[cfg(test)]
 mod tests;
 mod text_file;
@@ -224,6 +225,11 @@ rules! {
     /// `standard.toml`'s `cargo-in-ci` lists it; each listed line is one a
     /// `run:` holds.
     RecipesOnly = "recipes-only" => recipes_only,
+    /// A recipe `t3.json` runs on worktree creation that runs Cargo, itself
+    /// or through the recipes it runs, sets `CARGO_BUILD_JOBS` to a
+    /// default, half the cores, that a set one overrides, and runs the build
+    /// with `nice -n 10`, both in its own body.
+    T3Setup = "t3-setup" => t3_setup,
 }
 
 /// Why the rules couldn't be checked.
