@@ -40,6 +40,7 @@ A repository adopts the standard in four steps:
 - `config-comments`: In every `Cargo.toml`, justfile (and `*.just`) and `.github` YAML file, each block of `#` comment lines spans at most `standard.toml`'s `[comments] block-lines` (6 by default), and the file holds at most `[comments] file-lines` comment lines (40 by default).
 - `workspace-manifest`: The root manifest's `[workspace]` sets `resolver = "3"`, its `[workspace.package]` sets `edition = "2024"`, and every workspace crate inherits it with `edition.workspace = true`.
 - `layout`: Every workspace crate lives under `crates/`, `apps/` or `tools/`, the `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases `cargo xtask` to `run --locked --package xtask --`.
+- `cargo-locked`: Every `cargo build`, `check`, `clippy`, `doc`, `llvm-cov`, `nextest`, `publish`, `run` and `test` run by a justfile's recipe (and a `*.just` file's), a workflow's or composite action's `run:`, or a `t3.json` command passes `--locked` (or `--frozen`). Cargo runs only as a command word, after any `NAME=value`, `env`, `exec`, `time` or `nice -n N`; quoted text and a heredoc's body are no command, and a folded `run: >` block is one.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and

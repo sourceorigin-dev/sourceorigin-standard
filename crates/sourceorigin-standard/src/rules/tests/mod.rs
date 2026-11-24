@@ -1,6 +1,7 @@
 //! A fixture workspace the rules check, shared by the tests of each rule.
 
 mod budget;
+mod cargo_locked;
 mod comments;
 mod config_comments;
 mod config_syntax;
