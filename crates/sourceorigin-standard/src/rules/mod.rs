@@ -18,6 +18,8 @@ mod level;
 mod manifest;
 mod modules;
 mod report;
+mod rustfmt_config;
+mod settings;
 mod source;
 mod t3;
 #[cfg(test)]
@@ -48,6 +50,7 @@ use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
+use settings::Settings;
 use source::{Source, Unparsed};
 use t3::T3;
 use text_file::TextFile;
@@ -172,6 +175,9 @@ rules! {
     /// `rust-toolchain.toml` pins `channel = "stable"` and installs at
     /// least the `rustfmt` and `clippy` components.
     Toolchain = "toolchain" => toolchain,
+    /// `rustfmt.toml` sets `edition = "2024"`, `newline_style = "Unix"` and
+    /// `use_field_init_shorthand = true`.
+    RustfmtConfig = "rustfmt-config" => rustfmt_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -360,6 +366,9 @@ struct Repository {
     agent_files: AgentFiles,
     /// `rust-toolchain.toml`.
     toolchain: Option<TomlFile<ToolchainFile>>,
+    /// `rustfmt.toml`, empty when missing, and `None` when it doesn't
+    /// parse.
+    rustfmt: Option<TomlFile<Settings>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -405,6 +414,7 @@ impl Repository {
             t3: T3::load(root, &mut unreadable)?,
             agent_files: AgentFiles::load(root, &mut unreadable)?,
             toolchain: TomlFile::load(root, toolchain::PATH, &mut unreadable)?,
+            rustfmt: TomlFile::load_or_empty(root, rustfmt_config::PATH, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,

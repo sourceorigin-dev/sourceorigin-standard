@@ -12,6 +12,7 @@ mod framework;
 mod generated_lints;
 mod layout;
 mod report;
+mod rustfmt_config;
 mod toolchain;
 mod unsafe_modules;
 mod workspace_lints;
@@ -110,7 +111,7 @@ self_named_module_files = \"warn\"
 
 /// The configuration files every fixture holds, as the standard has them,
 /// so a rule's fixes touch only what a test writes.
-const CONFIG: [(&str, &str); 2] = [
+const CONFIG: [(&str, &str); 3] = [
     (
         ".cargo/config.toml",
         "[alias]\nxtask = \"run --locked --package xtask --\"\n",
@@ -118,6 +119,10 @@ const CONFIG: [(&str, &str); 2] = [
     (
         "rust-toolchain.toml",
         "[toolchain]\nchannel = \"stable\"\ncomponents = [\"rustfmt\", \"clippy\"]\n",
+    ),
+    (
+        "rustfmt.toml",
+        "edition = \"2024\"\nnewline_style = \"Unix\"\nuse_field_init_shorthand = true\n",
     ),
 ];
 
