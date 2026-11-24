@@ -33,7 +33,7 @@ A repository adopts the standard in four steps:
 - `rust-syntax`: Every Rust file git tracks or would track parses as Rust.
 - `config-syntax`: The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`, `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`, `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse, and `just --dump` reads the justfile. When `cargo metadata` can't read the workspace, the file it names is the only violation.
 - `unsafe-modules`: `#[expect(unsafe_code, …)]` sits only inside the modules `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or `build_script_build` (a target's root module is its crate's name), and every listed module holds one.
-- `budget`: Each crate holds at most as many `#[expect]` attributes (inner, outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table gives it, and at most as many lines starting `// INVARIANT:` as its `[invariant]` table does; none for a crate a table doesn't list. Each name there is a workspace crate.
+- `budget`: Each crate's `#[expect]` lints (each lint an `#[expect]` names, inner, outer, through `cfg_attr` or in a `macro_rules!` body) number exactly what `budget.toml`'s `[expect]` table gives it, and its lines starting `// INVARIANT:` exactly what `[invariant]` does, in the files its targets reach; each manifest's lints set to `allow` number what `[allow]` gives its path. Zero for one a table doesn't list. The crates of other workspaces in the repository count too, but not a Dylint library's UI cases, which are test fixtures.
 - `generated-lints`: Rust files `.gitattributes` marks `linguist-generated` contain no lint attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or outer): their exceptions sit on their `mod` declaration.
 - `rust-comments`: Rust files that aren't generated hold only doc comments (`///`, `//!`), `// SAFETY:` comments and `// INVARIANT:` comments; any other `//` or `/* */` comment fails.
 - `doc-length`: The prose of each item's or module's docs, in a file that isn't generated, spans at most `standard.toml`'s `[comments] doc-lines` lines (10 by default). Code blocks and a crate root's `//!` docs don't count.
@@ -77,11 +77,17 @@ file-lines = 40
 builds = [{ builder = "daemon", built = "dashboard" }]
 ```
 
-`budget.toml`, beside it, holds each crate's ceiling of `#[expect]`
-attributes and of `// INVARIANT:` comments, which state a fact the code
-relies on that neither the types nor a test can hold. More than the ceiling
-fails; fewer passes. Only raising a ceiling needs the owner's review,
-through `CODEOWNERS`. A crate a table doesn't list may have none:
+`budget.toml`, beside it, holds each crate's number of `#[expect]` lints
+(an `#[expect(a, b)]` counts two) and of `// INVARIANT:` lines, which state
+a fact the code relies on that neither the types nor a test can hold, in
+the files its targets reach, a crate of another workspace in the repository
+(such as one on its own toolchain) included, but not a Dylint library's UI
+cases, whose `#[expect]`s are what they test. It also holds each manifest's
+number of lints set to `allow`, by its path. Each count must equal its
+budget: more fails until the number is raised, which the owner reviews
+through `CODEOWNERS`, and fewer fails until it is lowered, which `--fix`
+does with no approval needed. So every new exception shows as a raised
+number. A crate or manifest a table doesn't list has none:
 
 ```toml
 [expect]
@@ -90,6 +96,9 @@ piquelctl = 1
 
 [invariant]
 piqueld = 2
+
+[allow]
+"Cargo.toml" = 1
 ```
 
 ## Commands
@@ -101,7 +110,7 @@ piqueld = 2
 - `cargo xtask standard --fix` first runs [`rules::fix`], which makes the
   fixes that need no judgement and prints each: it adds
   `[lints] workspace = true`, makes a workspace lint at `deny` or `forbid`
-  `warn` (never an `allow`), lowers a ceiling of `budget.toml` to what the
+  `warn` (never an `allow`), lowers a budget of `budget.toml` to what the
   crate holds, and removes a stale deviation or entry of one. It edits each
   TOML file as a document, so its layout and comments stay. A deviation
   keeps it from fixing what its scope excuses, and two fixes that conflict

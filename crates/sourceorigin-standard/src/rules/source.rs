@@ -96,12 +96,54 @@ impl Source {
     }
 }
 
-/// Collects a file's lint attributes.
+/// Collects a file's lint attributes, those a `macro_rules!` body writes
+/// included.
 struct LintAttributes(Vec<LintAttribute>);
 
 impl<'ast> Visit<'ast> for LintAttributes {
     fn visit_attribute(&mut self, attribute: &'ast Attribute) {
         self.0.extend(LintAttribute::parse(attribute));
+    }
+
+    fn visit_item_macro(&mut self, item: &'ast syn::ItemMacro) {
+        if item.mac.path.is_ident("macro_rules") {
+            self.tokens(item.mac.tokens.clone());
+        }
+        syn::visit::visit_item_macro(self, item);
+    }
+}
+
+impl LintAttributes {
+    /// Collects the attributes `tokens` write, `#[…]` and `#![…]`, at any
+    /// depth.
+    fn tokens(&mut self, tokens: proc_macro2::TokenStream) {
+        let mut tokens = tokens.into_iter().peekable();
+        while let Some(token) = tokens.next() {
+            match token {
+                proc_macro2::TokenTree::Punct(punct) if punct.as_char() == '#' => {
+                    let line = punct.span().start().line;
+                    if let Some(proc_macro2::TokenTree::Punct(bang)) = tokens.peek()
+                        && bang.as_char() == '!'
+                    {
+                        tokens.next();
+                    }
+                    if let Some(proc_macro2::TokenTree::Group(group)) = tokens.peek()
+                        && group.delimiter() == proc_macro2::Delimiter::Bracket
+                        && let Ok(meta) = syn::parse2::<Meta>(group.stream())
+                    {
+                        self.0.extend(
+                            LintAttribute::levels_and_lints(&meta)
+                                .into_iter()
+                                .map(|(level, lints)| LintAttribute { level, lints, line }),
+                        );
+                    }
+                }
+                proc_macro2::TokenTree::Group(group) => self.tokens(group.stream()),
+                proc_macro2::TokenTree::Punct(_)
+                | proc_macro2::TokenTree::Ident(_)
+                | proc_macro2::TokenTree::Literal(_) => {}
+            }
+        }
     }
 }
 

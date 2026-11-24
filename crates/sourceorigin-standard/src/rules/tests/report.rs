@@ -23,7 +23,7 @@ fn the_report_holds_violations_deviations_and_exceptions() {
         )
         .write(
             "budget.toml",
-            "[expect]\ncore = 2\n\n[invariant]\ncore = 1\n",
+            "[expect]\ncore = 3\n\n[invariant]\ncore = 1\n\n[allow]\n\"Cargo.toml\" = 1\n",
         )
         .write(
             "standard.toml",
