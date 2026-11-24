@@ -23,6 +23,7 @@ mod manifest;
 mod modules;
 mod nextest_config;
 mod recipes;
+mod recipes_only;
 mod report;
 mod rustfmt_config;
 mod settings;
@@ -218,6 +219,11 @@ rules! {
     /// `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test`
     /// takes `*ARGS`, defaulting to `--workspace`.
     Recipes = "recipes" => recipes,
+    /// Every command of `t3.json` runs `just`, and no line of a workflow's
+    /// or composite action's `run:` starts with `cargo` unless
+    /// `standard.toml`'s `cargo-in-ci` lists it; each listed line is one a
+    /// `run:` holds.
+    RecipesOnly = "recipes-only" => recipes_only,
 }
 
 /// Why the rules couldn't be checked.
