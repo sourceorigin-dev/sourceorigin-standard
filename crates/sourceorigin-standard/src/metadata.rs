@@ -84,11 +84,20 @@ impl TargetKind {
 }
 
 impl Metadata {
-    /// The workspace's metadata, from cargo.
+    /// The workspace's metadata, from cargo, whose errors are plain text
+    /// even where `CARGO_TERM_COLOR` asks for color, as in CI.
     pub(crate) fn load(workspace: Workspace<'_>) -> Result<Self, MetadataError> {
         let json = workspace.output(
             "cargo",
-            &["metadata", "--locked", "--no-deps", "--format-version", "1"],
+            &[
+                "metadata",
+                "--locked",
+                "--no-deps",
+                "--format-version",
+                "1",
+                "--color",
+                "never",
+            ],
         )?;
         serde_json::from_str(&json).map_err(MetadataError::Parse)
     }

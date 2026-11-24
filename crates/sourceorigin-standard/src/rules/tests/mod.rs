@@ -3,6 +3,7 @@
 mod budget;
 mod comments;
 mod config_comments;
+mod config_syntax;
 mod fix;
 mod framework;
 mod generated_lints;

@@ -7,10 +7,11 @@ use serde::Deserialize;
 use toml::Spanned;
 
 use super::comments::Comment;
+use super::config_syntax::Unreadable;
 use super::fix::{Checked, Fix};
 use super::level::Level;
+use super::toml_file::TomlFile;
 use super::{Error, Finding, Repository};
-use crate::config::line_of;
 
 /// Where the budget lives, from the repository's root.
 pub(super) const PATH: &str = "budget.toml";
@@ -52,34 +53,25 @@ struct File {
 
 impl Budget {
     /// Loads the budget under `root`.
-    pub(super) fn load(root: &Path) -> Result<Self, Error> {
-        let path = root.join(PATH);
-        let text = match std::fs::read_to_string(&path) {
-            Ok(text) => text,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return Ok(Self::default());
-            }
-            Err(source) => return Err(Error::Read { path, source }),
+    pub(super) fn load(root: &Path, unreadable: &mut Unreadable) -> Result<Self, Error> {
+        let Some(file) = TomlFile::<File>::load(root, PATH, unreadable)? else {
+            return Ok(Self::default());
         };
-        let file: File = toml::from_str(&text).map_err(|error| Error::Toml {
-            path: PATH.into(),
-            message: error.to_string(),
-        })?;
         Ok(Self {
-            expect: Ceilings::of(&text, file.expect),
-            invariant: Ceilings::of(&text, file.invariant),
+            expect: Ceilings::of(&file, &file.value.expect),
+            invariant: Ceilings::of(&file, &file.value.invariant),
         })
     }
 }
 
 impl Ceilings {
-    fn of(text: &str, table: BTreeMap<Spanned<String>, usize>) -> Self {
+    fn of(file: &TomlFile<File>, table: &BTreeMap<Spanned<String>, usize>) -> Self {
         Self(
             table
-                .into_iter()
-                .map(|(name, count)| {
-                    let line = line_of(text, name.span().start);
-                    (name.into_inner(), Ceiling { count, line })
+                .iter()
+                .map(|(name, &count)| {
+                    let line = file.line(name);
+                    (name.get_ref().clone(), Ceiling { count, line })
                 })
                 .collect(),
         )

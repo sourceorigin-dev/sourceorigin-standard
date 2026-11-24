@@ -31,6 +31,7 @@ A repository adopts the standard in four steps:
 <!-- rules:start: generated from the docs of `Rule` by `just readme` -->
 - `workspace-lints`: Every workspace crate's manifest has `[lints] workspace = true`; `[workspace.lints]` sets each lint the standard requires (the `rust` and `clippy` lints of its lint block) to `warn`, and every other lint to `warn` or `allow`.
 - `rust-syntax`: Every Rust file git tracks or would track parses as Rust.
+- `config-syntax`: The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`, `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`, `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse, and `just --dump` reads the justfile. When `cargo metadata` can't read the workspace, the file it names is the only violation.
 - `unsafe-modules`: `#[expect(unsafe_code, …)]` sits only inside the modules `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or `build_script_build` (a target's root module is its crate's name), and every listed module holds one.
 - `budget`: Each crate holds at most as many `#[expect]` attributes (inner, outer and through `cfg_attr`) as `budget.toml`'s `[expect]` table gives it, and at most as many lines starting `// INVARIANT:` as its `[invariant]` table does; none for a crate a table doesn't list. Each name there is a workspace crate.
 - `generated-lints`: Rust files `.gitattributes` marks `linguist-generated` contain no lint attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or outer): their exceptions sit on their `mod` declaration.

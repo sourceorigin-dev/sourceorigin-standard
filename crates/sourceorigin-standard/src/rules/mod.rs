@@ -7,14 +7,17 @@
 mod budget;
 mod comments;
 mod config_comments;
+mod config_syntax;
 mod fix;
 mod generated_lints;
 mod level;
+mod manifest;
 mod modules;
 mod report;
 mod source;
 #[cfg(test)]
 mod tests;
+mod toml_file;
 mod unsafe_modules;
 mod workspace_lints;
 
@@ -23,15 +26,18 @@ use std::path::{Path, PathBuf};
 
 use crate::config::{self, Config, ConfigError, Stale};
 use crate::metadata::{Metadata, MetadataError};
-use crate::workspace::Workspace;
+use crate::workspace::{CommandError, Workspace};
 use budget::Budget;
 use config_comments::Commented;
+use config_syntax::Unreadable;
 use fix::Checked;
 pub use fix::Fix;
+use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
 use source::{Source, Unparsed};
-use workspace_lints::{LintLevel, Manifest};
+use toml_file::TomlFile;
+use workspace_lints::LintLevel;
 
 /// Declares the rules: each variant's doc comment is the doc [`Rule::doc`]
 /// returns, its string its stable name, and its method the check it runs on
@@ -85,6 +91,12 @@ rules! {
     WorkspaceLints = "workspace-lints" => workspace_lints,
     /// Every Rust file git tracks or would track parses as Rust.
     RustSyntax = "rust-syntax" => rust_syntax,
+    /// The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`,
+    /// `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`,
+    /// `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse,
+    /// and `just --dump` reads the justfile. When `cargo metadata` can't
+    /// read the workspace, the file it names is the only violation.
+    ConfigSyntax = "config-syntax" => config_syntax,
     /// `#[expect(unsafe_code, …)]` sits only inside the modules
     /// `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or
     /// `build_script_build` (a target's root module is its crate's name),
@@ -268,13 +280,15 @@ struct Repository {
     /// The workspace's crates.
     metadata: Metadata,
     /// The manifests of the workspace's crates.
-    manifests: Vec<Manifest>,
+    manifests: Vec<TomlFile<Manifest>>,
     /// The lints `[workspace.lints]` sets.
     lint_levels: Vec<LintLevel>,
     /// Every Rust file git tracks or would track that parses, by path.
     sources: Vec<Source>,
     /// Every one that doesn't.
     unparsed: Vec<Unparsed>,
+    /// The configuration files that don't parse.
+    unreadable: Unreadable,
     /// Each Rust file's module paths.
     modules: Modules,
     /// Each crate's ceilings of exceptions.
@@ -283,23 +297,43 @@ struct Repository {
     commented: Vec<Commented>,
 }
 
+/// What the rules read of a repository: everything, or the file that keeps
+/// `cargo metadata` from describing its workspace, such as a manifest that
+/// doesn't parse, which is then the one violation.
+enum Loaded {
+    Repository(Box<Repository>),
+    Unreadable(Unparsed),
+}
+
 impl Repository {
     /// Loads everything the rules read, so the rules themselves can't
     /// fail.
-    fn load(root: &Path) -> Result<Self, Error> {
-        let metadata = Metadata::load(Workspace::new(root))?;
+    fn load(root: &Path) -> Result<Loaded, Error> {
+        let metadata = match Metadata::load(Workspace::new(root)) {
+            Ok(metadata) => metadata,
+            Err(MetadataError::Command(CommandError::Failed { stderr, .. })) => {
+                return Ok(Loaded::Unreadable(Unparsed::cargo(root, &stderr)?));
+            }
+            Err(error) => return Err(error.into()),
+        };
         let (sources, unparsed) = Source::load_all(root)?;
-        Ok(Self {
+        let mut unreadable = Unreadable::default();
+        let root_manifest = TomlFile::<RootManifest>::load_root(root, &mut unreadable)?;
+        let manifests = TomlFile::load_all(&metadata, &mut unreadable)?;
+        let budget = Budget::load(root, &mut unreadable)?;
+        unreadable.check_others(root)?;
+        Ok(Loaded::Repository(Box::new(Self {
             config: Config::load(root)?,
-            manifests: Manifest::load_all(&metadata)?,
-            lint_levels: LintLevel::load_all(&metadata.workspace_root)?,
+            manifests,
+            lint_levels: root_manifest.as_ref().map_or_else(Vec::new, LintLevel::all),
             modules: Modules::of(&metadata, &sources),
-            budget: Budget::load(root)?,
+            budget,
+            unreadable,
             commented: Commented::load_all(root)?,
             metadata,
             sources,
             unparsed,
-        })
+        })))
     }
 
     /// The violations of every rule, by file and line. A rule
@@ -381,7 +415,10 @@ impl Repository {
 ///
 /// When `standard.toml` or a file a rule reads can't be loaded.
 pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
-    Ok(Repository::load(root)?.violations())
+    Ok(match Repository::load(root)? {
+        Loaded::Repository(repository) => repository.violations(),
+        Loaded::Unreadable(unparsed) => vec![unparsed.finding().of(Rule::ConfigSyntax)],
+    })
 }
 
 /// Makes every mechanical fix the rules know in the repository at `root`,
@@ -394,7 +431,10 @@ pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
 ///
 /// When a file a rule reads can't be loaded, or a fixed file written.
 pub fn fix(root: &Path) -> Result<Vec<Fix>, Error> {
-    let mut fixes = Repository::load(root)?.fixes();
+    let Loaded::Repository(repository) = Repository::load(root)? else {
+        return Ok(Vec::new());
+    };
+    let mut fixes = repository.fixes();
     Fix::apply_all(root, &mut fixes)?;
     Ok(fixes)
 }
@@ -407,7 +447,12 @@ pub fn fix(root: &Path) -> Result<Vec<Fix>, Error> {
 ///
 /// When `standard.toml` or a file a rule reads can't be loaded.
 pub fn report(root: &Path) -> Result<Report, Error> {
-    Ok(Repository::load(root)?.report())
+    Ok(match Repository::load(root)? {
+        Loaded::Repository(repository) => repository.report(),
+        Loaded::Unreadable(unparsed) => {
+            Report::unreadable(unparsed.finding().of(Rule::ConfigSyntax))
+        }
+    })
 }
 
 /// Every rule with its doc, as a Markdown list: what
