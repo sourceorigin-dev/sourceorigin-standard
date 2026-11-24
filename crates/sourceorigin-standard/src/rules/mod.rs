@@ -10,6 +10,7 @@ mod config_comments;
 mod config_syntax;
 mod fix;
 mod generated_lints;
+mod layout;
 mod level;
 mod manifest;
 mod modules;
@@ -34,6 +35,7 @@ use config_comments::Commented;
 use config_syntax::Unreadable;
 use fix::Checked;
 pub use fix::Fix;
+use layout::CargoConfig;
 use manifest::{Manifest, RootManifest};
 use modules::Modules;
 pub use report::{Report, RuleReport};
@@ -135,6 +137,10 @@ rules! {
     /// `[workspace.package]` sets `edition = "2024"`, and every workspace
     /// crate inherits it with `edition.workspace = true`.
     WorkspaceManifest = "workspace-manifest" => workspace_manifest,
+    /// Every workspace crate lives under `crates/`, `apps/` or `tools/`, the
+    /// `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases
+    /// `cargo xtask` to `run --locked --package xtask --`.
+    Layout = "layout" => layout,
 }
 
 /// Why the rules couldn't be checked.
@@ -311,6 +317,8 @@ struct Repository {
     commented: Vec<Commented>,
     /// The root manifest.
     root_manifest: Option<TomlFile<RootManifest>>,
+    /// `.cargo/config.toml`.
+    cargo_config: Option<TomlFile<CargoConfig>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -351,6 +359,7 @@ impl Repository {
             other_workspaces,
             manifest_allows,
             root_manifest,
+            cargo_config: TomlFile::load(root, layout::CARGO_CONFIG, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             metadata,
             sources,
