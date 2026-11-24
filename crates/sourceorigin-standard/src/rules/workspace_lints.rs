@@ -26,6 +26,10 @@ const REQUIRED: [(&str, &str); 14] = [
     ("clippy", "self_named_module_files"),
 ];
 
+/// Clippy's groups among them, which sit at priority -1 so single lints
+/// can override them.
+const GROUPS: [(&str, &str); 2] = [("clippy", "all"), ("clippy", "pedantic")];
+
 /// A lint the root manifest's `[workspace.lints]` sets.
 pub(super) struct LintLevel {
     /// Its tool's table, such as `rust` or `clippy`.
@@ -77,7 +81,8 @@ impl Repository {
     /// Cargo allows only without lint tables of the crate's own; each lint
     /// the standard requires that the workspace doesn't set to `warn`; and
     /// each other workspace lint set to neither `warn` nor `allow`. It fixes
-    /// a missing `[lints]` and a `deny` or `forbid`, never an `allow`.
+    /// a missing `[lints]`, a `deny` or `forbid`, and a missing required lint,
+    /// which it adds at `warn`; never an `allow`.
     pub(super) fn workspace_lints(&self) -> Checked {
         let crates = self
             .manifests
@@ -124,21 +129,6 @@ impl Repository {
                 message,
             })
         });
-        let missing = REQUIRED
-            .iter()
-            .filter(|(tool, name)| {
-                !self
-                    .lint_levels
-                    .iter()
-                    .any(|lint| lint.tool == *tool && lint.name == *name)
-            })
-            .map(|(tool, name)| Finding {
-                path: ROOT.into(),
-                line: 1,
-                message: format!(
-                    "the standard requires `{name} = \"warn\"` in `[workspace.lints.{tool}]`"
-                ),
-            });
         let inherit = self
             .manifests
             .iter()
@@ -169,9 +159,60 @@ impl Repository {
                     },
                 )
             });
+        let unset = self.unset_lints();
         Checked {
-            findings: crates.chain(levels).chain(missing).collect(),
-            fixes: inherit.chain(warn).collect(),
+            findings: crates.chain(levels).chain(unset.findings).collect(),
+            fixes: inherit.chain(warn).chain(unset.fixes).collect(),
+        }
+    }
+
+    /// Each lint the standard requires that `[workspace.lints]` doesn't
+    /// set, fixed by adding it at `warn` under its tool's table.
+    fn unset_lints(&self) -> Checked {
+        let unset: Vec<(&str, &str)> = REQUIRED
+            .into_iter()
+            .filter(|(tool, name)| {
+                !self
+                    .lint_levels
+                    .iter()
+                    .any(|lint| lint.tool == *tool && lint.name == *name)
+            })
+            .collect();
+        let missing = unset.iter().map(|(tool, name)| Finding {
+            path: ROOT.into(),
+            line: 1,
+            message: format!(
+                "the standard requires `{name} = \"warn\"` in `[workspace.lints.{tool}]`"
+            ),
+        });
+        let add = unset.iter().map(|&(tool, name)| {
+            Fix::toml(
+                ROOT,
+                format!("add `{name} = \"warn\"` to `[workspace.lints.{tool}]`"),
+                move |document| {
+                    let lints = &mut document["workspace"]["lints"];
+                    if lints.is_none() {
+                        let mut implicit = toml_edit::Table::new();
+                        implicit.set_implicit(true);
+                        *lints = toml_edit::Item::Table(implicit);
+                    }
+                    if lints.get(tool).is_none() {
+                        lints[tool] = toml_edit::table();
+                    }
+                    lints[tool][name] = if GROUPS.contains(&(tool, name)) {
+                        let mut group = toml_edit::InlineTable::new();
+                        group.insert("level", "warn".into());
+                        group.insert("priority", (-1).into());
+                        toml_edit::value(group)
+                    } else {
+                        toml_edit::value("warn")
+                    };
+                },
+            )
+        });
+        Checked {
+            findings: missing.collect(),
+            fixes: add.collect(),
         }
     }
 }
