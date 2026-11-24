@@ -1,5 +1,7 @@
 # Cleanup pass: reviewer
 
+> **Scope.** Report only defects in the change and regressions it causes. Anything else is a follow-up. See "Scope" in `AGENTS.md`.
+
 Review one PR from a cleanup pass. It claims to be a pure refactor: no
 behaviour, output, schema, format or test coverage changes. Bug fixes go in
 their own PRs, so any behaviour change here is a finding.

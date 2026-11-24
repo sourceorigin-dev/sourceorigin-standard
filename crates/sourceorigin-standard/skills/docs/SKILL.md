@@ -9,6 +9,8 @@ description: >
 
 # Write the documentation
 
+> **Scope.** Do only what this skill's task asks. No drive-by refactors, renames, reformatting or extra features. Note anything else in your report or in an issue instead of fixing it. Ask the owner before widening the change. Reread your diff before handing back and drop every hunk the task doesn't need. See "Scope" in `AGENTS.md`.
+
 First read the repository's documentation page, which `AGENTS.md` names
 (usually `docs/dev/documentation.md`). It holds what differs per repository:
 where pages go, which pages are generated and from what, how screenshots are

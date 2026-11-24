@@ -222,6 +222,9 @@ written once and can't drift apart:
 - `docs`: how to write the user guide, the developer guide's recipes and
   doc comments.
 
+Each opens with a short scope rule that points at the "Scope" section of
+the repository's `AGENTS.md`.
+
 `cargo xtask standard skills` writes each into `.agents/skills/<name>/`,
 its `SKILL.md` saying it is synced and where to change it. The
 `skills-synced` rule fails while a copy is missing or differs from the

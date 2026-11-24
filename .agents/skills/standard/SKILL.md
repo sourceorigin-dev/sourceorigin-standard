@@ -14,6 +14,8 @@ description: >
 
 # Work with the standard
 
+> **Scope.** Do only what this skill's task asks. No drive-by refactors, renames, reformatting or extra features. Note anything else in your report or in an issue instead of fixing it. Ask the owner before widening the change. Reread your diff before handing back and drop every hunk the task doesn't need. See "Scope" in `AGENTS.md`.
+
 The standard is the `sourceorigin-standard` crate. Its README lists every
 rule, and so does `cargo xtask standard rules`. It reaches a repository in
 three ways:
