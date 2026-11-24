@@ -4,11 +4,8 @@
 use std::path::Path;
 
 use super::Repository;
+use super::skills::MARKER;
 use super::text_file::TextFile;
-
-/// What a synced skill's `SKILL.md` holds, as `skills-synced` writes it: the
-/// crate owns its files, so the docs rules leave them alone.
-const SYNCED: &str = "<!-- Synced from the sourceorigin-standard crate";
 
 /// A line of a Markdown file outside fenced code.
 pub(super) struct MarkdownLine<'a> {
@@ -96,12 +93,13 @@ impl MarkdownLine<'_> {
 }
 
 impl Repository {
-    /// The Markdown files the docs rules read: all but a synced skill's.
+    /// The Markdown files the docs rules read: all but a synced skill's,
+    /// whose `SKILL.md` carries [`MARKER`]: the crate owns its files.
     pub(super) fn docs(&self) -> impl Iterator<Item = &TextFile> {
         let synced: Vec<&Path> = self
             .markdown
             .iter()
-            .filter(|file| file.path.ends_with("SKILL.md") && file.text.contains(SYNCED))
+            .filter(|file| file.path.ends_with("SKILL.md") && file.text.contains(MARKER))
             .filter_map(|file| file.path.parent())
             .collect();
         self.markdown

@@ -2,8 +2,11 @@
 
 use std::path::{Path, PathBuf};
 
+use std::collections::BTreeSet;
+
 use super::config_syntax::Unreadable;
 use super::fix::{Checked, Fix};
+use super::skills::{DIR as SKILLS, MARKER, Skill};
 use super::text_file::TextFile;
 use super::{Error, Finding, Repository};
 use crate::workspace::Workspace;
@@ -14,8 +17,7 @@ pub(super) const AGENTS_MD: &str = "AGENTS.md";
 /// What a `CLAUDE.md` holds that only imports AGENTS.md.
 const IMPORT: &str = "@AGENTS.md";
 
-/// The skills' directory, and the symlink Claude Code reads it through.
-const SKILLS: &str = ".agents/skills";
+/// The symlink Claude Code reads the skills' directory through.
 const CLAUDE_SKILLS: &str = ".claude/skills";
 
 /// The files agents read.
@@ -31,6 +33,9 @@ pub(super) struct AgentFiles {
     /// The files under `.claude/skills` when it is a directory, each with
     /// whether its place under `.agents/skills` is free.
     claude_skill_files: Vec<(String, bool)>,
+    /// The skills under `.claude/skills` whose `SKILL.md` says it is synced
+    /// from the crate.
+    claude_synced: BTreeSet<String>,
 }
 
 impl AgentFiles {
@@ -52,11 +57,28 @@ impl AgentFiles {
                     (path, free)
                 })
                 .collect(),
+            claude_synced: workspace
+                .files(&[":(glob).claude/skills/*/SKILL.md"])?
+                .into_iter()
+                .filter(|path| {
+                    std::fs::read_to_string(root.join(path)).is_ok_and(|text| text.contains(MARKER))
+                })
+                .filter_map(|path| Self::skill_of(&path).map(str::to_owned))
+                .collect(),
         })
     }
 }
 
 impl AgentFiles {
+    /// The skill `path`, a file under `.claude/skills`, is part of.
+    fn skill_of(path: &str) -> Option<&str> {
+        path.strip_prefix(CLAUDE_SKILLS)?
+            .trim_start_matches('/')
+            .split('/')
+            .next()
+            .filter(|name| !name.is_empty())
+    }
+
     /// Where `path`, a file under `.claude/skills`, belongs under
     /// `.agents/skills`.
     fn moved(path: &str) -> PathBuf {
@@ -134,6 +156,30 @@ impl Repository {
             }
         }
         for (path, free) in &agents.claude_skill_files {
+            let skill = AgentFiles::skill_of(path).filter(|name| Skill::ships(name));
+            if let Some(skill) = skill {
+                let synced = agents.claude_synced.contains(skill);
+                findings.push(Finding {
+                    path: path.into(),
+                    line: 1,
+                    message: format!(
+                        "a copy of sourceorigin-standard's `{skill}` skill under {CLAUDE_SKILLS}, \
+                         which `cargo xtask standard skills` writes under {SKILLS}: delete it{}",
+                        if synced {
+                            ""
+                        } else {
+                            ", or rename it if it is the repository's own"
+                        }
+                    ),
+                });
+                if synced {
+                    fixes.push(Fix::delete(
+                        path,
+                        format!("delete the old copy of the `{skill}` skill"),
+                    ));
+                }
+                continue;
+            }
             findings.push(Finding {
                 path: path.into(),
                 line: 1,

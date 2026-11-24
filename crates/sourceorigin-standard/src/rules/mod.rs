@@ -2,7 +2,8 @@
 //!
 //! [`check`] runs every [`Rule`] and returns its [`Violation`]s, skipping the
 //! rules `standard.toml` deviates from. [`describe`] lists the rules with
-//! their docs.
+//! their docs, and [`sync_skills`] writes the crate's agent skills into a
+//! repository.
 
 mod actions_pinned;
 mod agent_files;
@@ -42,6 +43,7 @@ mod route_literals;
 mod rustfmt_config;
 mod scheduled_audit;
 mod settings;
+mod skills;
 mod source;
 mod t3;
 mod t3_setup;
@@ -85,6 +87,7 @@ use modules::Modules;
 use nextest_config::NextestConfig;
 pub use report::{Report, RuleReport};
 use settings::Settings;
+use skills::Synced;
 use source::{Source, Unparsed};
 use t3::T3;
 use text_file::TextFile;
@@ -333,6 +336,11 @@ rules! {
     /// Nor does an `#[instrument]` function, in its `fields(…)` or as an
     /// argument it doesn't `skip`.
     TracingFields = "tracing-fields" => tracing_fields,
+    /// Each skill in `.agents/skills` that comes from sourceorigin-standard
+    /// (`standard`, `cleanup` and `docs`, and any other whose `SKILL.md`
+    /// says it is synced) matches the crate's copy, file for file.
+    /// `cargo xtask standard skills` writes them.
+    SkillsSynced = "skills-synced" => skills_synced,
 }
 
 /// Why the rules couldn't be checked.
@@ -367,7 +375,7 @@ pub enum Error {
         /// What the second changes.
         second: String,
     },
-    /// `--fix` couldn't write a file.
+    /// A fix couldn't write or delete a file or directory.
     #[error("write {}", path.display())]
     Write {
         /// The file.
@@ -542,6 +550,8 @@ struct Repository {
     book: Option<TomlFile<Book>>,
     /// Every Markdown file.
     markdown: Vec<TextFile>,
+    /// The skills it holds from the crate.
+    synced: Synced,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -597,6 +607,7 @@ impl Repository {
             markdown: TextFile::load_all(root, &["*.md"], &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
+            synced: Synced::load(root)?,
             metadata,
             files: Workspace::new(root)
                 .files(&[])?
@@ -722,7 +733,8 @@ pub fn check(root: &Path) -> Result<Vec<Violation>, Error> {
 ///
 /// # Errors
 ///
-/// When a file a rule reads can't be loaded, or a fixed file written.
+/// When a file a rule reads can't be loaded, or a fixed file written or
+/// deleted.
 pub fn fix(root: &Path) -> Result<Vec<Fix>, Error> {
     let Loaded::Repository(repository) = Repository::load(root)? else {
         return Ok(Vec::new());
@@ -746,6 +758,20 @@ pub fn report(root: &Path) -> Result<Report, Error> {
             Report::unreadable(unparsed.finding().of(Rule::ConfigSyntax))
         }
     })
+}
+
+/// Writes the crate's skills (`standard`, `cleanup` and `docs`) into
+/// `.agents/skills` of the repository at `root`, removes the files of
+/// synced skills the crate no longer ships, and returns what it changed.
+/// `cargo xtask standard skills` calls it; [`fix`] does it too.
+///
+/// # Errors
+///
+/// When `.agents/skills` can't be read, or a file written or removed.
+pub fn sync_skills(root: &Path) -> Result<Vec<Fix>, Error> {
+    let mut fixes = Synced::load(root)?.checked().fixes;
+    Fix::apply_all(root, &mut fixes)?;
+    Ok(fixes)
 }
 
 /// Every rule with its doc, as a Markdown list: what
