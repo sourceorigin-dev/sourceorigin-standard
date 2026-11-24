@@ -32,7 +32,15 @@ pub(super) trait Inspect {
     fn macro_call(&mut self, _call: &syn::Macro, _scope: Scope) {}
 
     /// A function or method with a body, before the nodes inside it.
-    fn function(&mut self, _signature: &syn::Signature, _body: &syn::Block, _scope: Scope) {}
+    fn function(&mut self, _function: Function<'_>, _scope: Scope) {}
+}
+
+/// A function or method with a body.
+#[derive(Clone, Copy)]
+pub(super) struct Function<'a> {
+    pub(super) attributes: &'a [syn::Attribute],
+    pub(super) signature: &'a syn::Signature,
+    pub(super) body: &'a syn::Block,
 }
 
 /// A walk over one file, passing its nodes to an [`Inspect`].
@@ -68,7 +76,12 @@ macro_rules! scoped {
                 $(self.scope.constant |= $constant(node);)?
                 $(
                     if let Some((signature, body)) = $function(node) {
-                        self.inspect.function(signature, body, self.scope);
+                        let function = Function {
+                            attributes: &node.attrs,
+                            signature,
+                            body,
+                        };
+                        self.inspect.function(function, self.scope);
                     }
                 )?
                 visit::$visit(self, node);

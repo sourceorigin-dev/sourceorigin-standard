@@ -35,6 +35,7 @@ mod rustfmt_config;
 mod scheduled_audit;
 mod t3_setup;
 mod toolchain;
+mod tracing_fields;
 mod unsafe_modules;
 mod wording;
 mod workflow_permissions;

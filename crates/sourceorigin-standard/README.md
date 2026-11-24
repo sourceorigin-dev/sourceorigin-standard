@@ -74,6 +74,7 @@ A repository adopts the standard in five steps:
 - `no-json-macro`: Code outside tests, in the crates `standard.toml`'s `no-json-macro` lists, invokes no `json!`: it serializes structs. Each name there is a workspace crate.
 - `route-literals`: When `standard.toml`'s `route-modules` lists modules, such as `my_app::routes`, code outside them, tests and examples passes no string literal starting with `/` to `Router::route`, `route_service`, `nest` or `nest_service`, or to a `Redirect` constructor: it uses the paths those modules name. Each listed module is a file of a library or binary.
 - `duplicate-items`: No function body outside test code with at least 20 tokens repeats another, token for token once its local bindings (parameters and the names its patterns bind) are renamed in the order they appear; paths, fields, methods and types stay as written.
+- `tracing-fields`: Outside tests, no `tracing` event or span macro (`info!`, `info_span!`, `event!`, …) records a field whose name, or a run of its dotted parts, `standard.toml`'s `denied-fields` lists: `query` denies `db.query.text`, `url.query` only `url.query` and `http.url.query`. Nor does an `#[instrument]` function, in its `fields(…)` or as an argument it doesn't `skip`.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
@@ -106,6 +107,11 @@ no-json-macro = ["my_protocol"]
 # The modules that name the HTTP paths routers and redirects use; code
 # elsewhere passes them no `/…` literal. Unset, paths aren't checked.
 route-modules = ["my_app::routes"]
+
+# The field names `tracing` events, spans and `#[instrument]` functions
+# outside tests never record, as a name or a run of its dotted parts. Unset,
+# fields aren't checked.
+denied-fields = ["token", "secret", "cookie", "user_agent", "ip"]
 
 # Rules the repository departs from, each with its reason: everywhere, or
 # only in the files `paths` matches and the crates `crates` names. A
