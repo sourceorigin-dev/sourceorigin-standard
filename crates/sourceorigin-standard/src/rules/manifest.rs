@@ -26,6 +26,8 @@ pub(super) struct RootManifest {
 /// The root manifest's `[workspace]`.
 #[derive(Default, Deserialize)]
 pub(super) struct Workspace {
+    pub(super) resolver: Option<Spanned<String>>,
+    pub(super) package: Option<Spanned<WorkspacePackage>>,
     /// Each tool's lints, such as `clippy`'s, each with its setting.
     #[serde(default)]
     pub(super) lints: BTreeMap<String, BTreeMap<Spanned<String>, Setting>>,
@@ -40,10 +42,24 @@ pub(super) enum Setting {
     Table { level: Level },
 }
 
+/// The root manifest's `[workspace.package]`, which crates inherit from.
+#[derive(Deserialize)]
+pub(super) struct WorkspacePackage {
+    pub(super) edition: Option<Spanned<String>>,
+}
+
 /// A workspace crate's manifest.
 #[derive(Deserialize)]
 pub(super) struct Manifest {
+    pub(super) package: Option<Spanned<Package>>,
     pub(super) lints: Option<Spanned<toml::Table>>,
+}
+
+/// A crate's `[package]`.
+#[derive(Deserialize)]
+pub(super) struct Package {
+    /// A string, or `{ workspace = true }`.
+    pub(super) edition: Option<Spanned<toml::Value>>,
 }
 
 impl TomlFile<RootManifest> {

@@ -10,6 +10,7 @@ mod generated_lints;
 mod report;
 mod unsafe_modules;
 mod workspace_lints;
+mod workspace_manifest;
 
 use super::Rule;
 use crate::testing::Repository;
@@ -40,6 +41,17 @@ impl Fixture {
 
     fn write(&self, path: &str, text: &str) -> &Self {
         self.0.write(path, text);
+        self
+    }
+
+    /// Makes the fixes of `rule` alone.
+    fn fix_rule(&self, rule: Rule) -> &Self {
+        let Ok(super::Loaded::Repository(repository)) = super::Repository::load(self.0.root())
+        else {
+            panic!("the repository loads");
+        };
+        super::Fix::apply_all(self.0.root(), &mut rule.check(&repository).fixes)
+            .expect("the fixes are made");
         self
     }
 
