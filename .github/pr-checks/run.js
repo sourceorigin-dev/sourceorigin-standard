@@ -16,6 +16,7 @@ class Runner {
     require('./pr-body.js'),
     require('./no-co-authors.js'),
     require('./fix-has-test.js'),
+    require('./new-dependency.js'),
   ];
 
   /** Runs the check named in `CHECK`, with the settings of the pull

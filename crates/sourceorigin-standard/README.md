@@ -199,6 +199,10 @@ check: a deviation in `standard.toml`, or a change to the check here.
   test (a `tests.rs`, a `tests/` directory, an added `#[test]`, or another
   language's test file), or carries the `visual` label and images in its
   description.
+- `new-dependency`: a pull request that adds an entry to
+  `[workspace.dependencies]`, or an exception to `deny.toml` (an ignored
+  advisory, an allowed license, a skipped duplicate, an allowed source),
+  has a `## Dependencies` section in its description saying why.
 
 A repository calls it from `.github/workflows/pr.yml`, pinned to a commit of
 this repository's `main`, with the crate's version in the comment. It runs
