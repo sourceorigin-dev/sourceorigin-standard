@@ -27,6 +27,16 @@ class PullRequest {
     return new PullRequest(data, { github, repo: context.repo });
   }
 
+  /** Each commit's SHA and message, oldest first. */
+  async commits() {
+    const commits = await this.github.paginate(this.github.rest.pulls.listCommits, {
+      ...this.repo,
+      pull_number: this.number,
+      per_page: 100,
+    });
+    return commits.map(({ sha, commit }) => ({ sha, message: commit.message }));
+  }
+
   /** The text of the file at `path` in commit `sha`, or `null` if it has
    * none. */
   async fileAt(sha, path) {
