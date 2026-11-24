@@ -220,7 +220,7 @@ impl Repository {
             .iter()
             .filter(|manifest| manifest.lints.is_none())
             .map(|manifest| {
-                Fix::new(
+                Fix::toml(
                     manifest.path.clone(),
                     "add `[lints] workspace = true`".to_owned(),
                     |document| document["lints"]["workspace"] = toml_edit::value(true),
@@ -232,7 +232,7 @@ impl Repository {
             .filter(|lint| matches!(lint.level, Level::Deny | Level::Forbid))
             .map(|lint| {
                 let (tool, name) = (lint.tool.clone(), lint.name.clone());
-                Fix::new(
+                Fix::toml(
                     LintLevel::PATH,
                     format!("make `{}` `warn`", lint.lint()),
                     move |document| {
