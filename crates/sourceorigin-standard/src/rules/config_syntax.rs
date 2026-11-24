@@ -48,6 +48,11 @@ impl Unreadable {
         });
     }
 
+    /// Whether `path`, from the root, doesn't parse.
+    pub(super) fn contains(&self, path: &str) -> bool {
+        self.0.contains_key(Path::new(path))
+    }
+
     /// Records each other configuration file under `root` that doesn't
     /// parse as its format: the TOML files, `.github`'s YAML, `t3.json`,
     /// and the justfile, as `just --dump` reads it.

@@ -24,6 +24,7 @@ mod t3;
 mod tests;
 mod text_file;
 mod toml_file;
+mod toolchain;
 mod unsafe_modules;
 mod workflows;
 mod workspace_lints;
@@ -51,6 +52,7 @@ use source::{Source, Unparsed};
 use t3::T3;
 use text_file::TextFile;
 use toml_file::TomlFile;
+use toolchain::ToolchainFile;
 use workflows::Workflow;
 use workspace_lints::LintLevel;
 
@@ -167,6 +169,9 @@ rules! {
     /// AGENTS.md names every workspace crate, by its name in backticks or
     /// its directory, and holds at most 150 lines.
     AgentsMd = "agents-md" => agents_md,
+    /// `rust-toolchain.toml` pins `channel = "stable"` and installs at
+    /// least the `rustfmt` and `clippy` components.
+    Toolchain = "toolchain" => toolchain,
 }
 
 /// Why the rules couldn't be checked.
@@ -353,6 +358,8 @@ struct Repository {
     cargo_config: Option<TomlFile<CargoConfig>>,
     /// `AGENTS.md`, any `CLAUDE.md`, and the skills.
     agent_files: AgentFiles,
+    /// `rust-toolchain.toml`.
+    toolchain: Option<TomlFile<ToolchainFile>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -397,6 +404,7 @@ impl Repository {
             workflows: Workflow::load_all(root, &mut unreadable)?,
             t3: T3::load(root, &mut unreadable)?,
             agent_files: AgentFiles::load(root, &mut unreadable)?,
+            toolchain: TomlFile::load(root, toolchain::PATH, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,
