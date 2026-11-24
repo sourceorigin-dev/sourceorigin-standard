@@ -68,6 +68,11 @@ impl<T: DeserializeOwned + Default> TomlFile<T> {
 impl<T> TomlFile<T> {
     /// The line, from 1, where `spanned` starts.
     pub(super) fn line<S>(&self, spanned: &Spanned<S>) -> usize {
-        line_of(&self.text, spanned.span().start)
+        self.line_at(spanned.span().start)
+    }
+
+    /// The line, from 1, holding byte `offset`.
+    pub(super) fn line_at(&self, offset: usize) -> usize {
+        line_of(&self.text, offset)
     }
 }

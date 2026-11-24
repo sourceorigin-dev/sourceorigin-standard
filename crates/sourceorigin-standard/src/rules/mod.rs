@@ -12,6 +12,7 @@ mod clippy_config;
 mod comments;
 mod config_comments;
 mod config_syntax;
+mod deny_config;
 mod fix;
 mod generated_lints;
 mod layout;
@@ -47,6 +48,7 @@ use agent_files::AgentFiles;
 use budget::{Budget, OtherWorkspace};
 use config_comments::Commented;
 use config_syntax::Unreadable;
+use deny_config::DenyConfig;
 use fix::Checked;
 pub use fix::Fix;
 use layout::CargoConfig;
@@ -195,6 +197,11 @@ rules! {
     /// `[workspace.dependencies]`, where each `path` dependency also has a
     /// `version`.
     WorkspaceDependencies = "workspace-dependencies" => workspace_dependencies,
+    /// `deny.toml` sets `unknown-registry` and `unknown-git` under
+    /// `[sources]`, and `wildcards` under `[bans]`, to `"deny"`, allows at
+    /// least one license, and gives every ignored advisory a `reason`:
+    /// `{ id = "…", reason = "…" }`.
+    DenyConfig = "deny-config" => deny_config,
 }
 
 /// Why the rules couldn't be checked.
@@ -392,6 +399,8 @@ struct Repository {
     /// `.config/nextest.toml`, empty when missing, and `None` when it
     /// doesn't parse.
     nextest: Option<TomlFile<NextestConfig>>,
+    /// `deny.toml`.
+    deny: Option<TomlFile<DenyConfig>>,
 }
 
 /// What the rules read of a repository: everything, or the file that keeps
@@ -440,6 +449,7 @@ impl Repository {
             rustfmt: TomlFile::load_or_empty(root, rustfmt_config::PATH, &mut unreadable)?,
             clippy: TomlFile::load_or_empty(root, clippy_config::PATH, &mut unreadable)?,
             nextest: TomlFile::load_or_empty(root, nextest_config::PATH, &mut unreadable)?,
+            deny: TomlFile::load(root, deny_config::PATH, &mut unreadable)?,
             commented: Commented::load_all(root)?,
             justfiles: TextFile::load_all(root, &cargo_locked::JUSTFILES, &mut unreadable)?,
             metadata,

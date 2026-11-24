@@ -1,7 +1,7 @@
 [advisories]
 version = 2
-# Each ignored advisory gets a comment saying why it doesn't apply and what
-# ends the ignore.
+# Each ignored advisory is `{ id = "…", reason = "…" }`, the reason saying
+# why it doesn't apply and what ends the ignore.
 ignore = []
 
 [licenses]
