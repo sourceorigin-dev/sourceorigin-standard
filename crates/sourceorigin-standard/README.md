@@ -42,6 +42,7 @@ A repository adopts the standard in four steps:
 - `layout`: Every workspace crate lives under `crates/`, `apps/` or `tools/`, the `xtask` crate in `tools/xtask`, and `.cargo/config.toml` aliases `cargo xtask` to `run --locked --package xtask --`.
 - `cargo-locked`: Every `cargo build`, `check`, `clippy`, `doc`, `llvm-cov`, `nextest`, `publish`, `run` and `test` run by a justfile's recipe (and a `*.just` file's), a workflow's or composite action's `run:`, or a `t3.json` command passes `--locked` (or `--frozen`). Cargo runs only as a command word, after any `NAME=value`, `env`, `exec`, `time` or `nice -n N`; quoted text and a heredoc's body are no command, and a folded `run: >` block is one.
 - `agent-files`: `AGENTS.md` sits at the root, and no `CLAUDE.md` exists. Each skill is `.agents/skills/<name>/SKILL.md`, its frontmatter's `name` is `<name>`, and `.claude/skills` is a symlink to `../.agents/skills`.
+- `agents-md`: AGENTS.md names every workspace crate, by its name in backticks or its directory, and holds at most 150 lines.
 <!-- rules:end -->
 
 Each rule is a variant of [`Rule`]: its name is the one `standard.toml` and
