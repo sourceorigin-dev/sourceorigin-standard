@@ -45,6 +45,7 @@ mod text_file;
 mod toml_file;
 mod toolchain;
 mod unsafe_modules;
+mod wording;
 mod workflow_permissions;
 mod workflows;
 mod workspace_dependencies;
@@ -275,6 +276,12 @@ rules! {
     /// from this crate, has alt text: `![what it shows](…)`, or an `<img>`
     /// with a non-empty `alt`.
     DocsImages = "docs-images" => docs_images,
+    /// No Markdown file but a synced skill's holds, as a word of its prose
+    /// (not code, a link's destination, an HTML tag or a URL, nor part of a
+    /// name such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling
+    /// `standard.toml`'s `[wording]` rejects, such as
+    /// `"Source Origin" = "SourceOrigin"`.
+    Wording = "wording" => wording,
 }
 
 /// Why the rules couldn't be checked.

@@ -66,3 +66,11 @@ fn errors_name_the_bad_key_and_its_line() {
         );
     }
 }
+
+#[test]
+fn a_preferred_spelling_may_not_hold_the_rejected_one() {
+    assert!(matches!(
+        Config::parse("[wording]\n\"Origin\" = \"Origin standard\"\n"),
+        Err(ConfigError::Wording { line: 2, .. })
+    ));
+}

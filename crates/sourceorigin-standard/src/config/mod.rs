@@ -34,6 +34,20 @@ pub enum ConfigError {
         /// The parser's message, naming the bad key and where it is.
         message: String,
     },
+    /// A `[wording]` entry prefers a spelling that holds the one it
+    /// rejects as a word, which every `--fix` would write again.
+    #[error(
+        "{PATH}:{line}: `[wording]` prefers `{preferred}` to `{rejected}`, which it holds, so \
+         every fix would write it again"
+    )]
+    Wording {
+        /// The entry's line, from 1.
+        line: usize,
+        /// The spelling it rejects.
+        rejected: String,
+        /// The one it prefers.
+        preferred: String,
+    },
     /// A deviation gives no reason.
     #[error("{PATH}:{line}: the deviation from `{rule}` needs a reason")]
     NoReason {
@@ -81,6 +95,9 @@ pub(crate) struct Config {
     /// The lines of workflows' `run:` that may run Cargo rather than a
     /// recipe.
     pub(crate) cargo_in_ci: Vec<Listed>,
+    /// The `[wording]` table: each rejected spelling, with its line, and
+    /// the one to write instead.
+    pub(crate) wording: Vec<(Listed, String)>,
 }
 
 /// The `[comments]` table: what comments the rules allow.
@@ -231,6 +248,7 @@ struct File {
     comments: Comments,
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
+    wording: BTreeMap<Spanned<String>, String>,
 }
 
 /// A deviation as written: its reason alone, for everywhere, or a table
@@ -361,6 +379,25 @@ impl Config {
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),
+            wording: file
+                .wording
+                .into_iter()
+                .map(|(rejected, preferred)| {
+                    let line = line_of(text, rejected.span().start);
+                    let value = rejected.into_inner();
+                    let holds = preferred
+                        .match_indices(&value)
+                        .any(|(start, _)| !joins_word(&preferred, start, start + value.len()));
+                    if holds {
+                        return Err(ConfigError::Wording {
+                            line,
+                            rejected: value,
+                            preferred,
+                        });
+                    }
+                    Ok((Listed { value, line }, preferred))
+                })
+                .collect::<Result<_, _>>()?,
         })
     }
 
@@ -370,6 +407,23 @@ impl Config {
             .iter()
             .find(|deviation| deviation.rule == rule)
     }
+}
+
+/// Whether the bytes `start..end` of `text` are part of a larger word:
+/// a letter, digit or `_` beside them, or an `@` or a `.` joining them
+/// to one, as in an address, a domain or a file name.
+pub(crate) fn joins_word(text: &str, start: usize, end: usize) -> bool {
+    let word = |c: Option<char>| c.is_some_and(|c| c.is_alphanumeric() || c == '_');
+    let mut before = text[..start].chars().rev();
+    let mut after = text[end..].chars();
+    let (before, beyond_before) = (before.next(), before.next());
+    let (after, beyond_after) = (after.next(), after.next());
+    word(before)
+        || word(after)
+        || before == Some('@')
+        || after == Some('@')
+        || before == Some('.') && word(beyond_before)
+        || after == Some('.') && word(beyond_after)
 }
 
 /// The line, from 1, holding byte `offset` of `text`.
