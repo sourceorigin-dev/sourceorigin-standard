@@ -1,0 +1,7 @@
+# A hung test fails with a report instead of stalling validation indefinitely.
+[profile.default]
+slow-timeout = { period = "60s", terminate-after = 5 }
+
+# CI reports every failure, not only the first.
+[profile.ci]
+fail-fast = false

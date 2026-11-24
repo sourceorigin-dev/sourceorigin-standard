@@ -1,0 +1,22 @@
+# Path filters for CI's `changes` job (.github/workflows/ci.yml), which
+# dorny/paths-filter matches with picomatch globs, dotfiles included. Each
+# filter lists a job's inputs. The jobs read the filters through the `changes`
+# job's outputs.
+workspace: &workspace
+  - .github/workflows/ci.yml
+  - .github/filters.yml
+  - Cargo.toml
+  - Cargo.lock
+  - rust-toolchain.toml
+  - .config/**
+  - justfile
+rust:
+  - *workspace
+  - crates/**
+  - tools/**
+  - rustfmt.toml
+  - clippy.toml
+deny:
+  - *workspace
+  - deny.toml
+  - '**/Cargo.toml'
