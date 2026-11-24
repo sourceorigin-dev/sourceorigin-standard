@@ -80,8 +80,9 @@ impl Modules {
     }
 
     /// Whether every target reaching `path` reaches it as test code: it is
-    /// part of an integration test or benchmark, or a `#[cfg(test)]` module
-    /// declares it or a module above it.
+    /// part of an integration test or benchmark, or a module whose `cfg`
+    /// holds only in tests, such as `#[cfg(test)]`, declares it or a module
+    /// above it.
     pub(super) fn is_test(&self, path: &Path) -> bool {
         self.paths.contains_key(path) && !self.not_test.contains(path)
     }
