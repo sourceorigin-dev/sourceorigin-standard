@@ -12,6 +12,12 @@ use super::{Finding, Repository};
 /// `CARGO_BUILD_JOBS` overrides, and a low priority.
 const JOBS: &str = "${CARGO_BUILD_JOBS:-";
 const NICE: &str = "nice -n 10";
+/// Or, so that Cargo's `build.jobs` setting isn't overridden either: a check
+/// of `cargo config get build.jobs`, which also sees `CARGO_BUILD_JOBS`, and
+/// an export of half the cores for when it finds nothing.
+const CONFIGURED: &str = "config get build.jobs";
+const EXPORT: &str = "export CARGO_BUILD_JOBS=";
+const HALF: &str = "/ 2";
 
 impl Justfile {
     /// Whether `recipe` runs Cargo, in its body, a dependency, or a recipe
@@ -64,15 +70,21 @@ impl Repository {
                     return None;
                 }
                 let body: Vec<String> = justfile.recipes.get(recipe)?.lines().collect();
-                let limited = body.iter().any(|line| line.contains(JOBS))
-                    && body.iter().any(|line| line.contains(NICE));
+                let holds = |needle: &str| body.iter().any(|line| line.contains(needle));
+                let jobs = holds(JOBS)
+                    || (holds(CONFIGURED)
+                        && body
+                            .iter()
+                            .any(|line| line.contains(EXPORT) && line.contains(HALF)));
+                let limited = jobs && holds(NICE);
                 (!limited).then(|| Finding {
                     path: t3::PATH.into(),
                     line: t3.line(script),
                     message: format!(
                         "`just {recipe}` builds on every core at full priority when a worktree \
                          is created: in its body, `export CARGO_BUILD_JOBS=\"{JOBS}$(( ($(nproc) \
-                         + 1) / 2 ))}}\"` and run the build with `{NICE}`"
+                         + 1) / 2 ))}}\"`, or export it only when `cargo {CONFIGURED}` finds \
+                         nothing, and run the build with `{NICE}`"
                     ),
                 })
             })

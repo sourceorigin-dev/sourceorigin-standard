@@ -264,8 +264,9 @@ rules! {
     RecipesOnly = "recipes-only" => recipes_only,
     /// A recipe `t3.json` runs on worktree creation that runs Cargo, itself
     /// or through the recipes it runs, sets `CARGO_BUILD_JOBS` to a
-    /// default, half the cores, that a set one overrides, and runs the build
-    /// with `nice -n 10`, both in its own body.
+    /// default, half the cores, that a set one overrides (or exports it only
+    /// when `cargo config get build.jobs` finds no setting), and runs the
+    /// build with `nice -n 10`, both in its own body.
     T3Setup = "t3-setup" => t3_setup,
     /// `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job
     /// that needs every other job and runs `if: always()`: with
