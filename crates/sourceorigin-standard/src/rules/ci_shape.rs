@@ -2,6 +2,7 @@
 //! queue waits on. The `changes` job and its filters are `check-changed`'s
 //! drift check's.
 
+use std::collections::BTreeSet;
 use std::path::Path;
 
 use super::fix::{Checked, Fix};
@@ -22,6 +23,40 @@ impl Workflow {
             .iter()
             .find(|(name, _)| name.as_str() == Some(key))
             .map(|(_, job)| job)
+    }
+
+    /// The jobs `job` needs, whether its `needs:` names one or lists several.
+    fn needs(job: &Node) -> Vec<&str> {
+        job.get("needs")
+            .into_iter()
+            .flat_map(|needs| {
+                needs
+                    .as_str()
+                    .into_iter()
+                    .chain(needs.items().iter().filter_map(Node::as_str))
+            })
+            .collect()
+    }
+
+    /// The `ci` job and each job that needs it, directly or through other
+    /// jobs: they run after it, so it can't need them.
+    fn after_ci(&self) -> BTreeSet<&str> {
+        let mut after = BTreeSet::from([CI]);
+        loop {
+            let next: Vec<&str> = self
+                .jobs()
+                .iter()
+                .filter_map(|(name, job)| {
+                    let name = name.as_str()?;
+                    let waits = Self::needs(job).iter().any(|need| after.contains(need));
+                    (waits && !after.contains(name)).then_some(name)
+                })
+                .collect();
+            if next.is_empty() {
+                return after;
+            }
+            after.extend(next);
+        }
     }
 
     /// Where the CI workflow breaks the standard's shape: each line with
@@ -56,20 +91,13 @@ impl Workflow {
             ));
         }
         let needs = ci.get("needs");
-        let needed: Vec<&str> = needs
-            .into_iter()
-            .flat_map(|needs| {
-                needs
-                    .as_str()
-                    .into_iter()
-                    .chain(needs.items().iter().filter_map(Node::as_str))
-            })
-            .collect();
+        let needed = Self::needs(ci);
+        let after = self.after_ci();
         let missing = self
             .jobs()
             .iter()
             .filter_map(|(name, _)| name.as_str())
-            .filter(|&name| name != CI && !needed.contains(&name));
+            .filter(|&name| !after.contains(name) && !needed.contains(&name));
         for name in missing {
             found.push((
                 needs.map_or(ci.line, |needs| needs.line),

@@ -50,6 +50,27 @@ fn ci_has_a_changes_job_and_one_status_the_queue_waits_on() {
     assert_eq!(fixture.violations(Rule::CiShape).len(), 3);
 }
 
+/// A job that needs `ci`, directly or through another job, runs after it,
+/// so `ci` needing it would deadlock.
+#[test]
+fn ci_doesnt_need_the_jobs_that_run_after_it() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        ".github/workflows/ci.yml",
+        &format!(
+            "{CI}  report:\n    needs: ci\n  publish:\n    needs: [rust, report]\n  docs:\n    \
+             runs-on: ubuntu-latest\n"
+        ),
+    );
+    assert_eq!(
+        fixture.violations(Rule::CiShape),
+        [
+            ".github/workflows/ci.yml:15: the `ci` job doesn't need `docs`: add it to `needs` \
+          (ci-shape)"
+        ]
+    );
+}
+
 #[test]
 fn a_ci_workflow_that_doesnt_parse_is_left_to_config_syntax() {
     let fixture = Fixture::new();
