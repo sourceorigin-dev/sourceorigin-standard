@@ -13,6 +13,9 @@ class Toml {
      * `section` counts the table headers before it, so the entries of one
      * `[[array.table]]` element share it. Dotted keys stay joined: `a.b`. */
     this.entries = [];
+    /** The line of each statement it couldn't read as a header or a
+     * `key = value`, for a check that must fail closed on it. */
+    this.unread = [];
     let table = '';
     let section = 0;
     for (const { text: statement, line } of Toml.statements(text)) {
@@ -22,7 +25,10 @@ class Toml {
         continue;
       }
       const equals = Toml.find(statement, '=');
-      if (equals < 0) continue;
+      if (equals < 0) {
+        this.unread.push(line);
+        continue;
+      }
       this.entries.push({
         table,
         key: Toml.key(statement.slice(0, equals)),

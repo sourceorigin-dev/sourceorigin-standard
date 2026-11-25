@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const lintExceptions = require('./lint-exceptions.js');
+const { Settings } = require('./settings.js');
 const { Fake } = require('./testing.js');
 
 const file = (filename, status = 'modified', previous_filename) => ({ filename, status, previous_filename });
@@ -30,6 +31,73 @@ test("a change to standard.toml needs approval, and its [pr-checks] must read", 
   await assert.rejects(
     findings([file('standard.toml')], { head: { 'standard.toml': '[pr-checks]\nscope = 1' } }),
     /standard\.toml:2: `scope` of `\[pr-checks\]`/,
+  );
+});
+
+const STANDARD = `unsafe-modules = ["a::ffi"]
+
+[deviations]
+doc-length = "long docs"
+rust-comments = { reason = "vendored", paths = ["src/a.rs", "src/b.rs"], crates = ["a", "b"] }
+
+[deviations.budget]
+reason = "generated"
+paths = ["budget.toml"]
+
+[pr-checks]
+scopes = ["a"]
+
+[pr-checks.deviations]
+pr-title = "a bot names its own"
+`;
+
+/** What changing STANDARD's `from` to `to` finds, or what a standard.toml
+ * of `to` changed from `from` finds when `from` is a whole file. */
+const changes = async (from, to, whole = false) => {
+  const [base, head] = whole ? [from, to] : [STANDARD, STANDARD.replace(from, to)];
+  assert.ok(whole || STANDARD.includes(from), from);
+  const pr = await Fake.pr({}, { changed: [file('standard.toml')], files: { base: { 'standard.toml': base }, head: { 'standard.toml': head } } });
+  return lines(await lintExceptions.findings(pr, new Settings('', ['pr-title', 'pr-body'])));
+};
+const loosens = ['standard.toml: this changes standard.toml, which sets how the rules apply.'];
+
+test('a change that only tightens standard.toml needs no approval', async () => {
+  for (const [from, to] of [
+    ['doc-length = "long docs"\n', ''],
+    ['[deviations.budget]\nreason = "generated"\npaths = ["budget.toml"]\n', ''],
+    ['pr-title = "a bot names its own"\n', ''],
+    ['paths = ["src/a.rs", "src/b.rs"]', 'paths = ["src/b.rs"]'],
+    ['crates = ["a", "b"]', 'crates = []'],
+    ['reason = "vendored"', 'reason = "vendored code, until #12 lands"'],
+    ['"long docs"', '"generated docs"'],
+    ['paths = ["budget.toml"]', 'paths = [\n  "budget.toml",\n]'],
+  ]) {
+    assert.deepEqual(await changes(from, to), [], `${from} -> ${to}`);
+  }
+});
+
+test('a change to standard.toml that loosens it, or does anything else, needs approval', async () => {
+  for (const [from, to] of [
+    ['doc-length = "long docs"\n', 'doc-length = "long docs"\nwording = "quoted"\n'],
+    ['paths = ["src/a.rs", "src/b.rs"]', 'paths = ["src/a.rs", "src/b.rs", "src/c.rs"]'],
+    ['paths = ["src/a.rs", "src/b.rs"]', 'paths = ["src/a.rs", "src/c.rs"]'],
+    ['doc-length = "long docs"\n', 'wording = "quoted"\n'],
+    ['crates = ["a", "b"]', 'crates = ["a", "c"]'],
+    ['[deviations.budget]\nreason = "generated"\npaths = ["budget.toml"]\n', '[deviations]\nbudget = "generated"\n'],
+    ['doc-length = "long docs"', 'doc-length = { reason = "long docs", paths = ["src/a.rs"] }'],
+    ['unsafe-modules = ["a::ffi"]', 'unsafe-modules = ["a::ffi", "b::ffi"]'],
+    ['unsafe-modules = ["a::ffi"]', 'unsafe-modules = []'],
+    ['scopes = ["a"]', 'scopes = ["a", "b"]'],
+    ['pr-title = "a bot names its own"\n', 'pr-title = "a bot names its own"\npr-body = "too"\n'],
+    ['[deviations]\n', '[deviations]\nnot a setting\n'],
+  ]) {
+    assert.deepEqual(await changes(from, to), loosens, `${from} -> ${to}`);
+  }
+  assert.deepEqual(await changes('', STANDARD, true), loosens);
+  assert.deepEqual(await changes('[deviations]\nwording = "x"\nnot a setting\n', '', true), loosens);
+  assert.deepEqual(
+    await findings([file('standard.toml', 'added')], { head: { 'standard.toml': '' } }),
+    ['standard.toml: this adds standard.toml, which sets how the rules apply.'],
   );
 });
 

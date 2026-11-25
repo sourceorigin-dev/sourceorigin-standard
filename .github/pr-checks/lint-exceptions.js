@@ -16,13 +16,18 @@ const RULE_FILES = [PATH, 'clippy.toml', '.clippy.toml', 'deny.toml', 'dylint.to
  * form TOML has. */
 const BUDGET = 'budget.toml';
 
+/** The lists that scope a deviation of standard.toml, which a change may
+ * only shorten without approval. */
+const SCOPES = ['paths', 'crates'];
+
 /** What a pull request does to a file, by its status in `pulls.listFiles`. */
 const VERBS = { added: 'adds', removed: 'deletes', renamed: 'renames' };
 
 /**
  * C11: a pull request that loosens a rule is always seen, and needs
- * approval: any change to a rule file, under its name or its old one, and
- * a budget of budget.toml that rises or appears. As every budget equals
+ * approval: any change to a rule file, under its name or its old one, but
+ * one to standard.toml that only tightens it, and a budget of budget.toml
+ * that rises or appears. As every budget equals
  * its count, each new `#[expect]`, `// INVARIANT:`, `// wall-clock:` or lint
  * a manifest allows shows as one. The approval is the `approved-exception` label,
  * added by an approver after the latest push; report-only mode lists
@@ -36,7 +41,10 @@ const lintExceptions = {
     for (const { path, status, previous } of await pr.files()) {
       const rule = lintExceptions.ruleFile(path) ?? (previous && lintExceptions.ruleFile(previous));
       if (rule) {
-        findings.push({ path, message: `this ${VERBS[status] ?? 'changes'} ${rule}, which sets how the rules apply.` });
+        const tightens = path === PATH && status === 'modified' && (await lintExceptions.tightens(pr));
+        if (!tightens) {
+          findings.push({ path, message: `this ${VERBS[status] ?? 'changes'} ${rule}, which sets how the rules apply.` });
+        }
         if (path === PATH && status !== 'removed') new Settings(await pr.fileAt(pr.head, path), settings.known);
       } else if (path === BUDGET && status !== 'removed') {
         findings.push(...(await lintExceptions.raises(pr)));
@@ -65,6 +73,65 @@ const lintExceptions = {
   /** The file at `path` in commit `sha`, read as TOML; none is empty. */
   async read(pr, sha, path) {
     return new Toml((await pr.fileAt(sha, path)) ?? '');
+  },
+
+  /** Whether the pull request's change to standard.toml only tightens it:
+   * it removes deviations, removes entries from a deviation's `paths` or
+   * `crates`, or rewords a reason, and changes nothing else. A side that
+   * can't be read as standard.toml loosens it. */
+  async tightens(pr) {
+    const before = lintExceptions.standard(await lintExceptions.read(pr, pr.base, PATH));
+    const after = lintExceptions.standard(await lintExceptions.read(pr, pr.head, PATH));
+    if (!before || !after) return false;
+    const settings = [...new Set([...before.settings.keys(), ...after.settings.keys()])];
+    if (settings.some((key) => before.settings.get(key) !== after.settings.get(key))) return false;
+    return [...after.deviations].every(([rule, scope]) => {
+      if (!before.deviations.has(rule)) return false;
+      const was = before.deviations.get(rule);
+      if (scope === null || was === null) return scope === was;
+      return SCOPES.every((list) => [...scope[list]].every((entry) => was[list].has(entry)));
+    });
+  },
+
+  /** A standard.toml as its deviations, each by its table and rule with
+   * its scope (`null` for everywhere, else a set of each of `SCOPES`), and
+   * every other setting by its dotted key with its value as written; or
+   * `null` when it holds anything else. Reasons don't count. */
+  standard(toml) {
+    if (toml.unread.length) return null;
+    const settings = new Map();
+    const written = new Map();
+    const entries = toml.entries.map(({ table, key, value }) => [table ? `${table}.${key}` : key, value]);
+    for (let i = 0; i < entries.length; i += 1) {
+      const [key, value] = entries[i];
+      if (value.startsWith('{')) {
+        for (const item of Toml.items(value)) {
+          const equals = Toml.find(item, '=');
+          if (equals < 0) return null;
+          entries.push([`${key}.${Toml.key(item.slice(0, equals))}`, item.slice(equals + 1).trim()]);
+        }
+        continue;
+      }
+      const deviation = /^((?:pr-checks\.)?deviations)\.([^.]+)(?:\.(reason|paths|crates))?$/.exec(key);
+      if (!deviation) {
+        if (/^(pr-checks\.)?deviations(\.|$)/.test(key) || settings.has(key)) return null;
+        settings.set(key, value.replace(/\s+/g, ' '));
+        continue;
+      }
+      const [, table, rule, field = 'everywhere'] = deviation;
+      const fields = written.get(`${table}.${rule}`) ?? {};
+      const read = SCOPES.includes(field) ? Settings.read('strings', value) : Toml.string(value);
+      if (read === null || field in fields || (table !== 'deviations' && field !== 'everywhere')) return null;
+      fields[field] = read;
+      written.set(`${table}.${rule}`, fields);
+    }
+    const deviations = new Map();
+    for (const [rule, fields] of written) {
+      if ('everywhere' in fields && Object.keys(fields).length > 1) return null;
+      const scoped = SCOPES.some((list) => fields[list]);
+      deviations.set(rule, scoped ? Object.fromEntries(SCOPES.map((list) => [list, new Set(fields[list] ?? [])])) : null);
+    }
+    return { settings, deviations };
   },
 
   /** The budgets budget.toml raises or adds, or one finding when either
