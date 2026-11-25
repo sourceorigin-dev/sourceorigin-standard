@@ -44,6 +44,9 @@ pub(super) struct Budget {
     /// `[wall-clock]`: `// wall-clock:` comments, above tests that poll or
     /// sleep.
     wall_clock: Ceilings,
+    /// `[external]`: `// EXTERNAL:` comments, each a constraint from outside
+    /// the code.
+    external: Ceilings,
     /// `[allow]`: lints a manifest's `[lints]` or `[workspace.lints]` sets
     /// to `allow`, by the manifest's path.
     allow: Ceilings,
@@ -57,6 +60,7 @@ struct File {
     invariant: BTreeMap<Spanned<String>, usize>,
     #[serde(rename = "wall-clock")]
     wall_clock: BTreeMap<Spanned<String>, usize>,
+    external: BTreeMap<Spanned<String>, usize>,
     allow: BTreeMap<Spanned<String>, usize>,
 }
 
@@ -93,6 +97,11 @@ const WALL_CLOCK: Table = Table {
     what: "`// wall-clock:` lines",
     keys: "crate",
 };
+const EXTERNAL: Table = Table {
+    name: "external",
+    what: "`// EXTERNAL:` lines",
+    keys: "crate",
+};
 const ALLOW: Table = Table {
     name: "allow",
     what: "lints set to `allow`",
@@ -116,6 +125,7 @@ impl Budget {
             expect: Ceilings::of(&file, &file.value.expect),
             invariant: Ceilings::of(&file, &file.value.invariant),
             wall_clock: Ceilings::of(&file, &file.value.wall_clock),
+            external: Ceilings::of(&file, &file.value.external),
             allow: Ceilings::of(&file, &file.value.allow),
         })
     }
@@ -123,11 +133,17 @@ impl Budget {
     /// The crate or manifest whose entry is at `line` of `budget.toml`, to
     /// which a deviation scoped to crates applies.
     pub(super) fn key_at(&self, line: usize) -> Option<&str> {
-        [&self.expect, &self.invariant, &self.wall_clock, &self.allow]
-            .into_iter()
-            .flat_map(|ceilings| &ceilings.0)
-            .find(|(_, ceiling)| ceiling.line == line)
-            .map(|(name, _)| name.as_str())
+        [
+            &self.expect,
+            &self.invariant,
+            &self.wall_clock,
+            &self.external,
+            &self.allow,
+        ]
+        .into_iter()
+        .flat_map(|ceilings| &ceilings.0)
+        .find(|(_, ceiling)| ceiling.line == line)
+        .map(|(name, _)| name.as_str())
     }
 }
 
@@ -405,8 +421,9 @@ impl Repository {
         counts
     }
 
-    /// Each crate whose `#[expect]` lints, `// INVARIANT:` or `// wall-clock:`
-    /// lines, and each manifest whose `allow`ed lints, don't number their
+    /// Each crate whose `#[expect]` lints, `// INVARIANT:`, `// wall-clock:`
+    /// or `// EXTERNAL:` lines, and each manifest whose `allow`ed lints,
+    /// don't number their
     /// budget, and each budgeted name that is none of them; nothing while
     /// `budget.toml` doesn't parse, which is `config-syntax`'s.
     pub(super) fn budget(&self) -> Checked {
@@ -450,6 +467,7 @@ impl Repository {
                 WALL_CLOCK,
                 marked(comments::WALL_CLOCK),
             ),
+            (&self.budget.external, EXTERNAL, marked(comments::EXTERNAL)),
             (&self.budget.allow, ALLOW, allows),
         ];
         let mut checked = Checked::default();

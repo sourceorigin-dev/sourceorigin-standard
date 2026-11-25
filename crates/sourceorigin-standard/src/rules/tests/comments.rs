@@ -20,6 +20,9 @@ fn b() {}
 // wall-clock: the server only says it is up by answering.
 #[test]
 fn c() {}
+// EXTERNAL: GitHub returns at most 100 items a page,
+// https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api.
+fn d() {}
 "##;
 
 #[test]
@@ -36,13 +39,32 @@ fn only_doc_comments_and_marked_comments_pass() {
     let plain = |line: usize| {
         format!(
             "crates/core/src/lib.rs:{line}: a plain comment: move it into the item's `///` \
-             docs, or remove it; only SAFETY:, INVARIANT: and wall-clock: comments stay \
-             (rust-comments)"
+             docs, or remove it; only SAFETY:, INVARIANT:, wall-clock: and EXTERNAL: comments \
+             stay (rust-comments)"
         )
     };
     assert_eq!(
         fixture.violations(Rule::RustComments),
         [plain(3), plain(6), plain(8), plain(11), plain(13)]
+    );
+}
+
+#[test]
+fn an_external_comment_needs_a_link() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        "crates/core/src/lib.rs",
+        "// EXTERNAL: the vendor rounds timeouts up to a second.\n\
+         // SAFETY: a link here, https://example.com, is not the external one's.\n\
+         fn f() {}\n",
+    );
+    assert_eq!(
+        fixture.violations(Rule::RustComments),
+        [
+            "crates/core/src/lib.rs:1: an EXTERNAL: comment without a link: link the issue, RFC \
+             or vendor document that shows the constraint comes from outside the code, or \
+             reshape the code so it needs no comment (rust-comments)"
+        ]
     );
 }
 

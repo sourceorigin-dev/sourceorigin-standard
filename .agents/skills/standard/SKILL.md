@@ -6,8 +6,8 @@ description: >
   it, make the mechanical fixes with `--fix`, and know what to do when a rule
   gets in the way. Use when `just standard`, a Dylint lint or a PR check
   fails, before adding a deviation, an `#[expect]`, a workspace `allow`, an
-  `// INVARIANT:` or a `// wall-clock:` comment, or when adding or changing a
-  rule in sourceorigin-standard.
+  `// INVARIANT:`, `// wall-clock:` or `// EXTERNAL:` comment, or when adding
+  or changing a rule in sourceorigin-standard.
 ---
 
 <!-- Synced from the sourceorigin-standard crate by `cargo xtask standard skills`: change it there, not here. -->
@@ -31,8 +31,9 @@ A repository has two required checks: `ci`, for the code, and
 `standard / pr-checks`, for the pull request. `standard.toml` at its root
 holds how it applies the rules, and its `[pr-checks]` table the PR checks'
 settings, such as the scopes a title may take. `budget.toml` holds each
-crate's exact number of `#[expect]` lints, `// INVARIANT:` lines and
-`// wall-clock:` lines, and each manifest's number of lints set to `allow`.
+crate's exact number of `#[expect]` lints, `// INVARIANT:`, `// wall-clock:`
+and `// EXTERNAL:` lines, and each manifest's number of lints set to
+`allow`.
 
 ## Fix a violation
 
@@ -92,11 +93,17 @@ a reason saying why the lint is wrong there:
   `[workspace.lints]`, the one reviewed place for a lint the repository
   doesn't want at all.
 
+An `// EXTERNAL:` comment holds a fact forced on the code by a dependency,
+platform, vendor or protocol it can't change, with a link to the issue, RFC
+or vendor document that shows it: `rust-comments` fails one without a link.
+A surprise in the repository's own code gets no comment: rename or reshape
+it until it is obvious.
+
 With the user's approval, make the exception or deviation in the same pull
 request as the code that needs it, and say why in its description. A new
-`#[expect]`, `// INVARIANT:`, `// wall-clock:` or workspace `allow` raises
-its number in `budget.toml` (`[allow]` counts a manifest's by its path): the
-same question.
+`#[expect]`, `// INVARIANT:`, `// wall-clock:`, `// EXTERNAL:` or workspace
+`allow` raises its number in `budget.toml` (`[allow]` counts a manifest's by
+its path): the same question.
 
 ## Approval of an exception
 

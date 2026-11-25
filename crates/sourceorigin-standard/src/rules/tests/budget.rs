@@ -20,7 +20,8 @@ fn every_crate_spends_exactly_its_budget() {
             "#[expect(dead_code, reason = \"r\")]\nfn f() {\n    // INVARIANT: one.\n    \
              let a = 0;\n    // INVARIANT: two,\n    // on two lines.\n    let b = 0;\n    \
              // SAFETY: a marked comment,\n    // INVARIANT: and a third invariant.\n    \
-             let c = 0;\n}\n// wall-clock: it polls.\n#[test]\nfn t() {}\n",
+             let c = 0;\n}\n// wall-clock: it polls.\n#[test]\nfn t() {}\n\
+             // EXTERNAL: GitHub caps a page, https://docs.github.com.\nfn g() {}\n",
         )
         .write(
             "crates/over/src/lib.rs",
@@ -50,6 +51,9 @@ fn every_crate_spends_exactly_its_budget() {
              (budget)",
             "budget.toml:11: `under` has 1 `// wall-clock:` lines, under its budget of 2: lower \
              `under` under `[wall-clock]` in budget.toml to 1, as `--fix` does (budget)",
+            "crates/under/Cargo.toml:1: `under` has 1 `// EXTERNAL:` lines, over its budget of \
+             0: remove one, or raise `under` under `[external]` in budget.toml, which the owner \
+             reviews (budget)",
             "crates/unlisted/Cargo.toml:1: `unlisted` has 1 `#[expect]` lints, over its budget \
              of 0: remove one, or raise `unlisted` under `[expect]` in budget.toml, which the \
              owner reviews (budget)",

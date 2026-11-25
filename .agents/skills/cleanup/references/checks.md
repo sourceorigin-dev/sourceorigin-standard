@@ -21,7 +21,9 @@ propose. Fix what you can without changing behaviour; report the rest.
    worth allowing everywhere? Is each deviation in `standard.toml` scoped to
    the files or crates that need it?
 6. **Invariants.** Is each `// INVARIANT:` comment still true, does the code
-   still rely on it, and could a type or a test hold it instead?
+   still rely on it, and could a type or a test hold it instead? Is each
+   `// EXTERNAL:` comment still true at the version `Cargo.lock` pins, and
+   could a wrapper type hold it instead?
 7. **Workarounds.** Which code is contorted only to pass a rule: a function
    split only to stay under a cap, text hidden in a string literal, a
    comment's words packed into a long name, a `let _ =` or a rename only to

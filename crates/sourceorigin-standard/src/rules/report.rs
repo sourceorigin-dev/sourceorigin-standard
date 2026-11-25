@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use super::comments::INVARIANT;
+use super::comments::{EXTERNAL, INVARIANT};
 use super::level::Level;
 use super::workspace_lints::LintLevel;
 use super::{Repository, Rule, Violation};
@@ -20,6 +20,8 @@ pub struct Report {
     pub expects: BTreeMap<String, usize>,
     /// How many `// INVARIANT:` lines the repository holds.
     pub invariants: usize,
+    /// How many `// EXTERNAL:` lines the repository holds.
+    pub externals: usize,
     /// The lints `[workspace.lints]` allows, such as
     /// `clippy::module_name_repetitions`.
     pub workspace_allows: Vec<String>,
@@ -69,6 +71,7 @@ impl Report {
             rules,
             expects: BTreeMap::new(),
             invariants: 0,
+            externals: 0,
             workspace_allows: Vec::new(),
         }
     }
@@ -107,12 +110,13 @@ impl Repository {
                 }
             }
         }
-        let invariants = self
-            .sources
-            .iter()
-            .flat_map(|source| &source.comments)
-            .map(|comment| comment.lines_marked(INVARIANT))
-            .sum();
+        let marked = |marker| {
+            self.sources
+                .iter()
+                .flat_map(|source| &source.comments)
+                .map(|comment| comment.lines_marked(marker))
+                .sum()
+        };
         let workspace_allows = self
             .lint_levels
             .iter()
@@ -122,7 +126,8 @@ impl Repository {
         Report {
             rules,
             expects,
-            invariants,
+            invariants: marked(INVARIANT),
+            externals: marked(EXTERNAL),
             workspace_allows,
         }
     }
