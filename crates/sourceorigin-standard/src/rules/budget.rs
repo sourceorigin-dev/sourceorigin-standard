@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use toml::Spanned;
 
-use super::comments::Comment;
+use super::comments;
 use super::config_syntax::Unreadable;
 use super::fix::{Checked, Fix};
 use super::level::Level;
@@ -41,6 +41,9 @@ pub(super) struct Budget {
     expect: Ceilings,
     /// `[invariant]`: `// INVARIANT:` comments.
     invariant: Ceilings,
+    /// `[wall-clock]`: `// wall-clock:` comments, above tests that poll or
+    /// sleep.
+    wall_clock: Ceilings,
     /// `[allow]`: lints a manifest's `[lints]` or `[workspace.lints]` sets
     /// to `allow`, by the manifest's path.
     allow: Ceilings,
@@ -52,6 +55,8 @@ pub(super) struct Budget {
 struct File {
     expect: BTreeMap<Spanned<String>, usize>,
     invariant: BTreeMap<Spanned<String>, usize>,
+    #[serde(rename = "wall-clock")]
+    wall_clock: BTreeMap<Spanned<String>, usize>,
     allow: BTreeMap<Spanned<String>, usize>,
 }
 
@@ -83,6 +88,11 @@ const INVARIANT: Table = Table {
     what: "`// INVARIANT:` lines",
     keys: "crate",
 };
+const WALL_CLOCK: Table = Table {
+    name: "wall-clock",
+    what: "`// wall-clock:` lines",
+    keys: "crate",
+};
 const ALLOW: Table = Table {
     name: "allow",
     what: "lints set to `allow`",
@@ -105,6 +115,7 @@ impl Budget {
         Ok(Self {
             expect: Ceilings::of(&file, &file.value.expect),
             invariant: Ceilings::of(&file, &file.value.invariant),
+            wall_clock: Ceilings::of(&file, &file.value.wall_clock),
             allow: Ceilings::of(&file, &file.value.allow),
         })
     }
@@ -112,7 +123,7 @@ impl Budget {
     /// The crate or manifest whose entry is at `line` of `budget.toml`, to
     /// which a deviation scoped to crates applies.
     pub(super) fn key_at(&self, line: usize) -> Option<&str> {
-        [&self.expect, &self.invariant, &self.allow]
+        [&self.expect, &self.invariant, &self.wall_clock, &self.allow]
             .into_iter()
             .flat_map(|ceilings| &ceilings.0)
             .find(|(_, ceiling)| ceiling.line == line)
@@ -394,10 +405,10 @@ impl Repository {
         counts
     }
 
-    /// Each crate whose `#[expect]` lints or `// INVARIANT:` lines, and each
-    /// manifest whose `allow`ed lints, don't number their budget, and each
-    /// budgeted name that is none of them; nothing while `budget.toml`
-    /// doesn't parse, which is `config-syntax`'s.
+    /// Each crate whose `#[expect]` lints, `// INVARIANT:` or `// wall-clock:`
+    /// lines, and each manifest whose `allow`ed lints, don't number their
+    /// budget, and each budgeted name that is none of them; nothing while
+    /// `budget.toml` doesn't parse, which is `config-syntax`'s.
     pub(super) fn budget(&self) -> Checked {
         if self.unreadable.contains(PATH) {
             return Checked::default();
@@ -410,8 +421,15 @@ impl Repository {
                 .map(|lint| lint.lints.len())
                 .sum()
         });
-        let invariants =
-            self.per_crate(|source| source.comments.iter().map(Comment::invariants).sum());
+        let marked = |marker: &str| {
+            self.per_crate(|source| {
+                source
+                    .comments
+                    .iter()
+                    .map(|comment| comment.lines_marked(marker))
+                    .sum()
+            })
+        };
         let allows = self
             .manifest_allows
             .iter()
@@ -422,7 +440,16 @@ impl Repository {
             .collect();
         let tables = [
             (&self.budget.expect, EXPECT, expects),
-            (&self.budget.invariant, INVARIANT, invariants),
+            (
+                &self.budget.invariant,
+                INVARIANT,
+                marked(comments::INVARIANT),
+            ),
+            (
+                &self.budget.wall_clock,
+                WALL_CLOCK,
+                marked(comments::WALL_CLOCK),
+            ),
             (&self.budget.allow, ALLOW, allows),
         ];
         let mut checked = Checked::default();

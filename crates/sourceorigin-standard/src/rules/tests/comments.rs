@@ -17,6 +17,9 @@ fn a() {
 //// Four slashes.
 /// Item docs.
 fn b() {}
+// wall-clock: the server only says it is up by answering.
+#[test]
+fn c() {}
 "##;
 
 #[test]
@@ -33,7 +36,8 @@ fn only_doc_comments_and_marked_comments_pass() {
     let plain = |line: usize| {
         format!(
             "crates/core/src/lib.rs:{line}: a plain comment: move it into the item's `///` \
-             docs, or remove it; only SAFETY: and INVARIANT: comments stay (rust-comments)"
+             docs, or remove it; only SAFETY:, INVARIANT: and wall-clock: comments stay \
+             (rust-comments)"
         )
     };
     assert_eq!(

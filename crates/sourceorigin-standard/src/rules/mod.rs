@@ -174,7 +174,8 @@ rules! {
     /// Each crate's `#[expect]` lints (each lint an `#[expect]` names,
     /// inner, outer, through `cfg_attr` or in a `macro_rules!` body) number
     /// exactly what `budget.toml`'s `[expect]` table gives it, and its lines
-    /// starting `// INVARIANT:` exactly what `[invariant]` does, in the files
+    /// starting `// INVARIANT:` exactly what `[invariant]` does and those
+    /// starting `// wall-clock:` what `[wall-clock]` does, in the files
     /// its targets reach; each manifest's lints set to `allow` number what
     /// `[allow]` gives its path. Zero for one a table doesn't list. The
     /// crates of other workspaces in the repository count too, but not a
@@ -185,8 +186,9 @@ rules! {
     /// outer): their exceptions sit on their `mod` declaration.
     GeneratedLints = "generated-lints" => generated_lints,
     /// Rust files that aren't generated hold only doc comments (`///`,
-    /// `//!`), `// SAFETY:` comments and `// INVARIANT:` comments; any other
-    /// `//` or `/* */` comment fails.
+    /// `//!`), `// SAFETY:` comments, `// INVARIANT:` comments and
+    /// `// wall-clock: <why>` comments, which say why the test below has to
+    /// poll or sleep; any other `//` or `/* */` comment fails.
     RustComments = "rust-comments" => rust_comments,
     /// The prose of each item's or module's docs, in a file that isn't
     /// generated, spans at most `standard.toml`'s `[comments] doc-lines`

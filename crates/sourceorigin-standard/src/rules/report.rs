@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
-use super::comments::Comment;
+use super::comments::INVARIANT;
 use super::level::Level;
 use super::workspace_lints::LintLevel;
 use super::{Repository, Rule, Violation};
@@ -111,7 +111,7 @@ impl Repository {
             .sources
             .iter()
             .flat_map(|source| &source.comments)
-            .map(Comment::invariants)
+            .map(|comment| comment.lines_marked(INVARIANT))
             .sum();
         let workspace_allows = self
             .lint_levels

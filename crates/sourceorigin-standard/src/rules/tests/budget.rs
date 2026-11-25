@@ -20,7 +20,7 @@ fn every_crate_spends_exactly_its_budget() {
             "#[expect(dead_code, reason = \"r\")]\nfn f() {\n    // INVARIANT: one.\n    \
              let a = 0;\n    // INVARIANT: two,\n    // on two lines.\n    let b = 0;\n    \
              // SAFETY: a marked comment,\n    // INVARIANT: and a third invariant.\n    \
-             let c = 0;\n}\n",
+             let c = 0;\n}\n// wall-clock: it polls.\n#[test]\nfn t() {}\n",
         )
         .write(
             "crates/over/src/lib.rs",
@@ -33,7 +33,8 @@ fn every_crate_spends_exactly_its_budget() {
         )
         .write(
             "budget.toml",
-            "[expect]\nexact = 4\nunder = 4\nover = 1\nremoved = 2\n\n[invariant]\nunder = 1\n",
+            "[expect]\nexact = 4\nunder = 4\nover = 1\nremoved = 2\n\n[invariant]\nunder = 1\n\n\
+             [wall-clock]\nunder = 2\n",
         );
     assert_eq!(
         fixture.violations(Rule::Budget),
@@ -47,6 +48,8 @@ fn every_crate_spends_exactly_its_budget() {
             "budget.toml:8: `under` has 3 `// INVARIANT:` lines, over its budget of 1: remove \
              one, or raise `under` under `[invariant]` in budget.toml, which the owner reviews \
              (budget)",
+            "budget.toml:11: `under` has 1 `// wall-clock:` lines, under its budget of 2: lower \
+             `under` under `[wall-clock]` in budget.toml to 1, as `--fix` does (budget)",
             "crates/unlisted/Cargo.toml:1: `unlisted` has 1 `#[expect]` lints, over its budget \
              of 0: remove one, or raise `unlisted` under `[expect]` in budget.toml, which the \
              owner reviews (budget)",

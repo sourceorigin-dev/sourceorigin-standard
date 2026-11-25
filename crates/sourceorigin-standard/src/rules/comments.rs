@@ -24,12 +24,13 @@ pub(super) struct Comment {
 }
 
 impl Comment {
-    /// How many of its lines start with [`INVARIANT`]: each states one
-    /// fact the code relies on.
-    pub(super) fn invariants(&self) -> usize {
+    /// How many of its lines start with `marker`: each [`INVARIANT`] line
+    /// states one fact the code relies on, and each [`WALL_CLOCK`] line why
+    /// one test waits on the clock.
+    pub(super) fn lines_marked(&self, marker: &str) -> usize {
         self.lines
             .iter()
-            .filter(|line| line.starts_with(INVARIANT))
+            .filter(|line| line.starts_with(marker))
             .count()
     }
 
@@ -45,8 +46,12 @@ impl Comment {
 /// test can hold, which `budget.toml` caps per crate.
 pub(super) const INVARIANT: &str = "INVARIANT:";
 
+/// The marker of why a test has to poll or sleep rather than wait on an
+/// event, above each such test, which `budget.toml` caps per crate.
+pub(super) const WALL_CLOCK: &str = "wall-clock:";
+
 /// What a Rust comment that isn't a doc comment may start with.
-pub(super) const MARKERS: [&str; 2] = ["SAFETY:", INVARIANT];
+pub(super) const MARKERS: [&str; 3] = ["SAFETY:", INVARIANT, WALL_CLOCK];
 
 /// The doc comments and `#[doc]` attributes on one item, or inside one
 /// module.
@@ -313,17 +318,17 @@ impl Repository {
             .iter()
             .filter(|source| !source.generated)
             .flat_map(|source| {
+                let [safety, invariant, wall_clock] = MARKERS;
                 source
                     .comments
                     .iter()
                     .filter(|comment| !comment.marked())
-                    .map(|comment| Finding {
+                    .map(move |comment| Finding {
                         path: source.path.clone(),
                         line: comment.line,
                         message: format!(
                             "a plain comment: move it into the item's `///` docs, or remove it; \
-                             only {} comments stay",
-                            MARKERS.join(" and ")
+                             only {safety}, {invariant} and {wall_clock} comments stay"
                         ),
                     })
             })
