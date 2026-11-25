@@ -83,3 +83,11 @@ fn a_preferred_spelling_may_not_hold_the_rejected_one() {
         Err(ConfigError::Wording { line: 2, .. })
     ));
 }
+
+#[test]
+fn wording_keeps_only_a_default() {
+    assert!(matches!(
+        Config::parse("[wording]\n\"repo\" = \"repo\"\n"),
+        Err(ConfigError::KeepsNoDefault { line: 2, .. })
+    ));
+}

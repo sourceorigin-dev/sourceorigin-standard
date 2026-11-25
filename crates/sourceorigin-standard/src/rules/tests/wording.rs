@@ -74,3 +74,43 @@ fn a_word_joined_to_another_is_left_alone() {
          Mail lib@example.com, visit lib.fr or <a href=\"lib.html\">crate</a>.\n"
     );
 }
+
+#[test]
+fn doc_comments_are_read_as_prose() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS).write(
+        "crates/core/src/lib.rs",
+        "//! Additionally, it parses.\n\n/// We utilize `utilize`.\n///\n/// ```\n\
+             /// utilize();\n/// ```\npub fn f() {\n    let _ = \"/// utilize\";\n}\n\
+             #[doc = \"Utilize it.\"]\npub fn g() {}\n",
+    );
+    assert_eq!(
+        fixture.violations(Rule::Wording),
+        [
+            "crates/core/src/lib.rs:1: write `Also`, not `Additionally` (wording)",
+            "crates/core/src/lib.rs:3: write `use`, not `utilize` (wording)",
+        ]
+    );
+    fixture.fix_rule(Rule::Wording);
+    let lib = std::fs::read_to_string(fixture.0.root().join("crates/core/src/lib.rs"))
+        .expect("the file is read");
+    assert!(
+        lib.starts_with(
+            "//! Also, it parses.\n\n/// We use `utilize`.\n///\n/// ```\n/// utilize();\n"
+        ),
+        "{lib}"
+    );
+}
+
+#[test]
+fn a_repository_keeps_a_default_by_preferring_it_to_itself() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write("standard.toml", "[wording]\n\"leverage\" = \"leverage\"\n")
+        .write("docs/guide.md", "In order to lift it, use leverage.\n");
+    assert_eq!(
+        fixture.violations(Rule::Wording),
+        ["docs/guide.md:1: write `To`, not `In order to` (wording)"]
+    );
+}

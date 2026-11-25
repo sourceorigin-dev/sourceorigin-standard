@@ -69,7 +69,7 @@ A repository adopts the standard in six steps:
 - `pr-template`: `.github/pull_request_template.md` has the headings `## What and why` and `## Testing`.
 - `docs-summary`: With a `book.toml`, every Markdown page under its `src` is linked from its `SUMMARY.md`, or included in a page with `{{#include …}}`.
 - `docs-images`: Every image in a Markdown file, outside code and the skills synced from this crate, has alt text: `![what it shows](…)`, or an `<img>` with a non-empty `alt`.
-- `wording`: No Markdown file but a synced skill's holds, as a word of its prose (not code, a link's destination, an HTML tag or a URL, nor part of a name such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling `standard.toml`'s `[wording]` rejects, such as `"Source Origin" = "SourceOrigin"`.
+- `wording`: No Markdown file but a synced skill's, nor `///` or `//!` comment in a Rust file that isn't generated, holds, as a word of its prose (not code, a link's destination, an HTML tag or a URL, nor part of a name such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling the crate's defaults reject, such as `utilize` for `use` or `in order to` for `to`, or that `standard.toml`'s `[wording]` does, such as `"Source Origin" = "SourceOrigin"`.
 - `childless-mod-rs`: A module is `foo/mod.rs` only when its directory holds another Rust file, parsed or not; otherwise it is `foo.rs`. A `mod.rs` beside an integration test's, benchmark's or example's root, such as `tests/common/mod.rs`, passes, and so does one under `src/bin`, where binaries share modules.
 - `inline-tests`: An inline `#[cfg(test)] mod … { }` (or one whose `cfg` requires a feature named for tests) at the top level of a file a target reaches outside test code spans fewer than 50 lines or at most 30% of the file's; a larger one is a file of its own, `mod tests;`.
 - `inline-limits`: `Duration::from_*` with a number, or arithmetic on numbers, sits only in a `const` or `static` item, a `const fn` or test code: a limit, timeout or size is a named constant. Test code is what a test attribute such as `#[tokio::test]`, or a `cfg` requiring `test` or a feature named for tests (`test-util`), marks, the files such a module declares, and integration tests and benchmarks.
@@ -137,9 +137,13 @@ doc-lines = 10
 block-lines = 6
 file-lines = 40
 
-# Spellings the docs reject, each with the one to write instead.
+# Spellings the docs and doc comments reject, each with the one to write
+# instead, on top of the crate's defaults. An entry replaces the default for
+# its spelling, and one preferring a default's spelling to itself keeps it,
+# in that case only.
 [wording]
 "Source Origin" = "SourceOrigin"
+"leverage" = "leverage"
 
 [check-changed]
 # Crates that build another without depending on it, such as a build
@@ -151,6 +155,15 @@ builds = [{ builder = "daemon", built = "dashboard" }]
 # themselves (see below).
 scopes = ["daemon", "cli"]
 ```
+
+`wording` rejects by default the words a doc can do without, each with a
+plain one that `--fix` swaps in without changing the sentence around it:
+`additionally` (`also`), `crucial` and `pivotal` (`key`), `enhance`
+(`improve`), `in order to` (`to`), and `leverage`, `utilize` and `utilise`
+(`use`), with their `-s`, `-ed` and `-ing` forms, each also capitalised, as
+it starts a sentence. A repository that needs one of them, as a word of its
+domain, keeps it in `[wording]`, listing each case it writes. A deviation
+scoped to `paths` turns the whole rule off in those files instead.
 
 `budget.toml`, beside it, holds each crate's number of `#[expect]` lints
 (an `#[expect(a, b)]` counts two), of `// INVARIANT:` lines, which state a

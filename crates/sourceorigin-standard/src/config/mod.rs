@@ -48,6 +48,18 @@ pub enum ConfigError {
         /// The one it prefers.
         preferred: String,
     },
+    /// A `[wording]` entry keeps a spelling, preferring it to itself, that
+    /// no default of the crate rejects.
+    #[error(
+        "{PATH}:{line}: `[wording]` keeps `{spelling}`, which no default rejects: remove the \
+         entry"
+    )]
+    KeepsNoDefault {
+        /// The entry's line, from 1.
+        line: usize,
+        /// The spelling it keeps.
+        spelling: String,
+    },
     /// A deviation gives no reason.
     #[error("{PATH}:{line}: the deviation from `{rule}` needs a reason")]
     NoReason {
@@ -105,9 +117,114 @@ pub(crate) struct Config {
     /// The jobs of the CI workflow that watch its `ci` job from outside,
     /// such as one polling the run through the API, which `ci` can't need.
     pub(crate) ci_watchers: Vec<Listed>,
-    /// The `[wording]` table: each rejected spelling, with its line, and
-    /// the one to write instead.
-    pub(crate) wording: Vec<(Listed, String)>,
+    /// The spellings the docs reject: [`DEFAULT_WORDING`], with the
+    /// `[wording]` table on top.
+    pub(crate) wording: Wording,
+}
+
+/// The spellings the docs reject by default, each with the one to write
+/// instead: a plain word for one the docs don't need, which `--fix` can
+/// swap in without rereading the sentence. Matching is case-sensitive, so
+/// each comes capitalised too, as it starts a sentence. A repository's
+/// `[wording]` adds to them, and keeps one by preferring it to itself.
+pub(crate) const DEFAULT_WORDING: &[(&str, &str)] = &[
+    ("additionally", "also"),
+    ("Additionally", "Also"),
+    ("crucial", "key"),
+    ("Crucial", "Key"),
+    ("enhance", "improve"),
+    ("Enhance", "Improve"),
+    ("enhanced", "improved"),
+    ("Enhanced", "Improved"),
+    ("enhances", "improves"),
+    ("Enhances", "Improves"),
+    ("enhancing", "improving"),
+    ("Enhancing", "Improving"),
+    ("in order to", "to"),
+    ("In order to", "To"),
+    ("leverage", "use"),
+    ("Leverage", "Use"),
+    ("leveraged", "used"),
+    ("Leveraged", "Used"),
+    ("leverages", "uses"),
+    ("Leverages", "Uses"),
+    ("leveraging", "using"),
+    ("Leveraging", "Using"),
+    ("pivotal", "key"),
+    ("Pivotal", "Key"),
+    ("utilise", "use"),
+    ("Utilise", "Use"),
+    ("utilised", "used"),
+    ("Utilised", "Used"),
+    ("utilises", "uses"),
+    ("Utilises", "Uses"),
+    ("utilising", "using"),
+    ("Utilising", "Using"),
+    ("utilize", "use"),
+    ("Utilize", "Use"),
+    ("utilized", "used"),
+    ("Utilized", "Used"),
+    ("utilizes", "uses"),
+    ("Utilizes", "Uses"),
+    ("utilizing", "using"),
+    ("Utilizing", "Using"),
+];
+
+/// The spellings the docs reject, each with the one to write instead.
+#[derive(Debug)]
+pub(crate) struct Wording(BTreeMap<String, String>);
+
+impl Default for Wording {
+    /// [`DEFAULT_WORDING`].
+    fn default() -> Self {
+        Self(
+            DEFAULT_WORDING
+                .iter()
+                .map(|&(rejected, preferred)| (rejected.to_owned(), preferred.to_owned()))
+                .collect(),
+        )
+    }
+}
+
+impl Wording {
+    /// The defaults with `table`, `[wording]` as written, on top: an entry
+    /// replaces the default for its spelling, or drops it when it prefers
+    /// the spelling to itself.
+    fn with(text: &str, table: BTreeMap<Spanned<String>, String>) -> Result<Self, ConfigError> {
+        let mut wording = Self::default();
+        for (rejected, preferred) in table {
+            let line = line_of(text, rejected.span().start);
+            let rejected = rejected.into_inner();
+            if rejected == preferred {
+                if wording.0.remove(&rejected).is_none() {
+                    return Err(ConfigError::KeepsNoDefault {
+                        line,
+                        spelling: rejected,
+                    });
+                }
+                continue;
+            }
+            let holds = preferred
+                .match_indices(&rejected)
+                .any(|(start, _)| !joins_word(&preferred, start, start + rejected.len()));
+            if holds {
+                return Err(ConfigError::Wording {
+                    line,
+                    rejected,
+                    preferred,
+                });
+            }
+            wording.0.insert(rejected, preferred);
+        }
+        Ok(wording)
+    }
+
+    /// Each rejected spelling, with the one to write instead.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.0
+            .iter()
+            .map(|(rejected, preferred)| (rejected.as_str(), preferred.as_str()))
+    }
 }
 
 /// The `[comments]` table: what comments the rules allow.
@@ -401,25 +518,7 @@ impl Config {
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),
             ci_watchers: listed(file.ci_watchers),
-            wording: file
-                .wording
-                .into_iter()
-                .map(|(rejected, preferred)| {
-                    let line = line_of(text, rejected.span().start);
-                    let value = rejected.into_inner();
-                    let holds = preferred
-                        .match_indices(&value)
-                        .any(|(start, _)| !joins_word(&preferred, start, start + value.len()));
-                    if holds {
-                        return Err(ConfigError::Wording {
-                            line,
-                            rejected: value,
-                            preferred,
-                        });
-                    }
-                    Ok((Listed { value, line }, preferred))
-                })
-                .collect::<Result<_, _>>()?,
+            wording: Wording::with(text, file.wording)?,
         })
     }
 
