@@ -382,7 +382,10 @@ called from a unit test, fails when the table and
 `.github/workflows/ci.yml` disagree: a job in neither the table nor its
 `ignored` list, a job whose `if:` reads the `changes` outputs of other
 filters than its trigger names, or one whose `run:` scripts, matrix entries
-included, call other `just` recipes than the table's. [`Ci::run`] checks the same before running anything.
+included, call other `just` recipes than the table's. A recipe compares by
+its path through the justfile's modules, which `just --dump` lists, and not
+by its arguments: `just web test --fast` runs `web test`, which `just web`
+doesn't. [`Ci::run`] checks the same before running anything.
 
 [`Filter`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/check_changed/trait.Filter.html
 [`Ci`]: https://docs.rs/sourceorigin-standard/latest/sourceorigin_standard/check_changed/struct.Ci.html

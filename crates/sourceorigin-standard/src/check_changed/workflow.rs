@@ -8,6 +8,7 @@ use yaml_rust2::{Yaml, YamlLoader};
 
 use super::Error;
 use super::filters::{self, Quantifier};
+use super::modules::Modules;
 
 /// Where the workflow lives, from the repository's root.
 pub(super) const PATH: &str = ".github/workflows/ci.yml";
@@ -28,6 +29,9 @@ pub(super) struct Workflow {
     pub(super) outputs: BTreeMap<String, BTreeSet<String>>,
     /// Each job, by its key.
     pub(super) jobs: BTreeMap<String, WorkflowJob>,
+    /// The justfile's modules, through which its jobs and the table name
+    /// their recipes.
+    pub(super) modules: Modules,
 }
 
 /// What check-changed reads of one job.
@@ -35,21 +39,22 @@ pub(super) struct Workflow {
 pub(super) struct WorkflowJob {
     /// The `changes` outputs its `if:` reads.
     pub(super) outputs: BTreeSet<String>,
-    /// The `just` recipes its `run:` scripts call, matrix entries included.
+    /// The `just` recipes its `run:` scripts call, matrix entries included,
+    /// each as its path through the justfile's modules, such as `web test`.
     pub(super) recipes: BTreeSet<String>,
 }
 
 impl Workflow {
-    /// Loads the workflow under `root`.
+    /// Loads the workflow under `root`, and the modules of its justfile.
     pub(super) fn load(root: &Path) -> Result<Self, Error> {
         let path = root.join(PATH);
         let yaml = std::fs::read_to_string(&path).map_err(|source| Error::Read { path, source })?;
-        Self::parse(&yaml)
+        Self::parse(&yaml, Modules::load(root)?)
     }
 
     /// Parses a workflow whose `changes` job runs paths-filter on
-    /// `.github/filters.yml`.
-    pub(super) fn parse(yaml: &str) -> Result<Self, Error> {
+    /// `.github/filters.yml`, reading its recipes through `modules`.
+    pub(super) fn parse(yaml: &str, modules: Modules) -> Result<Self, Error> {
         let documents =
             YamlLoader::load_from_str(yaml).map_err(|source| Error::Yaml { file: PATH, source })?;
         let jobs = documents
@@ -100,7 +105,7 @@ impl Workflow {
             .iter()
             .filter_map(|(id, job)| {
                 let mut recipes = BTreeSet::new();
-                Self::recipes(job, &mut recipes);
+                Self::recipes(job, &modules, &mut recipes);
                 Some((
                     id.as_str()?.to_owned(),
                     WorkflowJob {
@@ -114,12 +119,13 @@ impl Workflow {
             quantifier,
             outputs,
             jobs,
+            modules,
         })
     }
 
     /// Adds the `just` recipes the `run:` scripts anywhere in `node` call,
-    /// such as `lint` in `just lint` or `nix develop --command just docs`.
-    /// A recipe named by an expression, `just ${{ … }}`, isn't one.
+    /// through `modules`, such as `lint` in `just lint`, `docs` in
+    /// `nix develop --command just docs` or `web test` in `just web test`.
     #[cfg_attr(
         dylint_lib = "standard_lints",
         expect(
@@ -127,7 +133,7 @@ impl Workflow {
             reason = "reads ci.yml's `run` steps and their `just` commands, which the YAML holds as text"
         )
     )]
-    fn recipes(node: &Yaml, recipes: &mut BTreeSet<String>) {
+    fn recipes(node: &Yaml, modules: &Modules, recipes: &mut BTreeSet<String>) {
         match node {
             Yaml::Hash(entries) => {
                 for (key, value) in entries {
@@ -136,18 +142,19 @@ impl Workflow {
                             let words: Vec<&str> = script.split_whitespace().collect();
                             recipes.extend(
                                 words
-                                    .windows(2)
-                                    .filter(|pair| pair[0] == "just" && !pair[1].starts_with('$'))
-                                    .map(|pair| pair[1].to_owned()),
+                                    .iter()
+                                    .enumerate()
+                                    .filter(|(_, word)| **word == "just")
+                                    .filter_map(|(at, _)| modules.path(&words[at + 1..])),
                             );
                         }
-                        _ => Self::recipes(value, recipes),
+                        _ => Self::recipes(value, modules, recipes),
                     }
                 }
             }
             Yaml::Array(items) => {
                 for item in items {
-                    Self::recipes(item, recipes);
+                    Self::recipes(item, modules, recipes);
                 }
             }
             _ => {}
