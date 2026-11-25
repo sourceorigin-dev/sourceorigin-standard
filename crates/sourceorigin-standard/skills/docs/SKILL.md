@@ -4,7 +4,9 @@ description: >
   Write or change documentation: a page of the user or developer guide, a
   README, a screenshot, or a doc comment, including those that feed `--help`
   and generated references. Use before writing or reviewing documentation,
-  when a change needs its docs updated, or when asked to document a feature.
+  when a change needs its docs updated, when asked to document a feature, or
+  before opening a pull request that adds or changes doc comments, to have
+  them reviewed.
 ---
 
 # Write the documentation
@@ -145,3 +147,8 @@ default.
 Run the command that builds and checks the docs, and retake the screenshots
 if you changed a page they show. Check the commands, labels and output you document
 against the running app, with the skill that runs it.
+
+Before opening a pull request that adds or changes doc comments, have them
+reviewed by a subagent with a fresh context, briefed with
+`.agents/skills/docs/references/doc-comment-review.md`. It reports; you
+apply its fixes.
