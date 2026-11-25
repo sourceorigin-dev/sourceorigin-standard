@@ -60,7 +60,7 @@ A repository adopts the standard in six steps:
 - `recipes`: The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`, `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and `check-changed`. `just` alone runs `validate` or `check-changed`; `validate` runs `fmt` first (or `fmt-check`, so that it changes no files, but never both), then at least `lint`, `standard`, `test`, `doc`, `doc-test`, `audit` and `unused`; `test` takes `*ARGS`, defaulting to `--workspace`.
 - `recipes-only`: Every command of `t3.json` runs `just`, and no line of a workflow's or composite action's `run:` starts with `cargo` unless `standard.toml`'s `cargo-in-ci` lists it; each listed line is one a `run:` holds.
 - `t3-setup`: A recipe `t3.json` runs on worktree creation that runs Cargo, itself or through the recipes it runs, sets `CARGO_BUILD_JOBS` to a default, half the cores, that a set one overrides (or exports it only when `cargo config get build.jobs` finds no setting), and runs the build with `nice -n 10`, both in its own body.
-- `ci-shape`: `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job that runs `if: always()` and needs every other job but those that need it, directly or through other jobs, and so run after it: with `standard / pr-checks`, it is one of the repository's two required checks.
+- `ci-shape`: `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job that runs `if: always()` and needs every other job but those that need it, directly or through other jobs, and so run after it, and those `standard.toml`'s `ci-watchers` lists, which watch it from outside, such as by polling the run; each listed name is a job: with `standard / pr-checks`, it is one of the repository's two required checks.
 - `actions-pinned`: Every `uses:` of a workflow or composite action naming another repository's action or workflow pins it to a 40-character commit SHA, followed by a `# v…` comment giving its version.
 - `workflow-permissions`: Every workflow's top-level `permissions` is exactly `contents: read`, or `{}`; a job that needs more sets its own.
 - `job-timeouts`: Every job of a workflow sets `timeout-minutes`, except one calling a reusable workflow.
@@ -102,6 +102,11 @@ anyhow-crates = ["my-cli"]
 # The lines of workflows' `run:` that run Cargo rather than a recipe, each
 # whole, such as a check on the minimum supported Rust version.
 cargo-in-ci = ["cargo +1.85 check --locked --workspace"]
+
+# The jobs of `.github/workflows/ci.yml` that watch the `ci` job from
+# outside, such as one polling the run through the API to cancel it on a
+# failure, which `ci` can't need without waiting on them forever.
+ci-watchers = ["fail-fast"]
 
 # The crates whose code outside tests serializes structs instead of invoking
 # `json!`.

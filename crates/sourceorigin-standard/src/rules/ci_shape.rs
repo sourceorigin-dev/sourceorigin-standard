@@ -9,6 +9,7 @@ use super::fix::{Checked, Fix};
 use super::workflows::Workflow;
 use super::yaml::Node;
 use super::{Finding, Repository};
+use crate::config::{self, Listed};
 
 /// The CI workflow, from the repository's root.
 const PATH: &str = ".github/workflows/ci.yml";
@@ -60,8 +61,8 @@ impl Workflow {
     }
 
     /// Where the CI workflow breaks the standard's shape: each line with
-    /// its message.
-    fn shape(&self) -> Vec<(usize, String)> {
+    /// its message. `ci` needn't need the `watchers`.
+    fn shape(&self, watchers: &[Listed]) -> Vec<(usize, String)> {
         let mut found = Vec::new();
         if !self.triggers().contains(&"merge_group") {
             found.push((
@@ -97,11 +98,16 @@ impl Workflow {
             .jobs()
             .iter()
             .filter_map(|(name, _)| name.as_str())
-            .filter(|&name| !after.contains(name) && !needed.contains(&name));
+            .filter(|&name| !after.contains(name) && !needed.contains(&name))
+            .filter(|&name| !watchers.iter().any(|watcher| watcher.value == name));
         for name in missing {
             found.push((
                 needs.map_or(ci.line, |needs| needs.line),
-                format!("the `{CI}` job doesn't need `{name}`: add it to `needs`"),
+                format!(
+                    "the `{CI}` job doesn't need `{name}`: add it to `needs`, or list it in {}'s \
+                     `ci-watchers` if it watches `{CI}` from outside",
+                    config::PATH
+                ),
             ));
         }
         found
@@ -149,15 +155,28 @@ impl Repository {
             }]
             .into();
         };
+        let watchers = &self.config.ci_watchers;
+        let stale = watchers
+            .iter()
+            .filter(|watcher| ci.job(&watcher.value).is_none())
+            .map(|watcher| Finding {
+                path: config::PATH.into(),
+                line: watcher.line,
+                message: format!(
+                    "`ci-watchers` lists `{}`, which is no job of {PATH}: remove it",
+                    watcher.value
+                ),
+            });
         Checked {
             findings: ci
-                .shape()
+                .shape(watchers)
                 .into_iter()
                 .map(|(line, message)| Finding {
                     path: PATH.into(),
                     line,
                     message,
                 })
+                .chain(stale)
                 .collect(),
             fixes: ci.merge_group_fix().into_iter().collect(),
         }

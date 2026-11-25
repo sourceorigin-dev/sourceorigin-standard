@@ -87,6 +87,7 @@ test('a change to standard.toml that loosens it, or does anything else, needs ap
     ['doc-length = "long docs"', 'doc-length = { reason = "long docs", paths = ["src/a.rs"] }'],
     ['unsafe-modules = ["a::ffi"]', 'unsafe-modules = ["a::ffi", "b::ffi"]'],
     ['unsafe-modules = ["a::ffi"]', 'unsafe-modules = []'],
+    ['unsafe-modules = ["a::ffi"]', 'unsafe-modules = ["a::ffi"]\nci-watchers = ["fail-fast"]'],
     ['scopes = ["a"]', 'scopes = ["a", "b"]'],
     ['pr-title = "a bot names its own"\n', 'pr-title = "a bot names its own"\npr-body = "too"\n'],
     ['[deviations]\n', '[deviations]\nnot a setting\n'],

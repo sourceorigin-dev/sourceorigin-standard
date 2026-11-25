@@ -20,6 +20,14 @@ jobs:
     needs: [changes, rust]
 ";
 
+/// The violation of a `ci` job whose `needs`, at `line`, misses `job`.
+fn unneeded(line: usize, job: &str) -> String {
+    format!(
+        ".github/workflows/ci.yml:{line}: the `ci` job doesn't need `{job}`: add it to `needs`, \
+         or list it in standard.toml's `ci-watchers` if it watches `ci` from outside (ci-shape)"
+    )
+}
+
 #[test]
 fn ci_has_a_changes_job_and_one_status_the_queue_waits_on() {
     let fixture = Fixture::new();
@@ -40,10 +48,8 @@ fn ci_has_a_changes_job_and_one_status_the_queue_waits_on() {
              the merge queue runs it (ci-shape)",
             ".github/workflows/ci.yml:11: the `ci` job doesn't run `if: always()`: add it, so a \
              failure upstream fails it (ci-shape)",
-            ".github/workflows/ci.yml:12: the `ci` job doesn't need `rust`: add it to `needs` \
-             (ci-shape)",
-            ".github/workflows/ci.yml:12: the `ci` job doesn't need `docs`: add it to `needs` \
-             (ci-shape)",
+            &unneeded(12, "rust"),
+            &unneeded(12, "docs"),
         ]
     );
     fixture.fix_rule(Rule::CiShape);
@@ -62,11 +68,32 @@ fn ci_doesnt_need_the_jobs_that_run_after_it() {
              runs-on: ubuntu-latest\n"
         ),
     );
+    assert_eq!(fixture.violations(Rule::CiShape), [unneeded(15, "docs")]);
+}
+
+/// A job `ci-watchers` lists watches `ci` from outside, as by polling the
+/// run, so `ci` needn't need it; a listed name that is no job is stale.
+#[test]
+fn ci_doesnt_need_the_jobs_that_watch_it() {
+    let fixture = Fixture::new();
+    fixture
+        .add_crate("core", INHERITS)
+        .write(
+            ".github/workflows/ci.yml",
+            &format!("{CI}  fail-fast:\n    runs-on: ubuntu-latest\n"),
+        )
+        .write("standard.toml", "ci-watchers = [\"fail-fast\"]\n");
+    assert_eq!(fixture.violations(Rule::CiShape), Vec::<String>::new());
+
+    fixture.write(
+        "standard.toml",
+        "ci-watchers = [\"fail-fast\", \"cancel\"]\n",
+    );
     assert_eq!(
         fixture.violations(Rule::CiShape),
         [
-            ".github/workflows/ci.yml:15: the `ci` job doesn't need `docs`: add it to `needs` \
-          (ci-shape)"
+            "standard.toml:1: `ci-watchers` lists `cancel`, which is no job of \
+          .github/workflows/ci.yml: remove it (ci-shape)"
         ]
     );
 }
