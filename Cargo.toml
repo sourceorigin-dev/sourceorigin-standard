@@ -3,13 +3,13 @@ resolver = "3"
 members = ["crates/*", "tools/*"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/sourceorigin-dev/standard"
 
 [workspace.dependencies]
-sourceorigin-standard = { path = "crates/sourceorigin-standard", version = "0.1.1" }
+sourceorigin-standard = { path = "crates/sourceorigin-standard", version = "0.1.2" }
 
 # The error chain at the edge of this repository's own xtask; the library
 # returns `thiserror` errors.

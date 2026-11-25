@@ -310,7 +310,7 @@ permissions:
 
 jobs:
   standard:
-    uses: sourceorigin-dev/standard/.github/workflows/pr-checks.yml@<sha> # v0.1.1
+    uses: sourceorigin-dev/standard/.github/workflows/pr-checks.yml@<sha> # v0.1.2
     permissions:
       contents: read
       pull-requests: read
