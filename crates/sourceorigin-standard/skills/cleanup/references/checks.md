@@ -24,8 +24,10 @@ propose. Fix what you can without changing behaviour; report the rest.
    still rely on it, and could a type or a test hold it instead?
 7. **Workarounds.** Which code is contorted only to pass a rule: a function
    split only to stay under a cap, text hidden in a string literal, a
-   `let _ =` or a rename only to silence a lint? Undo it, and report the
-   rule as friction: it needs a deviation, a change, or a better fix.
+   comment's words packed into a long name, a `let _ =` or a rename only to
+   silence a lint? Undo it, and report the rule as friction: it needs a
+   deviation, a change, or a better fix. A rename or reshape that makes the
+   behaviour obvious without a comment is the fix, not a workaround.
 8. **Errors.** Are failures a caller can tell apart separate variants, and
    indistinguishable ones merged? Does each rejection name the parameter or
    limit, without leaking a secret or an account's existence? Is an error

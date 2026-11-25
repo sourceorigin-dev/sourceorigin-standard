@@ -59,7 +59,9 @@ Never work around a rule. A workaround passes the check and breaks what the
 rule is for:
 
 - splitting a function or a doc comment only to stay under a cap;
-- moving prose into a string literal, or a comment into a name;
+- moving prose into a string literal, or a comment's words into a long
+  name. A rename or reshape that makes the behaviour obvious without the
+  comment is the fix, not a workaround;
 - `let _ =`, a dummy use or a rename only to silence a lint;
 - an `#[expect]`, a workspace `allow` or a raised budget in `budget.toml`
   without asking.
