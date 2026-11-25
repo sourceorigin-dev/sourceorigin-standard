@@ -21,7 +21,11 @@ const REQUIRED: [&str; 11] = [
     "check-changed",
 ];
 
-/// The recipes `validate` runs, after `fmt`.
+/// What `validate` runs first: `fmt`, or `fmt-check` for a `validate` that
+/// changes no files.
+const FORMATS: [&str; 2] = ["fmt", "fmt-check"];
+
+/// The recipes `validate` runs, after one of [`FORMATS`].
 const VALIDATED: [&str; 7] = [
     "lint", "standard", "test", "doc", "doc-test", "audit", "unused",
 ];
@@ -57,9 +61,14 @@ impl Justfile {
         }
         if self.recipes.contains_key("validate") {
             let validated = self.dependencies("validate");
-            if validated.first() != Some(&"fmt") {
+            if !validated
+                .first()
+                .is_some_and(|first| FORMATS.contains(first))
+            {
                 violations.push(
-                    "`validate` doesn't format first: make `fmt` its first dependency".to_owned(),
+                    "`validate` doesn't format first: make `fmt` its first dependency, or \
+                     `fmt-check` for a `validate` that changes no files"
+                        .to_owned(),
                 );
             }
             violations.extend(
@@ -70,7 +79,7 @@ impl Justfile {
                         format!("`validate` doesn't run `{name}`: add it to its dependencies")
                     }),
             );
-            if validated.contains(&"fmt-check") {
+            if FORMATS.iter().all(|format| validated.contains(format)) {
                 violations
                     .push("`validate` runs `fmt-check` after formatting: remove it".to_owned());
             }

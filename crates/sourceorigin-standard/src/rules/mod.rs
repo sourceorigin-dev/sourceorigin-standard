@@ -255,9 +255,10 @@ rules! {
     /// The justfile has the recipes `validate`, `fmt`, `fmt-check`, `lint`,
     /// `standard`, `test`, `doc`, `doc-test`, `audit`, `unused` and
     /// `check-changed`. `just` alone runs `validate` or `check-changed`;
-    /// `validate` runs `fmt` first, then at least `lint`, `standard`, `test`,
-    /// `doc`, `doc-test`, `audit` and `unused`, and never `fmt-check`; `test`
-    /// takes `*ARGS`, defaulting to `--workspace`.
+    /// `validate` runs `fmt` first (or `fmt-check`, so that it changes no
+    /// files, but never both), then at least `lint`, `standard`, `test`,
+    /// `doc`, `doc-test`, `audit` and `unused`; `test` takes `*ARGS`,
+    /// defaulting to `--workspace`.
     Recipes = "recipes" => recipes,
     /// Every command of `t3.json` runs `just`, and no line of a workflow's
     /// or composite action's `run:` starts with `cargo` unless
