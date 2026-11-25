@@ -43,17 +43,36 @@ fn the_justfile_has_the_standard_recipes() {
         "no `check-changed` recipe: add it",
         "`just` alone runs `build`: make the first recipe `default: validate` or \
          `default: check-changed`",
-        "`validate` doesn't format first: make `fmt` its first dependency",
+        "`validate` doesn't format first: make `fmt` its first dependency, or `fmt-check` \
+         for a `validate` that changes no files",
         "`validate` doesn't run `standard`: add it to its dependencies",
         "`validate` doesn't run `doc`: add it to its dependencies",
         "`validate` doesn't run `doc-test`: add it to its dependencies",
         "`validate` doesn't run `audit`: add it to its dependencies",
         "`validate` doesn't run `unused`: add it to its dependencies",
-        "`validate` runs `fmt-check` after formatting: remove it",
         "`test` doesn't pass arguments on: give it `*ARGS='--workspace'`",
     ]
     .iter()
     .map(|message| format!("justfile:1: {message} (recipes)"))
     .collect();
     assert_eq!(fixture.violations(Rule::Recipes), violations);
+}
+
+/// `validate` may check the formatting instead of formatting, so that it
+/// changes no files, but not do both.
+#[test]
+fn validate_formats_or_checks_the_formatting_first() {
+    let fixture = Fixture::new();
+    fixture.add_crate("core", INHERITS);
+    for (validate, violations) in [
+        ("validate: fmt-check lint", vec![]),
+        (
+            "validate: fmt fmt-check lint",
+            vec!["justfile:1: `validate` runs `fmt-check` after formatting: remove it (recipes)"],
+        ),
+    ] {
+        let justfile = JUSTFILE.replace("validate: fmt lint", validate);
+        fixture.write("justfile", &justfile);
+        assert_eq!(fixture.violations(Rule::Recipes), violations, "{validate}");
+    }
 }
