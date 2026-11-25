@@ -133,7 +133,9 @@ Dylint lint when it needs types, a PR check, the `cleanup` skill.
    `rules/`. It returns a `Finding` for each violation, whose message says
    how to fix it, and, when the fix needs no judgement, a `Fix` that
    `--fix` makes. Load what it reads in `Repository::load`.
-3. Test it on a `Fixture` in `rules/tests/<rule>.rs`.
+3. Test it on a `Fixture` in `rules/tests/<rule>.rs`. Where the rule comes
+   from a real mistake, the fixture reproduces it, from the commit or pull
+   request that made it, so the check is proven to fail on that mistake.
 4. Run `just readme`, which writes the rule's text into the crate's README.
 5. In the pull request, say what each repository must change when it moves
    to the new version.

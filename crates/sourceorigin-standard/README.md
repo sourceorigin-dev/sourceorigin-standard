@@ -225,7 +225,8 @@ written once and can't drift apart:
 - `standard`: how an agent fixes a violation, uses `--fix`, and asks the
   user instead of working around a rule; and how to add a rule here.
 - `cleanup`: the monthly cleanup pass. It measures the repository, ranks the
-  rules by friction from `cargo xtask standard report`, answers the
+  rules by friction from `cargo xtask standard report`, finds the missing
+  ones from the mistakes agents repeat, answers the
   judgement checks no rule can enforce, and runs one agent per area, with
   reviews, a boundary lane and a fix PR per bug.
 - `docs`: how to write the user guide, the developer guide's recipes and
