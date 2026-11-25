@@ -33,6 +33,7 @@ fn package(dir: &str, dependencies: &[&str], library: bool) -> Package {
             }],
             src_path: PathBuf::from(format!("/w/{dir}/src/{source}")),
         }],
+        publish: None,
     }
 }
 

@@ -35,6 +35,9 @@ pub(crate) struct Package {
     /// Of every kind: normal, development and build.
     pub(crate) dependencies: Vec<Dependency>,
     pub(crate) targets: Vec<Target>,
+    /// The registries it may be published to: none for `publish = false`,
+    /// and `None` for any.
+    pub(crate) publish: Option<Vec<String>>,
 }
 
 /// A crate a package depends on, named as its package is.
@@ -138,6 +141,16 @@ impl Metadata {
         Ok(Self {
             workspace_root: self.workspace_root.clone(),
             ..other
+        })
+    }
+
+    /// Whether the crate in `dir`, from the workspace's root, sets
+    /// `publish = false`.
+    pub(crate) fn unpublished(&self, dir: &Path) -> bool {
+        let dir = self.workspace_root.join(dir);
+        self.packages.iter().any(|package| {
+            package.manifest_path.parent() == Some(dir.as_path())
+                && package.publish.as_ref().is_some_and(Vec::is_empty)
         })
     }
 
