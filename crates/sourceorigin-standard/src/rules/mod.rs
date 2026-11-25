@@ -275,7 +275,9 @@ rules! {
     T3Setup = "t3-setup" => t3_setup,
     /// `.github/workflows/ci.yml` runs on `merge_group`, and has a `ci` job
     /// that runs `if: always()` and needs every other job but those that
-    /// need it, directly or through other jobs, and so run after it: with
+    /// need it, directly or through other jobs, and so run after it, and
+    /// those `standard.toml`'s `ci-watchers` lists, which watch it from
+    /// outside, such as by polling the run; each listed name is a job: with
     /// `standard / pr-checks`, it is one of the repository's two required
     /// checks.
     CiShape = "ci-shape" => ci_shape,

@@ -102,6 +102,9 @@ pub(crate) struct Config {
     /// The lines of workflows' `run:` that may run Cargo rather than a
     /// recipe.
     pub(crate) cargo_in_ci: Vec<Listed>,
+    /// The jobs of the CI workflow that watch its `ci` job from outside,
+    /// such as one polling the run through the API, which `ci` can't need.
+    pub(crate) ci_watchers: Vec<Listed>,
     /// The `[wording]` table: each rejected spelling, with its line, and
     /// the one to write instead.
     pub(crate) wording: Vec<(Listed, String)>,
@@ -258,6 +261,7 @@ struct File {
     comments: Comments,
     anyhow_crates: Vec<Spanned<String>>,
     cargo_in_ci: Vec<Spanned<String>>,
+    ci_watchers: Vec<Spanned<String>>,
     wording: BTreeMap<Spanned<String>, String>,
     /// The settings of the pull request checks (`.github/workflows/pr-checks.yml`
     /// in sourceorigin-standard), which read and validate it themselves.
@@ -396,6 +400,7 @@ impl Config {
             comments: file.comments,
             anyhow_crates: listed(file.anyhow_crates),
             cargo_in_ci: listed(file.cargo_in_ci),
+            ci_watchers: listed(file.ci_watchers),
             wording: file
                 .wording
                 .into_iter()
