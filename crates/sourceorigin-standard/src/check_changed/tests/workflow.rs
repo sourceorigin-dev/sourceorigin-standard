@@ -1,9 +1,11 @@
 use std::collections::BTreeSet;
 
 use super::super::filters::Quantifier;
+use super::super::modules::Modules;
 use super::super::workflow::Workflow;
 use super::super::{Drift, Error};
-use super::CI;
+use super::{CI, Filter};
+use crate::check_changed::{Ci, Job, Recipe, Run, Trigger};
 
 /// A workflow matching [`CI`].
 const WORKFLOW: &str = "
@@ -58,7 +60,7 @@ fn names(names: &[&str]) -> BTreeSet<String> {
 
 #[test]
 fn a_table_matching_the_workflow_has_no_drift() {
-    let workflow = Workflow::parse(WORKFLOW).expect("the workflow parses");
+    let workflow = Workflow::parse(WORKFLOW, Modules::default()).expect("the workflow parses");
     assert_eq!(workflow.quantifier, Quantifier::Some);
     assert_eq!(CI.drifts(&workflow), []);
 }
@@ -131,8 +133,56 @@ fn drift_between_the_table_and_the_workflow_is_named() {
     ];
     for (from, to, drifts) in cases {
         assert!(WORKFLOW.contains(from), "{from}");
-        let workflow = Workflow::parse(&WORKFLOW.replace(from, to)).expect("the workflow parses");
+        let workflow = Workflow::parse(&WORKFLOW.replace(from, to), Modules::default())
+            .expect("the workflow parses");
         assert_eq!(CI.drifts(&workflow), drifts, "{from} -> {to}");
+    }
+}
+
+/// A table whose `web` job runs a module's recipe, `just web test`.
+const MODULE_CI: Ci<Filter> = Ci {
+    jobs: &[Job {
+        id: "web",
+        trigger: Trigger::EveryChange,
+        recipes: &[Recipe {
+            command: &["just", "web", "test"],
+            run: Run::Workspace,
+        }],
+    }],
+    ignored: &[],
+};
+
+/// A module's recipe compares by its whole path, so `just web` (the
+/// module's default recipe) or `just web lint` isn't `just web test`, while
+/// its arguments may still differ.
+#[test]
+fn a_module_recipe_compares_by_its_path() {
+    let modules = || {
+        serde_json::from_str::<Modules>(
+            r#"{"modules": {"web": {"recipes": {"lint": {}, "test": {}}}}}"#,
+        )
+        .expect("the modules parse")
+    };
+    let drift = |workflow: &[&str]| {
+        vec![Drift::Recipes {
+            job: "web",
+            table: names(&["web test"]),
+            workflow: names(workflow),
+        }]
+    };
+    for (run, drifts) in [
+        ("just web test --fast", vec![]),
+        ("just web::test", vec![]),
+        ("just web", drift(&["web"])),
+        ("just web && just web lint", drift(&["web", "web lint"])),
+    ] {
+        let yaml = format!(
+            "jobs:\n  changes:\n    steps:\n      - id: filter\n        uses: \
+             dorny/paths-filter@v4\n        with:\n          filters: .github/filters.yml\n  \
+             web:\n    steps:\n      - run: {run}\n"
+        );
+        let workflow = Workflow::parse(&yaml, modules()).expect("the workflow parses");
+        assert_eq!(MODULE_CI.drifts(&workflow), drifts, "{run}");
     }
 }
 
@@ -142,7 +192,7 @@ fn the_quantifier_is_read_from_the_paths_filter_step() {
         "          filters:",
         "          predicate-quantifier: every\n          filters:",
     );
-    let workflow = Workflow::parse(&every).expect("the workflow parses");
+    let workflow = Workflow::parse(&every, Modules::default()).expect("the workflow parses");
     assert_eq!(workflow.quantifier, Quantifier::Every);
 
     let unknown = WORKFLOW.replace(
@@ -150,7 +200,7 @@ fn the_quantifier_is_read_from_the_paths_filter_step() {
         "          predicate-quantifier: all\n          filters:",
     );
     assert!(matches!(
-        Workflow::parse(&unknown),
+        Workflow::parse(&unknown, Modules::default()),
         Err(Error::UnknownQuantifier { found }) if found == "all"
     ));
 }
@@ -162,7 +212,7 @@ fn the_paths_filter_step_must_read_the_filters_file() {
         "filters: |\n            rust: ['**']",
     );
     assert!(matches!(
-        Workflow::parse(&inline),
+        Workflow::parse(&inline, Modules::default()),
         Err(Error::InlineFilters)
     ));
 }

@@ -9,6 +9,7 @@
 
 mod change;
 mod filters;
+mod modules;
 #[cfg(test)]
 mod tests;
 mod workflow;
@@ -24,6 +25,7 @@ use crate::metadata::{Metadata, MetadataError};
 use crate::workspace::Workspace;
 use change::{Outcome, Scope, Step};
 use filters::Filters;
+use modules::Modules;
 use workflow::Workflow;
 
 /// The branch a change merges into, unless the developer names another.
@@ -403,9 +405,11 @@ impl<F: Filter> Ci<F> {
 
     /// Checks the table against `ci.yml` and `filters.yml` under `root`:
     /// each job of either is in the other, its `if:` reads the `changes`
-    /// outputs of exactly the filters its trigger names, and the filters
-    /// file names exactly the [`Filter`]s. A repository calls it from a unit
-    /// test; [`Ci::run`] checks it too.
+    /// outputs of exactly the filters its trigger names, its `run:` scripts
+    /// call the table's `just` recipes, each by its path through the
+    /// justfile's modules (`web test`), and the filters file names exactly
+    /// the [`Filter`]s. A repository calls it from a unit test; [`Ci::run`]
+    /// checks it too.
     ///
     /// # Errors
     ///
@@ -476,8 +480,7 @@ impl<F: Filter> Ci<F> {
             let table: BTreeSet<String> = entries
                 .iter()
                 .flat_map(|job| job.recipes)
-                .filter_map(Recipe::just)
-                .map(str::to_owned)
+                .filter_map(|recipe| recipe.just(&workflow.modules))
                 .collect();
             if table != found.recipes {
                 drifts.push(Drift::Recipes {
@@ -557,7 +560,8 @@ impl<F: Filter> fmt::Display for Trigger<F> {
 }
 
 impl Recipe {
-    /// The `just` recipe it runs, such as `lint` for `just lint --workspace`,
+    /// The `just` recipe it runs, through the justfile's `modules`, such as
+    /// `lint` for `just lint --workspace` or `web test` for `just web test`,
     /// if it runs one.
     #[cfg_attr(
         dylint_lib = "standard_lints",
@@ -566,9 +570,9 @@ impl Recipe {
             reason = "reads a recipe's command line, whose program is a string"
         )
     )]
-    fn just(&self) -> Option<&'static str> {
+    fn just(&self, modules: &Modules) -> Option<String> {
         match self.command {
-            ["just", recipe, ..] => Some(recipe),
+            ["just", words @ ..] => modules.path(words),
             _ => None,
         }
     }
