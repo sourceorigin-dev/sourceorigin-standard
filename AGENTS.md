@@ -1,6 +1,6 @@
 # sourceorigin-standard
 
-The engineering standard of piqueld, sourceorigin and DirkEngine, as code. Each of those repositories'
+The engineering standard of piqueld, sourceorigin, origin and DirkEngine, as code. Each of those repositories'
 `tools/xtask` depends on this crate from crates.io and runs its checks, so a
 rule fails a check instead of living in prose. A rule is enforced by the
 first of these that can express it: types, rustc and Clippy settings, a check
@@ -107,7 +107,8 @@ this list and say which entries applied:
 - this repository's own `tools/xtask`, which uses the crate as the others do;
 - for `pr-checks.yml`, the README's caller workflow and `[pr-checks]`
   settings, and this repository's own `pr.yml` and `standard.toml`;
-- for a lint, the table in `lints/README.md`.
+- for a lint, the table in `lints/README.md`;
+- every consumer, once the change is released: the `propagate` skill says how.
 
 ## Issues, commits & pull requests
 
