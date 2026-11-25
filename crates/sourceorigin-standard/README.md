@@ -263,7 +263,10 @@ check: a deviation in `standard.toml`, or a change to the check here.
 - `lint-exceptions`: a pull request that loosens a rule needs approval:
   any change to `standard.toml`, `clippy.toml`, `deny.toml`, `dylint.toml`
   or `.cargo/config.toml`, under its name or the one it is renamed from, and
-  a budget of `budget.toml` that rises or appears. As each budget equals
+  a budget of `budget.toml` that rises or appears. A change to
+  `standard.toml` that only tightens it needs none: one that removes
+  deviations, removes entries from a deviation's `paths` or `crates`, or
+  rewords a reason, and changes nothing else. As each budget equals
   its count, every new `#[expect]`, `// INVARIANT:`, `// wall-clock:` or
   lint a manifest sets to `allow` shows as one. Approval is the
   `approved-exception` label, added by one of the `approvers` after the

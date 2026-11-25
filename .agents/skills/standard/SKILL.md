@@ -101,7 +101,9 @@ same question.
 The PR checks' `lint-exceptions` check fails a pull request that loosens a
 rule: any change to `standard.toml`, `clippy.toml`, `deny.toml`,
 `dylint.toml` or `.cargo/config.toml`, or a budget that rises, as one does for a lint newly
-`allow`ed. It passes once one of the `approvers` in `[pr-checks]` adds the
+`allow`ed. A change to `standard.toml` that only removes deviations, removes
+entries from their `paths` or `crates`, or rewords a reason passes without
+approval. It passes once one of the `approvers` in `[pr-checks]` adds the
 `approved-exception` label after the latest push; a later push, a
 force-push included, needs it added again.
 
