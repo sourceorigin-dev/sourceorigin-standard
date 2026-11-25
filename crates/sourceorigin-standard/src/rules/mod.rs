@@ -240,7 +240,9 @@ rules! {
     /// Every dependency of a workspace crate, of every kind and target, is
     /// inherited with `workspace = true` from the root's
     /// `[workspace.dependencies]`, where each `path` dependency also has a
-    /// `version`.
+    /// `version` unless its crate sets `publish = false`. A crate's
+    /// dependency on itself, as its tests take to turn on a feature, stays
+    /// in its own manifest.
     WorkspaceDependencies = "workspace-dependencies" => workspace_dependencies,
     /// `deny.toml` sets `unknown-registry` and `unknown-git` under
     /// `[sources]`, and `wildcards` under `[bans]`, to `"deny"`, allows at
