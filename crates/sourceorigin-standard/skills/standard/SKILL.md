@@ -5,9 +5,9 @@ description: >
   Dylint lints CI runs, and the pull-request checks. Read a violation and fix
   it, make the mechanical fixes with `--fix`, and know what to do when a rule
   gets in the way. Use when `just standard`, a Dylint lint or a PR check
-  fails, before adding a deviation, an `#[expect]`, a workspace `allow` or an
-  `// INVARIANT:` comment, or when adding or changing a rule in
-  sourceorigin-standard.
+  fails, before adding a deviation, an `#[expect]`, a workspace `allow`, an
+  `// INVARIANT:` or a `// wall-clock:` comment, or when adding or changing a
+  rule in sourceorigin-standard.
 ---
 
 # Work with the standard
@@ -29,8 +29,8 @@ A repository has two required checks: `ci`, for the code, and
 `standard / pr-checks`, for the pull request. `standard.toml` at its root
 holds how it applies the rules, and its `[pr-checks]` table the PR checks'
 settings, such as the scopes a title may take. `budget.toml` holds each
-crate's exact number of `#[expect]` lints and `// INVARIANT:` lines, and
-each manifest's number of lints set to `allow`.
+crate's exact number of `#[expect]` lints, `// INVARIANT:` lines and
+`// wall-clock:` lines, and each manifest's number of lints set to `allow`.
 
 ## Fix a violation
 
@@ -90,9 +90,9 @@ a reason saying why the lint is wrong there:
 
 With the user's approval, make the exception or deviation in the same pull
 request as the code that needs it, and say why in its description. A new
-`#[expect]`, `// INVARIANT:` or workspace `allow` raises its number in
-`budget.toml` (`[allow]` counts a manifest's by its path): the same
-question.
+`#[expect]`, `// INVARIANT:`, `// wall-clock:` or workspace `allow` raises
+its number in `budget.toml` (`[allow]` counts a manifest's by its path): the
+same question.
 
 ## Approval of an exception
 

@@ -23,8 +23,8 @@ A repository adopts the standard in six steps:
    `just lint` passes `-D warnings`; a lint outside that set may be `allow`
    there, in one reviewed place.
 4. It commits `standard.toml` when it needs settings or deviations, and
-   `budget.toml`, under `CODEOWNERS`, when it has `#[expect]` attributes or
-   `// INVARIANT:` comments.
+   `budget.toml`, under `CODEOWNERS`, when it has `#[expect]` attributes,
+   `// INVARIANT:` comments or `// wall-clock:` comments.
 5. A workflow of its own calls this repository's pull request checks, as
    [below](#pull-request-checks) shows, on `main` (where GitHub reads it
    from), and its ruleset requires two
@@ -40,9 +40,9 @@ A repository adopts the standard in six steps:
 - `rust-syntax`: Every Rust file git tracks or would track is UTF-8 text and parses as Rust.
 - `config-syntax`: The crates' manifests, `budget.toml`, `deny.toml`, `rustfmt.toml`, `clippy.toml`, `rust-toolchain.toml`, `.config/nextest.toml`, `.cargo/config.toml`, every `.github` YAML file and `t3.json` parse, and `just --dump` reads the justfile. Each file a rule reads is UTF-8 text; one that isn't is one violation, and the rules go on. When `cargo metadata` can't read the workspace, the file cargo names, or else the root manifest, is the only violation, with cargo's whole message.
 - `unsafe-modules`: `#[expect(unsafe_code, …)]` sits only inside the modules `standard.toml`'s `unsafe-modules` lists, such as `my_crate::ffi` or `build_script_build` (a target's root module is its crate's name), and every listed module holds one.
-- `budget`: Each crate's `#[expect]` lints (each lint an `#[expect]` names, inner, outer, through `cfg_attr` or in a `macro_rules!` body) number exactly what `budget.toml`'s `[expect]` table gives it, and its lines starting `// INVARIANT:` exactly what `[invariant]` does, in the files its targets reach; each manifest's lints set to `allow` number what `[allow]` gives its path. Zero for one a table doesn't list. The crates of other workspaces in the repository count too, but not a Dylint library's UI cases, which are test fixtures.
+- `budget`: Each crate's `#[expect]` lints (each lint an `#[expect]` names, inner, outer, through `cfg_attr` or in a `macro_rules!` body) number exactly what `budget.toml`'s `[expect]` table gives it, and its lines starting `// INVARIANT:` exactly what `[invariant]` does and those starting `// wall-clock:` what `[wall-clock]` does, in the files its targets reach; each manifest's lints set to `allow` number what `[allow]` gives its path. Zero for one a table doesn't list. The crates of other workspaces in the repository count too, but not a Dylint library's UI cases, which are test fixtures.
 - `generated-lints`: Rust files `.gitattributes` marks `linguist-generated` contain no lint attribute (`allow`, `expect`, `warn`, `deny` or `forbid`, inner or outer): their exceptions sit on their `mod` declaration.
-- `rust-comments`: Rust files that aren't generated hold only doc comments (`///`, `//!`), `// SAFETY:` comments and `// INVARIANT:` comments; any other `//` or `/* */` comment fails.
+- `rust-comments`: Rust files that aren't generated hold only doc comments (`///`, `//!`), `// SAFETY:` comments, `// INVARIANT:` comments and `// wall-clock: <why>` comments, which say why the test below has to poll or sleep; any other `//` or `/* */` comment fails.
 - `doc-length`: The prose of each item's or module's docs, in a file that isn't generated, spans at most `standard.toml`'s `[comments] doc-lines` lines (10 by default). Code blocks and a crate root's `//!` docs don't count.
 - `config-comments`: In every `Cargo.toml`, justfile (and `*.just`) and `.github` YAML file, each block of `#` comment lines spans at most `standard.toml`'s `[comments] block-lines` (6 by default), and the file holds at most `[comments] file-lines` comment lines (40 by default).
 - `workspace-manifest`: The root manifest's `[workspace]` sets `resolver = "3"`, its `[workspace.package]` sets `edition = "2024"`, and every workspace crate inherits it with `edition.workspace = true`.
@@ -148,10 +148,11 @@ scopes = ["daemon", "cli"]
 ```
 
 `budget.toml`, beside it, holds each crate's number of `#[expect]` lints
-(an `#[expect(a, b)]` counts two) and of `// INVARIANT:` lines, which state
-a fact the code relies on that neither the types nor a test can hold, in
-the files its targets reach, a crate of another workspace in the repository
-(such as one on its own toolchain) included, but not a Dylint library's UI
+(an `#[expect(a, b)]` counts two), of `// INVARIANT:` lines, which state a
+fact the code relies on that neither the types nor a test can hold, and of
+`// wall-clock:` lines, which say why the test below has to poll or sleep,
+in the files its targets reach, a crate of another workspace in the
+repository (such as one on its own toolchain) included, but not a Dylint library's UI
 cases, whose `#[expect]`s are what they test. It also holds each manifest's
 number of lints set to `allow`, by its path. Each count must equal its
 budget: more fails until the number is raised, which the owner reviews
@@ -166,6 +167,9 @@ piquelctl = 1
 
 [invariant]
 piqueld = 2
+
+[wall-clock]
+piqueld = 4
 
 [allow]
 "Cargo.toml" = 1
@@ -260,11 +264,11 @@ check: a deviation in `standard.toml`, or a change to the check here.
   any change to `standard.toml`, `clippy.toml`, `deny.toml`, `dylint.toml`
   or `.cargo/config.toml`, under its name or the one it is renamed from, and
   a budget of `budget.toml` that rises or appears. As each budget equals
-  its count, every new `#[expect]`, `// INVARIANT:` or lint a manifest sets
-  to `allow` shows as one. Approval is the `approved-exception` label,
-  added by one of the `approvers` after the latest push: the newest entry
-  of the head repository's activity log for the pull request's branch,
-  which must have moved it to its head commit. Any later push, a force-push
+  its count, every new `#[expect]`, `// INVARIANT:`, `// wall-clock:` or
+  lint a manifest sets to `allow` shows as one. Approval is the
+  `approved-exception` label, added by one of the `approvers` after the
+  latest push: the newest entry of the head repository's activity log for
+  the pull request's branch, which must have moved it to its head commit. Any later push, a force-push
   or a fast-forward back to an earlier commit included, needs it added
   again. With no such entry, as for a fork the job's token can't read, there
   is no approval. The job's

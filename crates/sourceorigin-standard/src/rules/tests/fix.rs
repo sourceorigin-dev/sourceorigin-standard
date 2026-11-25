@@ -47,7 +47,7 @@ fn fix_makes_every_mechanical_fix_and_says_what_it_changed() {
         .write(
             "budget.toml",
             "expect = { core = 3, removed = 2 } # the FFI layer\r\ninvariant.core = 2\r\n\
-             allow.\"Cargo.toml\" = 2\r\n",
+             wall-clock.core = 1\r\nallow.\"Cargo.toml\" = 2\r\n",
         )
         .write(
             "standard.toml",
@@ -63,12 +63,14 @@ fn fix_makes_every_mechanical_fix_and_says_what_it_changed() {
             "budget.toml: lower `core` under `[expect]` from 3 to 1",
             "budget.toml: remove `removed`, no crate of the repository, from `[expect]`",
             "budget.toml: lower `core` under `[invariant]` from 2 to 0",
+            "budget.toml: lower `core` under `[wall-clock]` from 1 to 0",
             "standard.toml: remove the stale deviation from `doc-length`",
         ]
     );
     assert_eq!(
         fixture.read("budget.toml"),
-        "expect = { core = 1 } # the FFI layer\r\ninvariant.core = 0\r\nallow.\"Cargo.toml\" = 2\r\n"
+        "expect = { core = 1 } # the FFI layer\r\ninvariant.core = 0\r\nwall-clock.core = 0\r\n\
+         allow.\"Cargo.toml\" = 2\r\n"
     );
     assert_eq!(
         fixture.read("standard.toml"),

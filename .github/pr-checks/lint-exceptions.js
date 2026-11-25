@@ -11,8 +11,8 @@ const { Toml } = require('./toml.js');
 const RULE_FILES = [PATH, 'clippy.toml', '.clippy.toml', 'deny.toml', 'dylint.toml', '.cargo/config.toml', '.cargo/config'];
 
 /** The repository's budgets, each equal to what it counts: each crate's
- * `#[expect]` lints and `// INVARIANT:` lines, and each manifest's lints set
- * to `allow` (`[allow]`), which the crate's `budget` rule counts in every
+ * `#[expect]` lints, `// INVARIANT:` lines and `// wall-clock:` lines, and
+ * each manifest's lints set to `allow` (`[allow]`), which the crate's `budget` rule counts in every
  * form TOML has. */
 const BUDGET = 'budget.toml';
 
@@ -23,8 +23,8 @@ const VERBS = { added: 'adds', removed: 'deletes', renamed: 'renames' };
  * C11: a pull request that loosens a rule is always seen, and needs
  * approval: any change to a rule file, under its name or its old one, and
  * a budget of budget.toml that rises or appears. As every budget equals
- * its count, each new `#[expect]`, `// INVARIANT:` or lint a manifest
- * allows shows as one. The approval is the `approved-exception` label,
+ * its count, each new `#[expect]`, `// INVARIANT:`, `// wall-clock:` or lint
+ * a manifest allows shows as one. The approval is the `approved-exception` label,
  * added by an approver after the latest push; report-only mode lists
  * without failing.
  */
