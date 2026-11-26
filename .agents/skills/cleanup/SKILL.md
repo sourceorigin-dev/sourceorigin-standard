@@ -2,8 +2,8 @@
 name: cleanup
 description: >
   Run the monthly cleanup of the whole repository: an audit that measures the
-  code, checks the standard's judgement rules and finds the rules that cause
-  the most friction, then a pass where one agent per area opens focused,
+  code, checks the standard's judgement rules, and finds the rules that cause
+  the most friction and the ones that are missing, then a pass where one agent per area opens focused,
   reviewed refactor PRs, a boundary lane cleans up between the areas, and
   every bug found gets an issue and a fix PR. Use when asked for a cleanup or
   refactor pass, an audit, a conformance check or codebase stats, or to
@@ -48,7 +48,12 @@ finish.
    a sample of the `#[expect]` reasons. Each rule or lint near the top is a
    candidate: change it, delete it, narrow its deviation, or keep it and fix
    the code.
-3. Read the output, then check what the scripts can't count:
+3. Find the missing rules: run the `correct` skill over the history since
+   the last cleanup pass (its issue's date, or a month without one), and
+   have it report, not fix. Each mistake class it reports is a candidate.
+   The friction ranking finds the rules that cost too much; this finds the
+   rules that are missing.
+4. Read the output, then check what the scripts can't count:
    - coverage, as `AGENTS.md` says to measure it
    - unused code and dependencies, with `just unused`
    - generated files missing from `.gitattributes`
@@ -56,15 +61,16 @@ finish.
    - duplication built up since the last pass
    - the judgement checks in `references/checks.md`, sampled across the
      repository, to rank where the pass should look first
-4. Send the owner the charts, the friction ranking and a ranked list of
-   suggestions, each with the numbers and paths behind it. Open nothing yet.
-5. For each suggestion the owner picks, start a thread with
+5. Send the owner the charts, the friction ranking with the mistake classes
+   beside it, and a ranked list of suggestions, each with the numbers and
+   paths behind it. Open nothing yet.
+6. For each suggestion the owner picks, start a thread with
    `t3_thread_launch`. Use Claude Opus 5.5 in a worktree off `origin/main`.
    Its message stands alone: the goal, the numbers, the scope and what to
    report. A thread that checks many sites reports a table of each site, its
-   verdict and why. A rule the owner wants changed or deleted gets an issue
-   in sourceorigin-dev/standard instead, since the rule lives
-   there.
+   verdict and why. A rule the owner wants changed or deleted, and a
+   mistake class that belongs in every repository, get an issue in
+   sourceorigin-dev/standard instead, since the rules live there.
 
 Changes that move code in many areas, such as file splits, merge before the
 cleanup pass starts or go into the area agents' tasks.
@@ -204,9 +210,9 @@ report:
 2. Decisions only the owner can make, with your recommendation.
 3. The bugs: each one's issue, fix PR and state.
 4. The boundary themes, and which ones wait for the area PRs.
-5. The standard's friction: the rules and lints to change or delete, the
-   workarounds the agents found, and the issues opened in
-   sourceorigin-standard.
+5. The standard's friction and gaps: the rules and lints to change or
+   delete, the workarounds the agents found, the mistake classes the audit
+   found, and the issues opened in sourceorigin-standard.
 6. Other design issues, and judgement checks the pass left open.
 7. Features missing from a surface in `AGENTS.md`, checked against current
    `main`.
