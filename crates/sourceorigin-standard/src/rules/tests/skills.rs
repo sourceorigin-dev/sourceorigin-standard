@@ -105,7 +105,7 @@ fn an_edited_copy_fails_at_its_first_changed_line_and_fix_restores_it_keeping_un
         fixture.violations(Rule::SkillsSynced),
         [
             format!(
-                ".agents/skills/docs/SKILL.md:14: the `docs` skill's file differs from sourceorigin-standard's copy: {sync}"
+                ".agents/skills/docs/SKILL.md:12: the `docs` skill's file differs from sourceorigin-standard's copy: {sync}"
             ),
             ".agents/skills/docs/notes.md:1: the `docs` skill doesn't ship this file, and git \
              doesn't track it, so `--fix` leaves it: move it out of the synced skill, or delete \
