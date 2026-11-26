@@ -13,6 +13,8 @@ description: >
 
 # Cleanup
 
+> **Scope.** Do only what this skill's task asks. No drive-by refactors, renames, reformatting or extra features. Note anything else in your report or in an issue instead of fixing it. Ask the owner before widening the change. Reread your diff before handing back and drop every hunk the task doesn't need. See "Scope" in `AGENTS.md`.
+
 You orchestrate a cleanup of the whole repository in two parts: an audit,
 then a cleanup pass. Run both unless the owner asks for one. Delegates write
 the code. You split the work, brief them, route reviews and report.

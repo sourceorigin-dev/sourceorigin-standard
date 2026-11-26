@@ -1,5 +1,7 @@
 # Cleanup pass: area agent
 
+> **Scope.** Do only what this skill's task asks. No drive-by refactors, renames, reformatting or extra features. Note anything else in your report or in an issue instead of fixing it. Ask the owner before widening the change. Reread your diff before handing back and drop every hunk the task doesn't need. See "Scope" in `AGENTS.md`.
+
 You own one area of the repository in a parallel cleanup pass. Your task
 names the area, paths, packages, branch prefix, title scope, the pass's issue
 and `CARGO_BUILD_JOBS`, and lists what the other agents own.
