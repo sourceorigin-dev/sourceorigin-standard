@@ -36,7 +36,8 @@ it describes.
   errors and panics. No justification, no history, no narration of the code
   below. A doc comment on a type users configure, or on a CLI argument, is
   user documentation: write it for them. There are no developer notes: what a
-  developer must know, the code enforces.
+  developer must know, the code enforces, or an `// EXTERNAL:` comment
+  holds, as the `standard` skill says.
 - **READMEs:** what the directory or crate is and how to use it, linking to
   the guides rather than repeating them.
 

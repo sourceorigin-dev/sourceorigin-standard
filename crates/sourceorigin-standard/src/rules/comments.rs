@@ -6,6 +6,7 @@ use std::ops::Range;
 
 use proc_macro2::{Delimiter, LineColumn, Span, TokenStream, TokenTree};
 
+use super::source::Source;
 use super::{Finding, Repository};
 use crate::config;
 
@@ -25,8 +26,9 @@ pub(super) struct Comment {
 
 impl Comment {
     /// How many of its lines start with `marker`: each [`INVARIANT`] line
-    /// states one fact the code relies on, and each [`WALL_CLOCK`] line why
-    /// one test waits on the clock.
+    /// states one fact the code relies on, each [`WALL_CLOCK`] line why one
+    /// test waits on the clock, and each [`EXTERNAL`] line one constraint
+    /// from outside the code.
     pub(super) fn lines_marked(&self, marker: &str) -> usize {
         self.lines
             .iter()
@@ -38,7 +40,33 @@ impl Comment {
     pub(super) fn marked(&self) -> bool {
         self.lines
             .first()
-            .is_some_and(|first| MARKERS.iter().any(|marker| first.starts_with(marker)))
+            .is_some_and(|first| Self::starts_marked(first))
+    }
+
+    fn starts_marked(line: &str) -> bool {
+        MARKERS.iter().any(|marker| line.starts_with(marker))
+    }
+
+    /// The line, from 1, of each of its [`EXTERNAL`] lines whose part of the
+    /// comment, up to the next marked line, holds no link.
+    pub(super) fn unlinked_externals(&self) -> Vec<usize> {
+        let mut unlinked = Vec::new();
+        for (index, line) in self.lines.iter().enumerate() {
+            if !line.starts_with(EXTERNAL) {
+                continue;
+            }
+            let linked = std::iter::once(line)
+                .chain(
+                    self.lines[index + 1..]
+                        .iter()
+                        .take_while(|line| !Self::starts_marked(line)),
+                )
+                .any(|line| line.contains("://"));
+            if !linked {
+                unlinked.push(self.line + index);
+            }
+        }
+        unlinked
     }
 }
 
@@ -50,8 +78,13 @@ pub(super) const INVARIANT: &str = "INVARIANT:";
 /// event, above each such test, which `budget.toml` caps per crate.
 pub(super) const WALL_CLOCK: &str = "wall-clock:";
 
+/// The marker of a fact forced on the code by a dependency, platform,
+/// vendor or protocol it can't change, with a link that shows it, which
+/// `budget.toml` caps per crate.
+pub(super) const EXTERNAL: &str = "EXTERNAL:";
+
 /// What a Rust comment that isn't a doc comment may start with.
-pub(super) const MARKERS: [&str; 3] = ["SAFETY:", INVARIANT, WALL_CLOCK];
+pub(super) const MARKERS: [&str; 4] = ["SAFETY:", INVARIANT, WALL_CLOCK, EXTERNAL];
 
 /// The doc comments and `#[doc]` attributes on one item, or inside one
 /// module.
@@ -312,27 +345,43 @@ impl<'a> Scan<'a> {
 
 impl Repository {
     /// Each comment, in a file that isn't generated, that is neither a doc
-    /// comment nor starts with one of the [`MARKERS`].
+    /// comment nor starts with one of the [`MARKERS`], and each of its
+    /// [`EXTERNAL`] lines without a link.
     pub(super) fn rust_comments(&self) -> Vec<Finding> {
-        self.sources
-            .iter()
-            .filter(|source| !source.generated)
-            .flat_map(|source| {
-                let [safety, invariant, wall_clock] = MARKERS;
-                source
-                    .comments
-                    .iter()
-                    .filter(|comment| !comment.marked())
-                    .map(move |comment| Finding {
-                        path: source.path.clone(),
-                        line: comment.line,
-                        message: format!(
+        let [safety, invariant, wall_clock, external] = MARKERS;
+        let finding = |source: &Source, line, message: String| Finding {
+            path: source.path.clone(),
+            line,
+            message,
+        };
+        let mut findings = Vec::new();
+        for source in self.sources.iter().filter(|source| !source.generated) {
+            for comment in &source.comments {
+                if !comment.marked() {
+                    findings.push(finding(
+                        source,
+                        comment.line,
+                        format!(
                             "a plain comment: move it into the item's `///` docs, or remove it; \
-                             only {safety}, {invariant} and {wall_clock} comments stay"
+                             only {safety}, {invariant}, {wall_clock} and {external} comments \
+                             stay"
                         ),
-                    })
-            })
-            .collect()
+                    ));
+                }
+                findings.extend(comment.unlinked_externals().into_iter().map(|line| {
+                    finding(
+                        source,
+                        line,
+                        format!(
+                            "an {external} comment without a link: link the issue, RFC or \
+                             vendor document that shows the constraint comes from outside the \
+                             code, or reshape the code so it needs no comment"
+                        ),
+                    )
+                }));
+            }
+        }
+        findings
     }
 
     /// Each item's or module's docs, in a file that isn't generated, whose
