@@ -156,14 +156,13 @@ builds = [{ builder = "daemon", built = "dashboard" }]
 scopes = ["daemon", "cli"]
 ```
 
-`wording` rejects by default the words a doc can do without, each with a
-plain one that `--fix` swaps in without changing the sentence around it:
-`additionally` (`also`), `crucial` and `pivotal` (`key`), `enhance`
-(`improve`), `in order to` (`to`), and `leverage`, `utilize` and `utilise`
-(`use`), with their `-s`, `-ed` and `-ing` forms, each also capitalised, as
-it starts a sentence. A repository that needs one of them, as a word of its
-domain, keeps it in `[wording]`, listing each case it writes. A deviation
-scoped to `paths` turns the whole rule off in those files instead.
+`wording` also rejects, by default, words a doc can do without, each with a
+plain one that `--fix` swaps in without changing the sentence around it,
+such as `utilize` for `use`. The list is `DEFAULT_WORDING`, in
+[`src/config/mod.rs`](https://github.com/sourceorigin-dev/standard/blob/main/crates/sourceorigin-standard/src/config/mod.rs).
+A repository that needs one of them, as a word of its domain, keeps it in
+`[wording]`, listing each case it writes. A deviation scoped to `paths`
+turns the whole rule off in those files instead.
 
 `budget.toml`, beside it, holds each crate's number of `#[expect]` lints
 (an `#[expect(a, b)]` counts two), of `// INVARIANT:` lines, which state a
