@@ -63,6 +63,9 @@ pub(super) struct DocBlock {
     pub(super) lines: usize,
     /// Whether they are inner docs (`//!`), documenting the item they sit in.
     pub(super) inner: bool,
+    /// The line, from 1, of each of its `///` and `//!` comments that is
+    /// prose, outside code blocks.
+    pub(super) prose: Vec<usize>,
     /// Whether the docs read so far end inside a code block.
     in_code: bool,
 }
@@ -70,8 +73,9 @@ pub(super) struct DocBlock {
 impl DocBlock {
     /// Counts the prose lines of one doc attribute, whose `group` is
     /// `[doc = …]`: a string's lines outside code fences, or one line for
-    /// anything else, such as `include_str!(…)`.
-    fn add(&mut self, group: &proc_macro2::Group) {
+    /// anything else, such as `include_str!(…)`. `comment` is its line when
+    /// it is a `///` or `//!` comment, recorded when it is prose.
+    fn add(&mut self, group: &proc_macro2::Group, comment: Option<usize>) {
         let value = group.stream().into_iter().nth(2);
         let text = match value {
             Some(TokenTree::Literal(literal)) => {
@@ -90,6 +94,7 @@ impl DocBlock {
                 self.in_code = !self.in_code;
             } else if !self.in_code {
                 self.lines += 1;
+                self.prose.extend(comment);
             }
         }
     }
@@ -196,11 +201,15 @@ impl<'a> Scan<'a> {
                         line: pound.start().line,
                         lines: 0,
                         inner,
+                        prose: Vec::new(),
                         in_code: false,
                     },
                     inner,
                 ));
-                doc_block.add(&group);
+                let written = &self.lines.text[self.lines.offset(pound.start())..];
+                let comment = (written.starts_with("///") || written.starts_with("//!"))
+                    .then_some(pound.start().line);
+                doc_block.add(&group, comment);
             }
         }
         self.doc_blocks.extend(block.map(|(block, _)| block));

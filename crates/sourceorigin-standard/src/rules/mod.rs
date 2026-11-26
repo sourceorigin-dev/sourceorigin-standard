@@ -310,10 +310,12 @@ rules! {
     /// from this crate, has alt text: `![what it shows](…)`, or an `<img>`
     /// with a non-empty `alt`.
     DocsImages = "docs-images" => docs_images,
-    /// No Markdown file but a synced skill's holds, as a word of its prose
-    /// (not code, a link's destination, an HTML tag or a URL, nor part of a
-    /// name such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling
-    /// `standard.toml`'s `[wording]` rejects, such as
+    /// No Markdown file but a synced skill's, nor `///` or `//!` comment in
+    /// a Rust file that isn't generated, holds, as a word of its prose (not
+    /// code, a link's destination, an HTML tag or a URL, nor part of a name
+    /// such as `my_lib`, `lib.rs` or `lib@example.com`), a spelling the
+    /// crate's defaults reject, such as `utilize` for `use` or `in order to`
+    /// for `to`, or that `standard.toml`'s `[wording]` does, such as
     /// `"Source Origin" = "SourceOrigin"`.
     Wording = "wording" => wording,
     /// A module is `foo/mod.rs` only when its directory holds another Rust
