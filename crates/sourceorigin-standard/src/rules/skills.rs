@@ -42,7 +42,7 @@ skills! {
         "references/review-brief.md",
         "scripts/stats.py",
     ],
-    "docs" => ["SKILL.md"],
+    "docs" => ["SKILL.md", "references/doc-comment-review.md"],
 }
 
 impl Skill {

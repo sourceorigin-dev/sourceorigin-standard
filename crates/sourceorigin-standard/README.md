@@ -236,7 +236,8 @@ written once and can't drift apart:
   judgement checks no rule can enforce, and runs one agent per area, with
   reviews, a boundary lane and a fix PR per bug.
 - `docs`: how to write the user guide, the developer guide's recipes and
-  doc comments.
+  doc comments, and the brief of the doc comment review a fresh subagent
+  runs before a pull request opens.
 
 `cargo xtask standard skills` writes each into `.agents/skills/<name>/`,
 its `SKILL.md` saying it is synced and where to change it. The

@@ -51,7 +51,7 @@ fn sync_writes_every_skill_with_its_marker_after_the_frontmatter() {
     fixture.add_crate("core", INHERITS);
     std::fs::remove_dir_all(fixture.0.root().join(DIR)).expect("the skills are removed");
     let missing = fixture.violations(Rule::SkillsSynced);
-    assert_eq!(missing.len(), 7, "{missing:#?}");
+    assert_eq!(missing.len(), 8, "{missing:#?}");
     assert_eq!(
         missing[0],
         ".agents/skills/cleanup/SKILL.md:1: the `cleanup` skill's file is missing: run `cargo \
@@ -60,7 +60,7 @@ fn sync_writes_every_skill_with_its_marker_after_the_frontmatter() {
     );
 
     let written = sync_skills(fixture.0.root()).expect("the skills are synced");
-    assert_eq!(written.len(), 7);
+    assert_eq!(written.len(), 8);
     let standard = std::fs::read_to_string(fixture.0.root().join(DIR).join("standard/SKILL.md"))
         .expect("the skill is read");
     let (frontmatter, body) = standard
