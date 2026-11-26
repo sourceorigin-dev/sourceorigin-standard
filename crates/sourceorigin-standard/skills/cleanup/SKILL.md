@@ -47,12 +47,10 @@ finish.
    candidate: change it, delete it, narrow its deviation, or keep it and fix
    the code.
 3. Find the missing rules: run the `correct` skill over the history since
-   the last cleanup pass (its issue's date, or a month without one): the
-   commits, reverts and review comments, and the owner's corrections in T3
-   thread history. Have it report, not fix. Each mistake class that happened
-   at least twice is a candidate, with its evidence and the level that would
-   stop it. The friction ranking finds the rules that cost too much; this
-   finds the rules that are missing.
+   the last cleanup pass (its issue's date, or a month without one), and
+   have it report, not fix. Each mistake class it reports is a candidate.
+   The friction ranking finds the rules that cost too much; this finds the
+   rules that are missing.
 4. Read the output, then check what the scripts can't count:
    - coverage, as `AGENTS.md` says to measure it
    - unused code and dependencies, with `just unused`
